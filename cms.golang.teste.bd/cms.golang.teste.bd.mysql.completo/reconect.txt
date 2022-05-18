@@ -1,0 +1,18 @@
+
+
+
+https://git.feneas.org/ganggo/gorm/-/tree/615ff81ac106969ebe511a34f9770085f73a57f3/plugins/reconnect
+https://git.feneas.org/ganggo/gorm/-/blob/615ff81ac106969ebe511a34f9770085f73a57f3/plugins/reconnect/reconnect.go
+
+
+import "github.com/jinzhu/gorm/plugins/reconnect"
+
+func main() {
+  DB, err := gorm.Open("mysql", "my-dsn")
+  Reconnect := reconnect.New(&reconnect.Config{
+    Attempts: 3,
+    Interval: 3 * time.Second,
+  })
+
+  DB.Use(Reconnect)
+}

@@ -1,0 +1,11 @@
+
+RabbitMQ to publish/consume events
+https://github.com/MarioCarrion/todo-api-microservice-example/tree/b886f4346851c860728ec7924d8b3196139af11e
+
+Redis as Message Broker for Pub/Sub
+https://github.com/MarioCarrion/todo-api-microservice-example/tree/cf94b77512b88d347ad55428436f6a515f8caaeb
+
+kafka
+https://github.com/confluentinc/confluent-kafka-go
+https://github.com/MarioCarrion/todo-api-microservice-example/tree/8f7d667a2136c66ad2f893c7802edf46cafd6f35
+https://github.com/Shopify/sarama

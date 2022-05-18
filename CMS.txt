@@ -1,0 +1,202 @@
+
+cd "C:\Users\chris\go\src"
+
+go version
+go mod init github.com/ChrisMarSilva/cms-golang-teste-xxxxxxxx
+go mod tidy
+go list -m all
+
+go env
+go env -w GO111MODULE=auto
+go env -w CGO_ENABLED=1   -- certo 
+go env -w GOPATH=C:\Users\chris\go    --- certo
+
+go get -u github.com/zephinzer/godev
+godev init
+go get -u github.com/githubnemo/CompileDaemon
+CompileDaemon -command="go run main.go"
+CompileDaemon -command="./cms.golang.tnb.api"
+
+go run main.go
+go run .
+
+go build main.go
+GOOS=winddows go build main.go
+
+./main
+go install
+
+----------------------------------------------------
+
+
+$ sudo vim /etc/supervisor/conf.d/myapp.conf
+
+#/etc/supervisor/conf.d/myapp.conf
+
+[program:myapp]
+directory=/root/gocode/src/github.com/monirz/myapp
+command=/root/gocode/src/github.com/monirz/myapp/myapp
+autostart=true
+autorestart=true
+stderr_logfile=/var/log/myapp.err
+stdout_logfile=/var/log/myapp.log
+environment=CODENATION_ENV=prod
+environment=GOPATH="/root/gocode"
+
+
+$ sudo supervisorctl reload
+$ sudo supervisorctl status
+$ cat /var/log/myapp.log 
+
+
+cd $GOPATH/go-web
+
+
+sudo nano /lib/systemd/system/goweb.service
+
+[Unit]
+Description=goweb
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=5s
+ExecStart=/home/user/go/go-web/main
+
+[Install]
+WantedBy=multi-user.target
+
+sudo service goweb start
+
+sudo service goweb status
+
+cd /etc/nginx/sites-available
+sudo nano your_domain
+
+server {
+    server_name your_domain www.your_domain;
+
+    location / {
+        proxy_pass http://localhost:9990;
+    }
+}
+
+sudo ln -s /etc/nginx/sites-available/your_domain /etc/nginx/sites-enabled/your_domain
+sudo nginx -s reload
+
+
+----------------------------------------------------
+
+sudo apt update
+sudo apt install golang
+
+cd && mkdir go-app
+cd go-app/
+nano main.go
+
+package main
+
+import (
+  "fmt"
+  "net/http"
+)
+
+func homePage(w http.ResponseWriter, r *http.Request) {
+  fmt.Fprintf(w, "My Awesome Go App")
+}
+
+func setupRoutes() {
+  http.HandleFunc("/", homePage)
+}
+
+func main() {
+  fmt.Println("Go Web App Started on Port 3000")
+  setupRoutes()
+  http.ListenAndServe(":3000", nil)
+}
+
+
+go run main.go
+
+----------------------------------------------------
+
+nano Dockerfile
+
+FROM golang:1.12.0-alpine3.9
+RUN mkdir /app
+ADD . /app
+WORKDIR /app
+RUN go build -o main .
+CMD ["/app/main"]
+
+docker build -t sammy/nome_da_imagem:nome_da_tag .
+docker build -t sammy/go-web-app .
+
+docker images
+docker run -it -p 3000:3000 sammy/go-web-app
+
+http://ip_do_seu_servidor:3000
+
+docker login
+docker push sammy/go-web-app
+
+----------------------------------------------------
+
+mkdir ~/.kube
+mv clusterconfig.yaml ~/.kube/config
+kubectl get nodes
+
+nano deployment.yml
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-web-app
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      name: go-web-app
+  template:
+    metadata:
+      labels:
+        name: go-web-app
+    spec:
+      containers:
+      - name: application
+        image: sammy/go-web-app
+        imagePullPolicy: IfNotPresent
+        ports:
+          - containerPort: 3000
+
+kubectl apply -f deployment.yml
+
+
+
+
+
+nano service.yml
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: go-web-service
+spec:
+  type: LoadBalancer
+  ports:
+  - name: http
+    port: 80
+    targetPort: 3000
+  selector:
+    name: go-web-app
+
+
+kubectl apply -f service.yml
+
+
+kubectl get services
+
+
+----------------------------------------------------

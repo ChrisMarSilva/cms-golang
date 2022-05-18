@@ -1,0 +1,6 @@
+
+"github.com/joho/godotenv"
+  _ = godotenv.Load(".env")
+
+  dbType := os.Getenv("DB_TYPE")
+  dbConnString := os.Getenv("DB_CONN_STRING")

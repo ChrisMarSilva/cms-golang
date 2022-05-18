@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CMS Teste</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400">
+  <style>
+      body {
+			font-family: 'Open Sans', sans-serif;
+		}
+  </style>
+</head>
+<body>
+
+    <h1 class="text-3xl text-center">Web Crawler</h1>
+
+    <table class="table-auto">
+        <thead>
+            <tr>
+                <th>WebSite</th>
+                <th>Link</th>
+                <th>Data</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{ range .Links }}
+            <tr>
+                <td>{{ .WebSite }}</td>
+                <td>{{ .Link }}</td>
+                <td>{{ .VisitedDate }}</td>
+            </tr>
+            {{ end }}
+        </tbody>
+    </table>
+
+</body>
+</html>

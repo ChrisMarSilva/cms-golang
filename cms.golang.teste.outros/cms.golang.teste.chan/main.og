@@ -1,0 +1,173 @@
+package main
+
+import (
+	"fmt"
+)
+
+type Pessoa struct {
+	Id   int
+	Nome string
+}
+
+func main() {
+
+	fmt.Println("")
+	fmt.Println("canal 7")
+	par := make(chan int)
+	impar := make(chan int)
+	pes := make(chan Pessoa)
+	quit2 := make(chan bool)
+	go mandaNumeros(par, impar, pes, quit2)
+	receiverNumeros(par, impar, pes, quit2)
+
+	fmt.Println("")
+	fmt.Println("canal 6")
+	canal3 := make(chan int)
+	quit := make(chan bool)
+	go receberQuit(canal3, quit)
+	enviaPraCanal(canal3, quit)
+
+	fmt.Println("")
+	fmt.Println("canal 5")
+	a := make(chan int)
+	b := make(chan int)
+	x := 10
+
+	go func(x int) {
+		for i := 0; i < x; i++ {
+			a <- i
+		}
+	}(x / 2)
+	go func(x int) {
+		for i := 0; i < x; i++ {
+			b <- i
+		}
+	}(x / 2)
+
+	for i := 0; i < x; i++ {
+		select {
+		case v := <-a:
+			fmt.Println("A: ", v)
+		case v := <-b:
+			fmt.Println("b: ", v)
+		}
+	}
+
+	fmt.Println("canal 4")
+	fmt.Println("")
+	c := make(chan int)
+	go meuloop(10, c)
+	prints(c)
+
+	fmt.Println("canal 3")
+	fmt.Println("")
+	canal2 := make(chan int)
+	go send(canal2)
+	receive(canal2)
+
+	fmt.Println("canal 2")
+	fmt.Println("")
+	canal1 := make(chan int, 1)
+	canal1 <- 41
+	fmt.Println(<-canal1)
+
+	fmt.Println("canal 1")
+	fmt.Println("")
+	canal := make(chan int)
+	go func() {
+		canal <- 42
+	}()
+	fmt.Println(<-canal)
+
+	fmt.Println("FIM")
+
+}
+
+func send(s chan<- int) {
+	s <- 55
+}
+
+func receive(r <-chan int) {
+	fmt.Println(<-r)
+}
+
+func meuloop(t int, s chan<- int) {
+	for i := 0; i < t; i++ {
+		s <- i
+	}
+	close(s)
+}
+
+func prints(r <-chan int) {
+	for v := range r {
+		fmt.Println(v)
+	}
+}
+
+func receberQuit(canal3 chan int, quit chan bool) {
+	for i := 0; i < 5; i++ {
+		fmt.Println("Recebido: ", <-canal3)
+	}
+	quit <- true
+}
+
+func enviaPraCanal(canal3 chan int, quit chan bool) {
+	t := 1
+	for {
+		select {
+		case canal3 <- t:
+			t++
+		case <-quit:
+			{
+
+				fmt.Println("quit: ")
+				return
+			}
+		}
+	}
+}
+
+func mandaNumeros(par, impar chan int, pes chan Pessoa, quit chan bool) {
+	t := 10
+	for i := 0; i < t; i++ {
+		pes <- Pessoa{i, "NomePessoa "}
+		if i%2 == 0 {
+			par <- i
+		} else {
+			impar <- i
+		}
+	}
+	close(par)
+	close(impar)
+	close(pes)
+	quit <- true
+}
+
+func receiverNumeros(par, impar chan int, pes chan Pessoa, quit chan bool) {
+	for {
+		select {
+		case v, ok := <-par:
+			if ok {
+				fmt.Println("par: ", v)
+			}
+		case v, ok := <-impar:
+			if ok {
+				fmt.Println("impar: ", v)
+			}
+		case v, ok := <-pes:
+			if ok {
+				fmt.Println("pessoa: ", v.Id, v.Nome)
+			}
+		case v, ok := <-quit:
+			if !ok {
+				fmt.Println("deu merda: ", v)
+			} else {
+
+				fmt.Println("encerrando: ", v)
+			}
+			return
+
+		}
+	}
+
+}
