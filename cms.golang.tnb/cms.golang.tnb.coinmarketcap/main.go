@@ -17,7 +17,7 @@ import (
 func main() {
 
 	client := &http.Client{}
-	req, err := http.NewRequest("GET","https://sandbox-api.coinmarketcap.com/v1/cryptocurrency/listings/latest", nil)
+	req, err := http.NewRequest("GET", "https://sandbox-api.coinmarketcap.com/v1/cryptocurrency/listings/latest", nil)
 	if err != nil {
 		log.Print(err)
 		os.Exit(1)
@@ -29,27 +29,26 @@ func main() {
 	q.Add("convert", "USD")
 
 	req.Header.Set("Accepts", "application/json")
-	req.Header.Add("X-CMC_PRO_API_KEY", "b54bcf4d-1bca-4e8e-9a24-22ff2c3d462c")
+	req.Header.Add("X-CMC_PRO_API_KEY", "<TOKEN>")
 	req.URL.RawQuery = q.Encode()
 
-	resp, err := client.Do(req);
+	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Println("Error sending request to server")
 		os.Exit(1)
 	}
-	fmt.Println(resp.Status);
+	fmt.Println(resp.Status)
 
 	respBody, _ := ioutil.ReadAll(resp.Body)
 	fmt.Println(string(respBody))
 
 }
 
-
 /*
 url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest?limit=5000'
-headers = { 'Accepts': 'application/json', 'X-CMC_PRO_API_KEY': '06321a85-c3db-4207-8c16-474da8ccc1b7', }   # meu
+headers = { 'Accepts': 'application/json', 'X-CMC_PRO_API_KEY': '<TOKEN>', }   # meu
 session = Session()
-session.headers.update(headers) 
+session.headers.update(headers)
 try:
     response = session.get(url)
     data = json.loads(response.text)
@@ -59,12 +58,12 @@ except (ConnectionError, Timeout, TooManyRedirects) as e:
 
 
 # This creates a long string of all the top 100 crypto currency symbols.
-symbolstr=','.join(('BTC,ETH,BNB,XRP,USDT,ADA,DOT,UNI,LTC,LINK,XLM,BCH,THETA,FIL,USDC,TRX,DOGE,WBTC,VET,SOL,KLAY,EOS,XMR,LUNA,MIOTA,BTT,CRO,BUSD,FTT,AAVE,BSV,XTZ,ATOM,NEO,AVAX,ALGO,CAKE,HT,EGLD,XEM,KSM,BTCB,DAI,HOT,CHZ,DASH,HBAR,RUNE,MKR,ZEC,ENJ,DCR,MKR,ETC,GRT,COMP,STX,NEAR,SNX,ZIL,BAT,LEO,SUSHI,MATIC,BTG,NEXO,TFUEL,ZRX,UST,CEL,MANA,YFI,UMA,WAVES,RVN,ONT,ICX,QTUM,ONE,KCS,OMG,FLOW,OKB,BNT,HNT,SC,DGB,RSR,DENT,ANKR,REV,NPXS,VGX,FTM,CHSB,REN,IOST,CELO,CFX')) 
+symbolstr=','.join(('BTC,ETH,BNB,XRP,USDT,ADA,DOT,UNI,LTC,LINK,XLM,BCH,THETA,FIL,USDC,TRX,DOGE,WBTC,VET,SOL,KLAY,EOS,XMR,LUNA,MIOTA,BTT,CRO,BUSD,FTT,AAVE,BSV,XTZ,ATOM,NEO,AVAX,ALGO,CAKE,HT,EGLD,XEM,KSM,BTCB,DAI,HOT,CHZ,DASH,HBAR,RUNE,MKR,ZEC,ENJ,DCR,MKR,ETC,GRT,COMP,STX,NEAR,SNX,ZIL,BAT,LEO,SUSHI,MATIC,BTG,NEXO,TFUEL,ZRX,UST,CEL,MANA,YFI,UMA,WAVES,RVN,ONT,ICX,QTUM,ONE,KCS,OMG,FLOW,OKB,BNT,HNT,SC,DGB,RSR,DENT,ANKR,REV,NPXS,VGX,FTM,CHSB,REN,IOST,CELO,CFX'))
 symbolstr
 symbol_list=symbolstr.split(',') # Makes symbolstr into a list for later for loop
 symbol_list[:5]
 url = f'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
-headers = {'Accepts': 'application/json',    'X-CMC_PRO_API_KEY': '06321a85-c3db-4207-8c16-474da8ccc1b7',}# meu
+headers = {'Accepts': 'application/json',    'X-CMC_PRO_API_KEY': '<TOKEN>',}# meu
 parameters = { 'symbol': symbolstr,'convert':'BRL'  }
 session = Session()
 session.headers.update(headers)
@@ -72,7 +71,7 @@ try:
     response = session.get(url, params=parameters)
     data1 = json.loads(response.text)
 except (ConnectionError, Timeout, TooManyRedirects) as e:
-    data1 = json.loads(response.text)	
+    data1 = json.loads(response.text)
 
 
 	print('id=',data1['data']['AAVE']['id'])
@@ -101,7 +100,7 @@ with open('coinmap.txt', 'w') as f:
 
 url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest'
 parameters = {'start':'1','limit':'5000','convert':'BRL'}
-headers = {'Accepts': 'application/json',  'X-CMC_PRO_API_KEY': '06321a85-c3db-4207-8c16-474da8ccc1b7',}# meu
+headers = {'Accepts': 'application/json',  'X-CMC_PRO_API_KEY': '<TOKEN>',}# meu
 session = Session()
 session.headers.update(headers)
 try:

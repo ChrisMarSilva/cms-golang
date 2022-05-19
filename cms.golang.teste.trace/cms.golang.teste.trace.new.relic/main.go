@@ -8,6 +8,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
+
 	// newrelic "github.com/newrelic/go-agent"
 	// "github.com/newrelic/go-agent/internal"
 	"github.com/newrelic/go-agent/v3/integrations/nrgorilla"
@@ -37,12 +38,12 @@ func main() {
 
 	// app, _ := newrelic.NewApplication(
 	// 	newrelic.ConfigAppName("Cms.Golang.Teste.New.Relic"),
-	// 	newrelic.ConfigLicense("NRAK-22XQ9ZKEIXD5ASM5S07ZN47UH82"),
+	// 	newrelic.ConfigLicense("<TOKEN>"),
 	// )
 
 	app, _ := newrelic.NewApplication(
 		newrelic.ConfigAppName("Cms.Golang.Teste.New.Relic"),
-		newrelic.ConfigLicense("40e1fefc0c36ae6c981a2c59112058cdaa7bNRAL"),
+		newrelic.ConfigLicense("<TOKEN>"),
 		newrelic.ConfigDistributedTracerEnabled(true),
 	)
 
