@@ -17,7 +17,7 @@ COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 WORKDIR /app
 COPY --from=builder /app/main .
-COPY --from=builder /app/.env .
+# COPY --from=builder /app/.env .
 CMD ["./main"] 
 
 # FROM golang:1.18 AS builder

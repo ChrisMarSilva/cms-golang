@@ -24,6 +24,97 @@ import (
 func main() {
 
 	var ctx = context.TODO()
+
+	uri := "mongodb://root:example@localhost:27017/?authSource=admin&maxPoolSize=20&retryWrites=true&w=majority"
+	clientOpts := options.Client().ApplyURI(uri)
+
+	client, err := mongo.Connect(ctx, clientOpts)
+	if err != nil {
+		log.Fatal("client.Connect:", err)
+	}
+	defer func() {
+		if err = client.Disconnect(ctx); err != nil {
+			log.Fatal("client.Disconnect:", err)
+		}
+	}()
+
+	err = client.Ping(ctx, nil)
+	if err != nil {
+		log.Fatal("client.Ping:", err)
+	}
+
+	collection := client.Database("tamonabolsa").Collection("empresa")
+
+
+
+	// var result struct {
+	// 	Value float64
+	// }
+
+	type Empresa struct {
+		ID        primitive.ObjectID `bson:"_id"`
+		CATEGORIA string `bson:"CATEGORIA,omitempty"`
+		IDATIVO  int32 `bson:"IDATIVO,omitempty"`
+		CODIGO  string `bson:"CODIGO,omitempty"`
+		TIPO  string `bson:"TIPO,omitempty"`
+		CODISIN  string `bson:"CODISIN,omitempty"`
+		VLRPRECOFECHAMENTO primitive.Decimal128 `bson:"VLRPRECOFECHAMENTO,omitempty"`
+		VLRPRECOANTERIOR  primitive.Decimal128 `bson:"VLRPRECOANTERIOR,omitempty"`
+		VLRVARIACAO  primitive.Decimal128 `bson:"VLRVARIACAO,omitempty"`
+		DATAHORAALTERACO  string `bson:"DATAHORAALTERACO,omitempty"`
+		SITUACAOATIVO  string `bson:"SITUACAOATIVO,omitempty"`
+		IDEMPRESA  int32 `bson:"IDEMPRESA,omitempty"`
+		NOME  string `bson:"NOME,omitempty"`
+		NOMERESUMIDO  string `bson:"NOMERESUMIDO,omitempty"`
+		RAZAOSOCIAL  string `bson:"RAZAOSOCIAL,omitempty"`
+		CNPJ  string `bson:"CNPJ,omitempty"`
+		CODCVM  string `bson:"CODCVM,omitempty"`
+		SITE  string `bson:"SITE,omitempty"`
+		TIPO_MERCADO  string `bson:"TIPO_MERCADO,omitempty"`
+		IDSETOR  int32 `bson:"IDSETOR,omitempty"`
+		NMSETOR  string `bson:"NMSETOR,omitempty"`
+		IDSUBSETOR  int32 `bson:"IDSUBSETOR,omitempty"`
+		NMSUBSETOR  string `bson:"NMSUBSETOR,omitempty"`
+		IDSEGMENTO  int32 `bson:"IDSEGMENTO,omitempty"`
+		NMSEGMENTO  string `bson:"NMSEGMENTO,omitempty"`
+		SITUACAOEMPRESA  string `bson:"SITUACAOEMPRESA,omitempty"`
+	}
+
+	result := &Empresa{}
+	// filter1 := bson.D{{"CATEGORIA", "ACAO", "CODIGO", "FESA4"}}
+	filter1 := bson.M{"$and": []interface{}{bson.M{"CATEGORIA": "ACAO"}, bson.M{"CODIGO": "FESA4"}}}
+	err = collection.FindOne(ctx, filter1).Decode(&result)
+	if err == mongo.ErrNoDocuments {
+		log.Println("record does not exist")
+	} else if err != nil {
+		log.Fatal(err)
+	}
+	log.Println(result)
+
+	vlrPrecoFechamento, err := primitive.ParseDecimal128("111.50")
+	vlrPrecoAnterior, err := primitive.ParseDecimal128("222.50")
+	vlrPercentVariacao, err := primitive.ParseDecimal128("333.50")
+
+	// filter := bson.D{primitive.E{Key: "CATEGORIA", Value, "ACAO", Key: "CODIGO", Value, "FESA4"}}
+    filter := bson.M{"$and": []interface{}{bson.M{"CATEGORIA": "ACAO"}, bson.M{"CODIGO": "FESA4"}}}
+	// update := bson.D{primitive.E{Key: "$set", Value: bson.D{primitive.E{Key: "VLRPRECOFECHAMENTO", Value: 111.0, Key: "VLRPRECOANTERIOR", Value: 222.0, Key: "VLRVARIACAO", Value: 333.0, Key: "DATAHORAALTERACO", Value: "444"}}}}
+	update := bson.M{"$set": bson.M{"VLRPRECOFECHAMENTO": vlrPrecoFechamento, "VLRPRECOANTERIOR": vlrPrecoAnterior, "VLRVARIACAO": vlrPercentVariacao, "DATAHORAALTERACO": "444"}}
+	// result := &Empresa{}
+	// collection.FindOneAndUpdate(ctx, filter, update).Decode(result)
+	_, err = collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+        log.Println("updating the Data", err)
+    }
+
+
+ 
+
+
+}
+
+func main_old() {
+
+	var ctx = context.TODO()
 	//ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	//defer cancel()
 

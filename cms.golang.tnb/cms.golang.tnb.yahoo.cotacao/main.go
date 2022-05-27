@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -16,6 +17,13 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+	
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+
+	// "github.com/joho/godotenv"
 	// "github.com/joho/godotenv"
 )
 
@@ -32,6 +40,7 @@ import (
 // go mod init github.com/ChrisMarSilva/cms.golang.tnb.yahoo
 // go get github.com/piquette/finance-go
 // go get github.com/joho/godotenv
+// go get go.mongodb.org/mongo-driver/mongo
 // go mod tidy
 
 // go run main.go
@@ -53,6 +62,15 @@ func main() {
 	db := GetDatabase()
 	// 	db.Close()
 
+	var ctx = context.TODO()
+	mongodb_client := GetDatabaseMongo(ctx)
+	defer func() {
+		if err := mongodb_client.Disconnect(ctx); err != nil {
+			log.Fatal("mongodb.client.Disconnect:", err)
+		}
+	}()
+	collection := mongodb_client.Database("tamonabolsa").Collection("empresa")
+
 	log.Println("")
 	log.Println("YahooFinance.INI")
 	var start time.Time = time.Now()
@@ -60,20 +78,20 @@ func main() {
 	var wg sync.WaitGroup
 
 	wg.Add(1)
-	go processarAtivo("ACAO", db, &wg)
-	// go processarAtivo("ACAO-FULL", db, &wg)
+	go processarAtivo("ACAO", db, ctx, collection, &wg)
+	// go processarAtivo("ACAO-FULL", db, ctx, collection, &wg)
 
 	wg.Add(1)
-	go processarAtivo("FII", db, &wg)
-	// go processarAtivo("FII-FULL", db, &wg)
+	go processarAtivo("FII", db, ctx, collection, &wg)
+	// go processarAtivo("FII-FULL", db, ctx, collection, &wg)
 
 	wg.Add(1)
-	go processarAtivo("ETF", db, &wg)
-	// go processarAtivo("ETF-FULL", db, &wg)
+	// go processarAtivo("ETF", db, ctx, collection, &wg)
+	go processarAtivo("ETF-FULL", db, ctx, collection, &wg)
 
 	wg.Add(1)
-	go processarAtivo("BDR", db, &wg)
-	// go processarAtivo("BDR-FULL", db, &wg)
+	go processarAtivo("BDR", db, ctx, collection, &wg)
+	// go processarAtivo("BDR-FULL", db, ctx, collection, &wg)
 
 	wg.Wait()
 
@@ -92,6 +110,27 @@ func main() {
 	// go func() {
 	// }()
 
+}
+
+func GetDatabaseMongo(ctx context.Context) *mongo.Client {
+
+	uri := os.Getenv("MONGO_URI")
+	// uri := "mongodb://root:example@localhost:27017/?authSource=admin&maxPoolSize=20&retryWrites=true&w=majority"
+	log.Println("mongodb_ui:", uri)
+
+	clientOpts := options.Client().ApplyURI(uri)
+
+	client, err := mongo.Connect(ctx, clientOpts)
+	if err != nil {
+		log.Fatal("mongodb.client.Connect:", err)
+	}
+
+	err = client.Ping(ctx, nil)
+	if err != nil {
+		log.Fatal("mongodb.client.Ping:", err)
+	}
+
+	return client
 }
 
 func GetDatabase() *gorm.DB {
@@ -150,7 +189,7 @@ func GetDatabase() *gorm.DB {
 	return db
 }
 
-func processarAtivo(tipo string, db *gorm.DB, wg *sync.WaitGroup) {
+func processarAtivo(tipo string, db *gorm.DB, ctx context.Context, collection *mongo.Collection, wg *sync.WaitGroup) {
 
 	defer wg.Done()
 
@@ -239,12 +278,30 @@ func processarAtivo(tipo string, db *gorm.DB, wg *sync.WaitGroup) {
 		// go func(tipo string, sql string, data string, cotacao float64, anterior float64, variacao float64, datahora string, id int64, ww *sync.WaitGroup) {
 		//	defer ww.Done()
 		if row.Cotacao > 0.0 {
+			
 			err = tx.Exec(sql, row.Cotacao, row.Anterior, row.Variacao, dataHoraAtual, row.ID).Error
 			// err = tx.Exec(sql, data, cotacao, anterior, variacao, datahora, id).Error
 			if err != nil {
-				log.Println("YahooFinance."+tipo+".UpdList.Erro:", err)
+				log.Println("YahooFinance."+tipo+".UpdList.Erro.MySQL:", err)
 				return // continue
 			}
+
+			sCotacao := fmt.Sprintf("%v", row.Cotacao)
+			sAnterior := fmt.Sprintf("%v", row.Anterior)
+			sVariacao := fmt.Sprintf("%.2f", row.Variacao)
+
+			vlrPrecoFechamento, err := primitive.ParseDecimal128(sCotacao)
+			vlrPrecoAnterior, err := primitive.ParseDecimal128(sAnterior)
+			vlrPercentVariacao, err := primitive.ParseDecimal128(sVariacao)
+
+			filter := bson.M{"$and": []interface{}{bson.M{"CATEGORIA": row.Tipo}, bson.M{"CODIGO": row.Codigo}}}
+			update := bson.M{"$set": bson.M{"VLRPRECOFECHAMENTO": vlrPrecoFechamento, "VLRPRECOANTERIOR": vlrPrecoAnterior, "VLRVARIACAO": vlrPercentVariacao, "DATAHORAALTERACO": dataHoraAtual}}
+			_, err = collection.UpdateOne(ctx, filter, update)
+			if err != nil {
+				log.Println("YahooFinance."+tipo+".UpdList.Erro.MongoDB:", err)
+				// return // continue
+			}
+
 			// log.Println("YahooFinance."+tipo+".UpdList.OK."+row.Codigo)
 		} else {
 			// log.Println("YahooFinance."+tipo+".UpdList.Zerada."+row.Codigo)
@@ -279,13 +336,13 @@ func PegarDataHoraAtual() string {
 }
 
 type AtivoLocal struct {
-	ID       int64
-	Codigo   string
-	Tipo     string
-	Situacao string
-	Cotacao  float64 `default0:"0.0"`
-	Variacao float64 `default0:"0.0"`
-	Anterior float64 `default0:"0.0"`
+	ID        int64
+	Codigo    string
+	Tipo      string
+	Situacao  string
+	Cotacao   float64 `default0:"0.0"`
+	Variacao  float64 `default0:"0.0"`
+	Anterior  float64 `default0:"0.0"`
 }
 
 func (row AtivoLocal) ToString() string {
