@@ -1,0 +1,96 @@
+
+https://www.it-wars.com/posts/virtualisation/docker-exemple-golang-mongodb-rest-api/
+https://github.com/itwars/docker-golang-rest-mongodb-nginx/blob/master/contacts-resapi/app.go
+
+
+docker stack deploy -c docker-stack.yml myapp
+curl -k -H "Content-Type: application/json" https://192.168.1.24/app-back-status 2>/dev/null | jq
+
+
+docker service scale test_app-back=3
+curl -k -H "Content-Type: application/json" https://192.168.1.24/app-back-status 2>/dev/null | jq
+
+
+
+
+https://www.it-wars.com/posts/dev/golang-docker-linux-optimisation/
+
+
+
+
+
+FROM golang
+WORKDIR /go/src/github.com/user/app
+COPY . .
+
+RUN set -x && \
+    go get -d -v . && \
+    CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o app .
+
+FROM scratch
+WORKDIR /root/
+COPY --from=0 /go/src/github.com/user/app .
+EXPOSE 3000
+CMD ["./app"]
+
+
+
+
+
+
+FROM golang
+WORKDIR /go/src/github.com/user/app
+COPY . .
+
+ADD https://github.com/upx/upx/releases/download/v3.94/upx-3.94-amd64_linux.tar.xz /usr/local
+RUN set -x && \
+    apt update && \
+    apt install -y xz-utils && \
+    xz -d -c /usr/local/upx-3.94-amd64_linux.tar.xz | \
+    tar -xOf - upx-3.94-amd64_linux/upx > /bin/upx && \
+    chmod a+x /bin/upx && \
+    go get -d -v . && \
+    CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o app . && \
+    strip --strip-unneeded app && \
+    upx app
+
+FROM scratch
+WORKDIR /root/
+COPY --from=0 /go/src/github.com/user/app .
+EXPOSE 3000
+CMD ["./app"]
+
+
+
+
+
+
+https://www.it-wars.com/posts/virtualisation/docker-multi-stage-builds/
+
+
+
+
+
+
+
+
+
+# Docker builder for Golang
+FROM golang as builder
+LABEL maintainer "Vincent RABAH <vincent.rabah@gmail.com>"
+
+
+WORKDIR /go/src/github.com/user/app
+COPY . .
+RUN set -x && \
+    go get -d -v . && \
+    CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o app .
+
+
+# Docker run Golang app
+FROM scratch
+LABEL maintainer "Vincent RABAH <vincent.rabah@gmail.com>"
+
+WORKDIR /root/
+COPY --from=builder /go/src/github.com/user/app .
+CMD ["./app"]
