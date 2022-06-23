@@ -1,57 +1,38 @@
 package main
 
-// import "fmt"
-
 import (
 	"errors"
 	"fmt"
 	"log"
-	"net/http"
-	"os"
-	"runtime/trace"
-	//"cms.golang.teste.hello.world/math"
+
+	"github.com/ChrisMarSilva/cms.golang.teste.hello.world/math"
+	"github.com/google/uuid"
 )
 
-//go run main.go
-// go tool trace trace.out
+// go mod init github.com/ChrisMarSilva/cms.golang.teste.hello.world
+// go mod tidy
+
+// go run main.go
 
 func main() {
-
-	f, err := os.Create("trace.out")
-	if err != nil {
-		panic(err)
-	}
-	defer f.Close()
-
-	err = trace.Start(f)
-	if err != nil {
-		panic(err)
-	}
-	defer trace.Stop()
 
 	resultado := Soma(1, 2)
 	fmt.Println("resultado", resultado)
 	fmt.Printf("%T", resultado)
 
-	// resultadoFloat := math.SomaFloat(1.5, 2.5)
-	// fmt.Println("resultadoFloat", resultadoFloat)
-	// fmt.Printf("%T", resultadoFloat)
+	resultadoFloat := math.SomaFloat(1.5, 2.5)
+	fmt.Println("resultadoFloat", resultadoFloat)
+	fmt.Printf("%T", resultadoFloat)
 
-	// fmt.Println("Hello, Docker #1")
-	// id := uuid.New()
-	// fmt.Println("uuid: ", id.String())
-	// message, err := Hello("")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// fmt.Println(message)
-
-	res, err := http.Get("https://jsonplaceholder.typicode.com/todos/1")
+	fmt.Println("Hello, Docker #1")
+	id := uuid.New()
+	fmt.Println("uuid: ", id.String())
+	message, err := Hello("")
 	if err != nil {
-		log.Fatal("erro ao fazero get")
-
+		log.Fatal(err)
 	}
-	fmt.Print(res.StatusCode, res.Body)
+	fmt.Println(message)
+
 }
 
 func Soma(a int, b int) int {
