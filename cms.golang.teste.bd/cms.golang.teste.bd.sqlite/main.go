@@ -1,10 +1,10 @@
 package main
 
 import (
-	"os"
-	"log"
-	"fmt"
 	"database/sql"
+	"fmt"
+	"log"
+	"os"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -12,6 +12,8 @@ import (
 // go mod init github.com/ChrisMarSilva/cms.golang.teste.bd.sqlite
 // go get github.com/mattn/go-sqlite3
 // go mod tidy
+
+// go sqlite3 banco.db
 
 // go run main.go
 
@@ -60,7 +62,7 @@ func main() {
 	}
 
 	tx.Commit()
-	
+
 	rows, err := db.Query("select id, name from foo")
 	if err != nil {
 		log.Fatal(err)
@@ -74,14 +76,14 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println(id, name)
+		log.Println(id, name)
 	}
 
 	err = rows.Err()
 	if err != nil {
 		log.Fatal(err)
 	}
-	
+
 	stmt, err = db.Prepare("select name from foo where id = ?")
 	if err != nil {
 		log.Fatal(err)
@@ -93,7 +95,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(name)
+	log.Println(name)
 
 	_, err = db.Exec("delete from foo")
 	if err != nil {
@@ -118,7 +120,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println(id, name)
+		log.Println(id, name)
 	}
 
 	err = rows.Err()
@@ -135,13 +137,13 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	
+
 	affect, err := res.RowsAffected()
 	if err != nil {
 		log.Fatal(err)
 	}
-	
-	fmt.Println(affect)
+
+	log.Println(affect)
 
 	log.Println("sqlite3.fim")
 }

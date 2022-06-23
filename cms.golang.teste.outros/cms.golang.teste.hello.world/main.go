@@ -17,17 +17,19 @@ import (
 func main() {
 
 	resultado := Soma(1, 2)
-	fmt.Println("resultado", resultado)
-	fmt.Printf("%T", resultado)
+	fmt.Println("resultado Soma:", resultado)
+	//fmt.Printf("%T\n", resultado)
 
 	resultadoFloat := math.SomaFloat(1.5, 2.5)
-	fmt.Println("resultadoFloat", resultadoFloat)
-	fmt.Printf("%T", resultadoFloat)
+	fmt.Println("resultado Float:", resultadoFloat)
+	// fmt.Printf("%T\n", resultadoFloat)
 
 	fmt.Println("Hello, Docker #1")
+
 	id := uuid.New()
-	fmt.Println("uuid: ", id.String())
-	message, err := Hello("")
+	fmt.Println("resultado uuid: ", id.String())
+
+	message, err := Hello("Chris")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -35,14 +37,17 @@ func main() {
 
 }
 
-func Soma(a int, b int) int {
-	return a + b
+func Soma(a int, b int) (retorno int) {
+	retorno = a + b
+	return
 }
 
-func Hello(name string) (string, error) {
+func Hello(name string) (message string, erro error) {
+	message = ""
 	if name == "" {
-		return "", errors.New("empty name")
+		erro = errors.New("empty name")
+		return
 	}
-	message := fmt.Sprintf("Hi, %v. Welcome!", name)
-	return message, nil
+	message = fmt.Sprintf("Hi, %v. Welcome!", name)
+	return
 }
