@@ -1,11 +1,17 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
+	// "io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
 	"sync"
 	"time"
+
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
 )
 
 // go mod init github.com/ChrisMarSilva/cms.golang.teste.request.api
@@ -15,6 +21,93 @@ import (
 // go build main.go
 
 func main() {
+
+	var start time.Time = time.Now()
+
+	tot := 1_000 // 100 // 1_000 // 10_000 // 100_000 // 1_000_000
+	var iErro uint64 = 0
+	var iOk uint64 = 0
+
+	body, _ := json.Marshal(map[string]string{"url": "www.youtube.com/watch?v=MD7b-iQMC24"})
+	// var myClient = &http.Client{Timeout: time.Second * 10}
+	url := "http://127.0.0.1:3000/api/v1/"
+
+	var wg sync.WaitGroup
+	var m sync.Mutex
+
+	for i := 1; i <= tot; i++ {
+
+		// if i%100 == 0 {
+		// 	time.Sleep(time.Millisecond * 200)
+		// }
+
+		wg.Add(1)
+		go func(wwLocal *sync.WaitGroup, iIdx int) {
+			defer wwLocal.Done()
+
+			payload := bytes.NewBuffer(body)
+
+			req, err := http.NewRequest(http.MethodPost, url, payload)
+			if err != nil {
+				m.Lock()
+				iErro++
+				m.Unlock()
+			} else {
+				req.Header.Add("Content-Type", "application/json")
+				myClient := &http.Client{Timeout: time.Second * 10}
+				resp, err := myClient.Do(req)
+				if err != nil {
+					m.Lock()
+					iErro++
+					m.Unlock()
+				} else {
+					if resp.StatusCode != http.StatusOK {
+						m.Lock()
+						iErro++
+						m.Unlock()
+					} else {
+						// log.Printf("Terminou", iIdx)
+						m.Lock()
+						iOk++
+						m.Unlock()
+					}
+				}
+			}
+
+			// resp, err := http.Post(url, "application/json", payload)
+			// if err != nil {
+			// log.Fatalln(err)
+			// log.Println("http.Get.erro", err, "iIdx:", i)
+			// 	iErro++
+			// } else {
+			// 	if resp.StatusCode != http.StatusOK {
+			// 		iErro++
+			// 	} else {
+			// 		iOk++
+			// 	}
+			// }
+
+			// body, err = ioutil.ReadAll(resp.Body)
+			// if err != nil {
+			// 	log.Fatalln(err)
+			// }
+			// defer resp.Body.Close()
+			// log.Printf("%s", body)
+			// log.Println("body", string(body))
+
+		}(&wg, i)
+
+	} // for i := 1; i <= tot; i++ {
+
+	wg.Wait()
+	log.Println(" ("+strconv.Itoa(tot)+"): ", time.Since(start), "iOk: ", iOk, "iErro: ", iErro)
+
+	p := message.NewPrinter(language.Make("pt-br")) // language.English
+	p.Printf(" (%d): %s iOk: %d iErro: %d\n", 1000, time.Since(start), iOk, iErro)
+
+}
+
+func main_old() {
 
 	tot := 10_000 // 1_000 // 10_000 // 100_000 // 1_000_000
 
@@ -30,12 +123,11 @@ func main() {
 
 	wg.Add(1)
 	// go TesteURL(&wg, tot, "http://127.0.0.1:8002/", "Get.04.Fiber    ")
-	go TesteURLAsync(&wg, tot, "http://localhost:8002/", "Get.04.Fiber         ")
+	go TesteURLAsync(&wg, tot, "http://localhost:3000/", "Get.04.Fiber         ")
 
 	// wg.Add(1)
 	// // go TesteURL(&wg, tot, "http://127.0.0.1:3000/", "Get.03.Gin      ")
 	// go TesteURLAsync(&wg, tot, "http://localhost:3000/", "Get.03.Gin           ")
-
 
 	//go TesteURLAsync(&wg, tot, "http://localhost:7003/", "Get.03.Gin      ") //  Requisições:100.000 - Tempo:  50.1625159s - Erros: 87.227
 	//go TesteURLAsync(&wg, tot, "http://localhost:7004/", "Get.04.Fiber    ")   //  Requisições:100.000 - Tempo: 1m8.1356397s - Erros: 62.281
