@@ -1,9 +1,10 @@
 package main
 
 import (
+	// "io/ioutil"
 	"bytes"
 	"encoding/json"
-	// "io/ioutil"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
@@ -17,8 +18,8 @@ import (
 // go mod init github.com/ChrisMarSilva/cms.golang.teste.request.api
 // go mod tidy
 
-// go run main.go
 // go build main.go
+// go run main.go
 
 func main() {
 
@@ -31,6 +32,8 @@ func main() {
 	body, _ := json.Marshal(map[string]string{"url": "www.youtube.com/watch?v=MD7b-iQMC24"})
 	// var myClient = &http.Client{Timeout: time.Second * 10}
 	url := "http://127.0.0.1:3000/api/v1/"
+	url = "http://localhost:8080/api/v1/"
+	url = "http://localhost:80/api/v1/"
 
 	var wg sync.WaitGroup
 	var m sync.Mutex
@@ -49,19 +52,28 @@ func main() {
 
 			req, err := http.NewRequest(http.MethodPost, url, payload)
 			if err != nil {
+				log.Println("http.NewRequest.erro", err)
 				m.Lock()
 				iErro++
 				m.Unlock()
 			} else {
 				req.Header.Add("Content-Type", "application/json")
-				myClient := &http.Client{Timeout: time.Second * 10}
+				myClient := &http.Client{Timeout: time.Second * 60}
 				resp, err := myClient.Do(req)
 				if err != nil {
+					log.Println("http.Client.erro", err)
 					m.Lock()
 					iErro++
 					m.Unlock()
 				} else {
 					if resp.StatusCode != http.StatusOK {
+						log.Println("http.Client.StatusCode", resp.StatusCode) // 500
+						body, err = ioutil.ReadAll(resp.Body)
+						if err != nil {
+							log.Fatalln(err)
+						}
+						defer resp.Body.Close()
+						log.Printf("%s", body) // Failed to connect to RabbitMQ
 						m.Lock()
 						iErro++
 						m.Unlock()
