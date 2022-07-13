@@ -22,6 +22,14 @@ import (
 // go get -u github.com/gorilla/mux
 // go mod tidy
 
+// make up
+// make run-fiber #used to run fiber benchmark
+// make run-fasthttp # used to run fasthttp benchmark
+// make run-gin # used to run gin benchmark
+// make run-echo # used to run echo benchmark
+// make run-mux # used to run mux benchmark
+// make run-chi # used to run chi benchmark
+
 // go run main.go
 
 const portGin int = 8081
