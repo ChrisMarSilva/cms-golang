@@ -3,7 +3,13 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"log"
 )
+
+// go mod init github.com/ChrisMarSilva/cms.golang.teste.json
+// go mod tidy
+
+// go run main.go
 
 type Message map[string]interface{}
 
@@ -20,4 +26,22 @@ func deserialize(b []byte) (Message, error) {
 	decoder := json.NewDecoder(buf)
 	err := decoder.Decode(&msg)
 	return msg, err
+}
+
+func main() {
+
+	var msg Message
+	b, err := serialize(msg)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	msg2, err := deserialize(b)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	log.Println(msg2)
+
 }
