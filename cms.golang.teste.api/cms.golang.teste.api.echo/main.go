@@ -8,8 +8,9 @@ import (
 )
 
 // go mod init github.com/ChrisMarSilva/cms-golang-teste-api-echo
-// go mod tidy
 // go get github.com/labstack/echo/v4
+// go mod tidy
+
 // go run main.go
 
 func main() {
