@@ -4,3 +4,4 @@ CREATE TABLE IF NOT EXISTS agents(
 )
 
 INSERT INTO agents (id, name) VALUES(1, 'devtopics')
+INSERT INTO agents (id, name) VALUES(2, 'aaaaaa')

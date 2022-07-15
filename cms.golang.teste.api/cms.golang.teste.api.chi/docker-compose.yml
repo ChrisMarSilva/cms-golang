@@ -7,7 +7,12 @@ services:
     ports:
       - 8080:8080
     environment:
+      ENV: "DOCKER" # PROD # DOCKER
       PORT: 8080
+      DATABASE_URL: "db:5432"
+      DATABASE_USER: "postgres"
+      DATABASE_PASS: "admin"
+      DATABASE_NAME: "postgres"
     depends_on:
       - db
 
@@ -17,7 +22,7 @@ services:
     environment:
       POSTGRES_PASSWORD: admin
       # POSTGRES_USER: root # postgres
-      # POSTGRES_DB: mydb
+      # POSTGRES_DB: postgres
     ports:
       - "5432:5432"
     volumes:
