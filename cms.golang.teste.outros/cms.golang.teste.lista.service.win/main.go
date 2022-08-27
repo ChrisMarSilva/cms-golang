@@ -11,7 +11,7 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.lista.service.win
+// go mod init github.com/chrismarsilva/cms.golang.teste.lista.service.win
 // go get github.com/mitchellh/go-ps
 // go mod tidy
 

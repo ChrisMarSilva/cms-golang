@@ -9,7 +9,7 @@ import (
     "github.com/xuri/excelize/v2"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.arquivos.excel2
+// go mod init github.com/chrismarsilva/cms.golang.teste.arquivos.excel2
 // go get github.com/xuri/excelize/v2
 // go mod tidy
 

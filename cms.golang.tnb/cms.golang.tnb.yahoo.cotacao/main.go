@@ -37,7 +37,7 @@ import (
 // docker tag cms-tnb-cotacao-golang:latest chrismarsilva/cms-tnb-cotacao-golang
 // docker push chrismarsilva/cms-tnb-cotacao-golang:latest
 
-// go mod init github.com/ChrisMarSilva/cms.golang.tnb.yahoo
+// go mod init github.com/chrismarsilva/cms.golang.tnb.yahoo
 // go get github.com/piquette/finance-go
 // go get github.com/joho/godotenv
 // go get go.mongodb.org/mongo-driver/mongo

@@ -14,7 +14,7 @@ import (
 	"github.com/gocolly/colly/v2"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.web.scraping
+// go mod init github.com/chrismarsilva/cms.golang.teste.web.scraping
 // go get -u github.com/gocolly/colly/v2
 // go get -u github.com/PuerkitoBio/goquery
 // go get -u github.com/go-sql-driver/mysql

@@ -13,7 +13,7 @@ import (
 	// "github.com/simukti/sqldb-logger/logadapter/zerologadapter"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.bd.mysql.basico
+// go mod init github.com/chrismarsilva/cms.golang.teste.bd.mysql.basico
 // go get -u github.com/go-sql-driver/mysql
 // go get -u github.com/denisenkom/go-mssqldb
 // go get -u -v github.com/simukti/sqldb-logger

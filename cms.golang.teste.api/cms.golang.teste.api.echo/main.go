@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-// go mod init github.com/ChrisMarSilva/cms-golang-teste-api-echo
+// go mod init github.com/chrismarsilva/cms-golang-teste-api-echo
 // go get github.com/labstack/echo/v4
 // go mod tidy
 

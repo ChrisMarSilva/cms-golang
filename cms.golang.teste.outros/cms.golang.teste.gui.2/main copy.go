@@ -16,7 +16,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.gui2
+// go mod init github.com/chrismarsilva/cms.golang.teste.gui2
 // go get -u fyne.io/fyne/v2
 // go get -u  fyne.io/fyne/v2/cmd/fyne_demo/
 // go mod tidy

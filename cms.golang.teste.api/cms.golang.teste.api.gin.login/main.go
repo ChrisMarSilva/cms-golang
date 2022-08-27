@@ -12,7 +12,7 @@ import (
 	"github.com/jackc/pgx/v4"
 )
 
-// go mod init github.com/ChrisMarSilva/cms-golang-api-gin.login
+// go mod init github.com/chrismarsilva/cms-golang-api-gin.login
 // go mod tidy
 // go get -u github.com/gin-gonic/gin
 // go get -u githu.com/jackc/pgx/v4

@@ -10,7 +10,7 @@ import (
 	"go.elastic.co/apm/v2"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.trace.elastic.logrus
+// go mod init github.com/chrismarsilva/cms.golang.teste.trace.elastic.logrus
 // go get -u github.com/gin-gonic/gin
 // go get -u github.com/rs/zerolog
 // go get -u github.com/elastic/go-elasticsearch/v8

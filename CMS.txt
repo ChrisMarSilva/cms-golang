@@ -2,7 +2,7 @@
 cd "C:\Users\chris\go\src"
 
 go version
-go mod init github.com/ChrisMarSilva/cms-golang-teste-xxxxxxxx
+go mod init github.com/chrismarsilva/cms-golang-teste-xxxxxxxx
 go mod tidy
 go list -m all
 

@@ -11,7 +11,7 @@ import (
 	"github.com/ChrisMarSilva/cms-golang-teste-dev-book-api/src/router"
 )
 
-// go mod init github.com/ChrisMarSilva/cms-golang-teste-dev-book-api
+// go mod init github.com/chrismarsilva/cms-golang-teste-dev-book-api
 // go mod tidy
 // go get -u github.com/gorilla/mux
 // go get -u github.com/joho/godotenv

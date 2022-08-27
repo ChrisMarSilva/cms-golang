@@ -13,7 +13,7 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.trace.opentelemetry
+// go mod init github.com/chrismarsilva/cms.golang.teste.trace.opentelemetry
 // go get go.opentelemetry.io/otel
 // go get go.opentelemetry.io/otel/trace
 // go get go.opentelemetry.io/otel/sdk

@@ -9,7 +9,7 @@ import (
 	"github.com/apache/pulsar-client-go/pulsar"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.messageria.pulsar
+// go mod init github.com/chrismarsilva/cms.golang.teste.messageria.pulsar
 // go get -u "github.com/apache/pulsar-client-go/pulsar"
 // go mod tidy
 

@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.hello.world
+// go mod init github.com/chrismarsilva/cms.golang.teste.hello.world
 // go mod tidy
 
 // go run main.go

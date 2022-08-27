@@ -9,7 +9,7 @@ import (
 	"os"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.tnb.coinmarketcap
+// go mod init github.com/chrismarsilva/cms.golang.tnb.coinmarketcap
 // go mod tidy
 
 // go run main.go

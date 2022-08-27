@@ -8,7 +8,7 @@ import (
 	"github.com/asticode/go-astilectron"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.gui
+// go mod init github.com/chrismarsilva/cms.golang.teste.gui
 // go get -u github.com/asticode/go-astilectron
 // go mod tidy
 

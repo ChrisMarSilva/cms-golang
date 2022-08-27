@@ -12,7 +12,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.telegram
+// go mod init github.com/chrismarsilva/cms.golang.teste.telegram
 // go get -u github.com/go-telegram-bot-api/telegram-bot-api/v5
 // go mod tidy
 

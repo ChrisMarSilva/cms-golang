@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// go mod init github.com/ChrisMarSilva/cms-golang-teste-uuid
+// go mod init github.com/chrismarsilva/cms-golang-teste-uuid
 // go mod tidy
 
 // go run main.go

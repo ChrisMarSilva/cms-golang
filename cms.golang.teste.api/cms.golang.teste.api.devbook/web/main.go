@@ -10,7 +10,7 @@ import (
 	"github.com/ChrisMarSilva/cms-golang-teste-dev-book-web/src/utils"
 )
 
-// go mod init github.com/ChrisMarSilva/cms-golang-teste-dev-book-web
+// go mod init github.com/chrismarsilva/cms-golang-teste-dev-book-web
 // go get -u github.com/gorilla/mux
 // go get -u github.com/joho/godotenv
 // go mod tidy

@@ -9,7 +9,7 @@ import (
 	"golang.org/x/net/html"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.web.crawler.simple
+// go mod init github.com/chrismarsilva/cms.golang.teste.web.crawler.simple
 // go get golang.org/x/net/html
 // go mod tidy
 

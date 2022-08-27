@@ -10,7 +10,7 @@ import (
 
 // https://github.com/ibm-messaging/mq-golang-jms20/tree/master/mqjms
 
-// go mod init github.com/ChrisMarSilva/cms.golang.messageria.ibm.mq
+// go mod init github.com/chrismarsilva/cms.golang.messageria.ibm.mq
 // go get github.com/ibm-messaging/mq-golang
 // go get github.com/ibm-messaging/mq-golang/v5/ibmmq
 // go mod tidy

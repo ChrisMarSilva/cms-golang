@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.grpc.server
+// go mod init github.com/chrismarsilva/cms.golang.teste.grpc.server
 // go get -u google.golang.org/grpc
 // go mod tidy
 

@@ -10,7 +10,7 @@ import (
 	"github.com/gocql/gocql"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.bd.cassandra
+// go mod init github.com/chrismarsilva/cms.golang.teste.bd.cassandra
 // go get github.com/gocql/gocql
 // go mod tidy
 

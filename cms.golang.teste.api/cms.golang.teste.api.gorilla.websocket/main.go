@@ -10,7 +10,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.api.websocket
+// go mod init github.com/chrismarsilva/cms.golang.teste.api.websocket
 // go get github.com/gorilla/mux
 // go get github.com/gorilla/websocket 
 // go mod tidy

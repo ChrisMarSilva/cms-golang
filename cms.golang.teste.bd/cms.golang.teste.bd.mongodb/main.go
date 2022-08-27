@@ -15,7 +15,7 @@ import (
 	"gopkg.in/gookit/color.v1"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.bd.mongodb
+// go mod init github.com/chrismarsilva/cms.golang.teste.bd.mongodb
 // go get go.mongodb.org/mongo-driver/mongo
 // go get gopkg.in/gookit/color.v1
 // go mod tidy

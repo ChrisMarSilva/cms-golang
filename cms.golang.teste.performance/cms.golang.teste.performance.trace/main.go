@@ -8,7 +8,7 @@ import (
 	"runtime/trace"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.performance.trace
+// go mod init github.com/chrismarsilva/cms.golang.teste.performance.trace
 // go mod tidy
 
 // go run main.go

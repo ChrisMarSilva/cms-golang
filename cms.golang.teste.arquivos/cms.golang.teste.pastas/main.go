@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.pastas
+// go mod init github.com/chrismarsilva/cms.golang.teste.pastas
 // go mod tidy
 
 // go run main.go

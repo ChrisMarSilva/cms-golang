@@ -8,7 +8,7 @@ import (
 
 // docker run -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=Hello123#" --name "sql1" -p 5401:1433 -v sql1data:/var/opt/mssql -d mcr.microsoft.com/mssql/server:2019-latest
 
-// go mod init github.com/ChrisMarSilva/cms-golang-teste-api-fiber
+// go mod init github.com/chrismarsilva/cms-golang-teste-api-fiber
 // go get -u github.com/gofiber/fiber/v2
 // go get -u github.com/gofiber/utils
 // go get -u github.com/gofiber/fiber/middleware

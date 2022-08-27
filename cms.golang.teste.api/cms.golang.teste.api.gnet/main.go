@@ -12,7 +12,7 @@ import (
 	"github.com/panjf2000/gnet"
 )
 
-// go mod init github.com/ChrisMarSilva/cms-golang-teste-api-gnet
+// go mod init github.com/chrismarsilva/cms-golang-teste-api-gnet
 // go mod tidy
 // go get -u github.com/panjf2000/gnet
 // go run main.go

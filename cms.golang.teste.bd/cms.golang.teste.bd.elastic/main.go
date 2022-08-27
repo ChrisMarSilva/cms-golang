@@ -20,7 +20,7 @@ import (
 
 // cd "C:\Users\chris\Desktop\CMS GoLang\cms.golang.teste.outros\cms.golang.teste.elastic"
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.elastic
+// go mod init github.com/chrismarsilva/cms.golang.teste.elastic
 // go get github.com/elastic/go-elasticsearch/v8
 // go get github.com/elastic/go-elasticsearch/esapi
 // go mod tidy

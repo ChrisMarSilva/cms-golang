@@ -16,7 +16,7 @@ import (
 // https://opentracing.io/guides/golang/quick-start/
 // cd "C:\Users\chris\Desktop\CMS GoLang\cms.golang.teste.outros\cms.golang.teste.trace.jaeger"
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.jaeger
+// go mod init github.com/chrismarsilva/cms.golang.teste.jaeger
 // go get github.com/uber/jaeger-client-go
 // go get github.com/opentracing/opentracing-go
 // go get package github.com/uber/jaeger-client-go

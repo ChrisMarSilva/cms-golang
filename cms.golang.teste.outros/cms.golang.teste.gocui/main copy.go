@@ -7,7 +7,7 @@ import (
 	"github.com/jroimartin/gocui"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.gocui
+// go mod init github.com/chrismarsilva/cms.golang.teste.gocui
 // go get -u github.com/jroimartin/gocui
 // go mod tidy
 

@@ -9,7 +9,7 @@ import (
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.trace.datadog
+// go mod init github.com/chrismarsilva/cms.golang.teste.trace.datadog
 // go get gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer
 // go get gopkg.in/DataDog/dd-trace-go.v1/profiler
 // go get gopkg.in/DataDog/dd-trace-go.v1/contrib/gorilla/mux

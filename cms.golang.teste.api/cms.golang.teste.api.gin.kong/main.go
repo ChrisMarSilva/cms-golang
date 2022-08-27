@@ -13,7 +13,7 @@ import (
 	"github.com/kong/go-kong/kong"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.api.gin.kong
+// go mod init github.com/chrismarsilva/cms.golang.teste.api.gin.kong
 // go get -u github.com/gin-gonic/gin
 // go get github.com/kong/go-kong/kong
 // go mod tidy

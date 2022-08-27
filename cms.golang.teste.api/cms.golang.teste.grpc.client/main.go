@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.grpc.client
+// go mod init github.com/chrismarsilva/cms.golang.teste.grpc.client
 // go get -u google.golang.org/grpc
 // go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.26
 // go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1

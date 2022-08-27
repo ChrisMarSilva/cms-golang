@@ -6,7 +6,7 @@ import (
     "github.com/spf13/viper"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.arquivos.viper
+// go mod init github.com/chrismarsilva/cms.golang.teste.arquivos.viper
 // go get github.com/spf13/viper
 // go mod tidy
 

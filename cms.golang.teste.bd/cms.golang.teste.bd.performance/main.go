@@ -12,7 +12,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.bd.performance
+// go mod init github.com/chrismarsilva/cms.golang.teste.bd.performance
 // go get -u github.com/google/uuid
 // go get -u github.com/denisenkom/go-mssqldb  // SQL
 // go get -u gorm.io/gorm

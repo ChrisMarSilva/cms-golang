@@ -20,7 +20,7 @@ import (
 	// "github.com/simukti/sqldb-logger/logadapter/zerologadapter"
 )
 
-// go mod init github.com/ChrisMarSilva/cms-golang-api-fiber.basic
+// go mod init github.com/chrismarsilva/cms-golang-api-fiber.basic
 // go get -u github.com/gofiber/fiber/v2
 // go get -u github.com/gofiber/utils
 // go get -u github.com/gofiber/fiber/middleware

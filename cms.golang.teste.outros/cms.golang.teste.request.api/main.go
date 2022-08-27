@@ -15,7 +15,7 @@ import (
 	"golang.org/x/text/message"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.request.api
+// go mod init github.com/chrismarsilva/cms.golang.teste.request.api
 // go mod tidy
 
 // go build main.go

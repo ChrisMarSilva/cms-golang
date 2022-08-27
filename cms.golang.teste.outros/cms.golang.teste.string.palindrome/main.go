@@ -4,7 +4,7 @@ import (
 	"log"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.string.palindrome
+// go mod init github.com/chrismarsilva/cms.golang.teste.string.palindrome
 // go mod tidy
 
 // go run main.go

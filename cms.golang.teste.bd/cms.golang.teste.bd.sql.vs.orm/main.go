@@ -10,7 +10,7 @@ import (
 	"github.com/ChrisMarSilva/cms.golang.teste.bd.sql.vs.orm/repositories"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.bd.sql.vs.orm
+// go mod init github.com/chrismarsilva/cms.golang.teste.bd.sql.vs.orm
 // go get -u github.com/jmoiron/sqlx
 // go get -u gorm.io/gorm
 // go get -u github.com/jinzhu/gorm

@@ -11,7 +11,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.tnb.foxbit
+// go mod init github.com/chrismarsilva/cms.golang.tnb.foxbit
 // go get github.com/gorilla/websocket
 // go mod tidy
 

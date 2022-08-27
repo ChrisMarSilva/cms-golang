@@ -12,7 +12,7 @@ import (
 	"net/http"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.api.benchmark
+// go mod init github.com/chrismarsilva/cms.golang.teste.api.benchmark
 // go get -u github.com/gin-gonic/gin
 // go get -u github.com/gofiber/fiber/v2
 // go get -u github.com/valyala/fasthttp

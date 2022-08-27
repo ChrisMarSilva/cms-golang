@@ -9,7 +9,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.bd.sqlite
+// go mod init github.com/chrismarsilva/cms.golang.teste.bd.sqlite
 // go get github.com/mattn/go-sqlite3
 // go mod tidy
 

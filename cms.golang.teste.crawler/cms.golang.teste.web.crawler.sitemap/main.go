@@ -10,7 +10,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.web.crawler.sitemap
+// go mod init github.com/chrismarsilva/cms.golang.teste.web.crawler.sitemap
 // go get github.com/PuerkitoBio/goquery
 // go mod tidy
 

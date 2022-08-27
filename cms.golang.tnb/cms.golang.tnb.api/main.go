@@ -4,7 +4,7 @@ import (
 	"github.com/ChrisMarSilva/cms.golang.tnb.api/server"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.tnb.api
+// go mod init github.com/chrismarsilva/cms.golang.tnb.api
 // go mod tidy
 
 // go run main.go

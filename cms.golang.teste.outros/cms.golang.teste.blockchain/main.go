@@ -16,7 +16,7 @@ import (
 	//badger "github.com/dgraph-io/badger/v3"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.blockchain
+// go mod init github.com/chrismarsilva/cms.golang.teste.blockchain
 // go get github.com/dgraph-io/badger/v3
 // go mod tidy
 

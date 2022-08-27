@@ -10,7 +10,7 @@ import (
 	"github.com/gocolly/colly/v2"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.web.crawler.imdb
+// go mod init github.com/chrismarsilva/cms.golang.teste.web.crawler.imdb
 // go get github.com/gocolly/colly/v2
 // go mod tidy
 

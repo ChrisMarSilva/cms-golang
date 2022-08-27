@@ -8,7 +8,7 @@ import (
 	_ "github.com/godror/godror"
 )
 
-// go mod init github.com/ChrisMarSilva/cms-golang-teste-bd-oracle
+// go mod init github.com/chrismarsilva/cms-golang-teste-bd-oracle
 // go mod tidy
 
 // go get github.com/godror/godror

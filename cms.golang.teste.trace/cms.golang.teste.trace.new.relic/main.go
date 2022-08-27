@@ -17,7 +17,7 @@ import (
 
 // cd "C:\Users\chris\Desktop\CMS GoLang\cms.golang.teste.outros\cms.golang.teste.trace.new.relic"
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.newrelic
+// go mod init github.com/chrismarsilva/cms.golang.teste.newrelic
 // go get github.com/gorilla/mux
 // go get github.com/newrelic/go-agent
 // go get github.com/newrelic/go-agent/v3/newrelic

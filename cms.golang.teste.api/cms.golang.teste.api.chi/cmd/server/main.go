@@ -9,7 +9,7 @@ import (
 	"os"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.api.chi
+// go mod init github.com/chrismarsilva/cms.golang.teste.api.chi
 // go get -u github.com/go-chi/chi/v5
 // go get -u github.com/go-pg/pg/v10
 // go get -u github.com/go-pg/migrations/v8

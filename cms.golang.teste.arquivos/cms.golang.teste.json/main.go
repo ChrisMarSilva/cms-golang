@@ -6,7 +6,7 @@ import (
 	"log"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.json
+// go mod init github.com/chrismarsilva/cms.golang.teste.json
 // go mod tidy
 
 // go run main.go

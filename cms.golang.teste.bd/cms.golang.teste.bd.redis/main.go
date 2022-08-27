@@ -5,7 +5,7 @@ import (
 	"log"
 )
 
-// go mod init github.com/ChrisMarSilva/cms-golang-teste-redis
+// go mod init github.com/chrismarsilva/cms-golang-teste-redis
 // go get github.com/go-redis/redis
 // go get github.com/go-redis/redis/v8
 // go get github.com/gomodule/redigo/redis

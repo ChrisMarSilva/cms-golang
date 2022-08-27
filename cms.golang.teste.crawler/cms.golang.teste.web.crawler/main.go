@@ -8,7 +8,7 @@ import (
 	"github.com/ChrisMarSilva/cms.golang.teste.web.crawler/crawler"
 )
 
-// go mod init github.com/ChrisMarSilva/cms.golang.teste.web.crawler
+// go mod init github.com/chrismarsilva/cms.golang.teste.web.crawler
 // go get golang.org/x/net/html
 // go get github.com/mattn/go-sqlite3
 // go get github.com/PuerkitoBio/goquery
