@@ -9,12 +9,35 @@ import (
 	_ "github.com/denisenkom/go-mssqldb"
 )
 
-// go get github.com/denisenkom/go-mssqldb
+// go mod init github.com/chrismarsilva/cms.golang.teste.bd.mssql
+// go get -u github.com/denisenkom/go-mssqldb
+// go mod tidy
+
+// go run main.go
+
 func main() {
 
-	connString := "Provider=SQLOLEDB.1;Password=jddesenv;Persist Security Info=True;User ID=jddesenv;Initial Catalog=JDSPB;Data Source=JDSP108"
+	connString := ""
+	connString = "Provider=SQLOLEDB.1;Password=jddesenv;Persist Security Info=True;User ID=jddesenv;Initial Catalog=JDSPB;Data Source=JDSP108"
 	connString = "Provider=SQLOLEDB.1;Password=sa;Persist Security Info=True;User ID=sa;Initial Catalog=CMS_TESTE_CNAB240;Data Source=CMS-NOTE-2020\\SQLEXPRESS"
-	connString = "sqlserver://sa:Hello123#@127.0.0.1:5401?database=CMS_TESTE_CNAB240"
+	connString = "sqlserver://sa:sa@127.0.0.1:5401?database=CMS_TESTE_CNAB240"
+	connString = "sqlserver://sa:sa@127.0.0.1:1433?database=CMS_TESTE_CNAB240"
+	connString = "sqlserver://sa:sa@localhost:5401?database=CMS_TESTE_CNAB240"
+	connString = "sqlserver://sa:sa@localhost:1433?database=CMS_TESTE_CNAB240"
+	connString = "sqlserver://sa:sa@CMS-NOTE-2020\\SQLEXPRESS:5401?database=CMS_TESTE_CNAB240"
+	connString = "sqlserver://sa:sa@localhost?database=CMS_TESTE_CNAB240"
+	connString = "Provider=SQLNCLI11.1;Persist Security Info=False;User ID=sa;Initial Catalog=JDNPC;Data Source=CMS-NOTE-2020\\SQLEXPRESS"
+
+	connString = "sqlserver://sa:sa@CMS-NOTE-2020" + fmt.Sprintf("%c", 92) + "SQLEXPRESS?database=CMS_TESTE_CNAB240"
+	connString = "Provider=SQLNCLI11.1;Persist Security Info=False;User ID=sa;Initial Catalog=JDNPC;Data Source=CMS-NOTE-2020" + fmt.Sprintf("%c", 92) + "SQLEXPRESS"
+	fmt.Println(connString)
+	// return
+
+	// for i := 33; i <= 126; i++ { // for i := 33; i <= 126; i++ {
+	// 	// fmt.Printf("%d: %c  ", i, i) //Prints ONLY the unicode chars
+	// 	fmt.Printf("%d: %#U  ", i, i) //Prints the unicode chars and values as well
+	// }
+	// return
 
 	conn, err := sql.Open("mssql", connString)
 	if err != nil {
