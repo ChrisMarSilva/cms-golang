@@ -1,0 +1,90 @@
+version: "3"
+
+services:
+
+  # wrk-app:
+  #   build: .
+  #   volumes:
+  #     - .:/app/
+
+  wrk-rabbit:
+    image: rabbitmq:3.11.1-management
+    container_name: rabbitmq
+    hostname: rabbitmq
+    command: rabbitmq-server
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+      - "15692:15692"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+      - RABBITMQ_DEFAULT_VHOST=/
+    volumes:
+      - ./rabbitmq/:/var/lib/rabbitmq/
+
+  wrk-prometheus:
+    image: prom/prometheus:v2.39.1
+    container_name: prometheus
+    hostname: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/data/:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      # - '--web.enable-lifecycle'
+      # - '--web.console.libraries=/etc/prometheus/console_libraries'
+      # - '--web.console.templates=/etc/prometheus/consoles'
+
+
+  # wrk-node-exporter:
+  #   image: quay.io/prometheus/node-exporter:latest
+  #   volumes:
+  #     - /node-exporter/proc:/host/proc:ro
+  #     - /node-exporter/sys:/host/sys:ro
+  #     - /node-exporter/:/rootfs:ro
+  #     - /node-exporter/:/host:ro,rslave
+  #   command: 
+  #     - '--path.rootfs=/host'
+  #     - '--path.procfs=/host/proc' 
+  #     - '--path.sysfs=/host/sys'
+  #     - --collector.filesystem.ignored-mount-points
+  #     - "^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)"
+  #   ports:
+  #     - 9100:9100
+  #   restart: always
+  #   deploy:
+  #     mode: global
+
+  wrk-grafana:
+    image: grafana/grafana:9.1.8
+    container_name: grafana
+    hostname: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      -  GF_SECURITY_ADMIN_PASSWORD=admin
+    restart: unless-stopped
+    volumes:
+      - ./grafana/data/:/var/lib/grafana
+      - ./grafana/provisioning/:/etc/grafana/provisioning/
+
+  wrk-mysql:
+    image: mysql:5.7
+    platform: linux/amd64
+    container_name: mysql
+    hostname: mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: "tamonabo_BDCMSTamoNaBolsa"
+      MYSQL_ROOT_PASSWORD: "Chrs8723"
+      MYSQL_PASSWORD: "Chrs8723"
+      MYSQL_PORT: 3306
+    volumes:
+      - ./mysql/:/var/lib/mysql/

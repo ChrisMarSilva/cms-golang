@@ -7,7 +7,14 @@ import (
 	"github.com/streadway/amqp"
 )
 
+// cd 'C:\Users\chris\Desktop\CMS GoLang\cms.golang.teste.messageria\cms.golang.teste.rabittmq.streadway'
+
+// go mod init github.com/chrismarsilva/cms.golang.teste.rabittmq.streadway
 // go get -u github.com/streadway/amqp
+// go mod tidy
+
+// go run main.go
+
 
 func main() {
 

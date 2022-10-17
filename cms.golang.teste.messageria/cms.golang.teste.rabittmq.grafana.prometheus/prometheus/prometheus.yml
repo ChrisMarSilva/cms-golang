@@ -1,0 +1,29 @@
+global:
+  scrape_interval: 30s 
+  scrape_timeout: 10s
+  evaluation_interval: 15s
+
+rule_files:
+
+scrape_configs:
+
+  - job_name: "prometheus"
+    scrape_interval: 30s
+    static_configs:
+    - targets: ["localhost:9090"]
+
+  - job_name: "rabbitmq"
+    #metrics_path: '/metrics'
+    scrape_interval: 10s
+    static_configs:
+    - targets: ['rabbitmq:15692']
+
+  # - job_name: 'application'
+  #   static_configs:
+  #     - targets: ['application:3000']
+
+# - job_name: 'node-exporter'
+#     scrape_interval: 15s
+#     static_configs:
+#       - targets: ['node-exporter:9100']
+

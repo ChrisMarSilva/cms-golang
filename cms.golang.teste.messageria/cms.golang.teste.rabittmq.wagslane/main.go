@@ -11,8 +11,16 @@ import (
 	rabbitmq "github.com/wagslane/go-rabbitmq"
 )
 
-// go get github.com/wagslane/go-rabbitmq
+
+// cd 'C:\Users\chris\Desktop\CMS GoLang\cms.golang.teste.messageria\cms.golang.teste.rabittmq.wagslane'
+
 // https://github.com/wagslane/go-rabbitmq
+
+// go mod init github.com/chrismarsilva/cms.golang.teste.rabittmq.wagslane
+// go get -u github.com/wagslane/go-rabbitmq
+// go mod tidy
+
+// go run main.go
 
 var consumerName = "example"
 
@@ -26,7 +34,7 @@ func main() {
 
 func producer() {
 
-	publisher, err := rabbitmq.NewPublisher("amqp://user:pass@localhost",rabbitmq.Config{}, rabbitmq.WithPublisherOptionsLogging)
+	publisher, err := rabbitmq.NewPublisher("amqp://guest:guest@localhost",rabbitmq.Config{}, rabbitmq.WithPublisherOptionsLogging)
 	if err != nil {
 		log.Fatal(err)
 	}

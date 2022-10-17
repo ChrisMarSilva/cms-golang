@@ -1,0 +1,8 @@
+
+cd 'C:\Users\chris\Desktop\CMS GoLang\cms.golang.teste.api\cms.golang.teste.api.rabbitmq.grafana.prometheus'
+
+docker-compose down
+docker-compose up -d --build
+
+    
+------------------------------------------------
