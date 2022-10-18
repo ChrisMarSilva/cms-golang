@@ -1,0 +1,43 @@
+
+cd 'C:\Users\chris\Desktop\CMS GoLang\cms.golang.teste.messageria\cms.golang.teste.kafka'
+
+docker-compose down
+docker-compose up -d --build
+
+docker-compose exec app bash
+
+docker exec -it simulador bash
+ls
+
+go mod init github.com/chrismarsilva/cms.golang.teste.kafka
+
+go run main.go
+
+
+------------------------------------------------
+
+cd 'C:\Users\chris\Desktop\CMS GoLang\cms.golang.teste.messageria\cms.golang.teste.kafka\.docker\kafka'
+
+docker-compose down
+docker-compose up -d --build
+
+docker ps
+docker exec -it kafka-kafka-1 bash
+
+ERRO kafka-console-consumer --bootstrap-server=localhost:9092 --topic=route.new-position
+ERRO kafka-console-consumer --new-consumer --topic route.new-position --from-beginning --bootstrap-server localhost:9092
+OK   kafka-console-consumer --bootstrap-server localhost:9092 --topic route.new-position --from-beginning
+
+ERRO kafka-console-producer --bootstrap-server localhost:9092 --topic route.new-position
+OK   kafka-console-producer --bootstrap-server localhost:9092 --topic route.new-direction
+
+{"clientId":"1","routeId":"1"}
+{"clientId":"2","routeId":"2"}
+{"clientId":"3","routeId":"3"}
+
+------------------------------------------------
+
+Acrescente no seu /etc/hosts (para Windows o caminho é C:\Windows\system32\drivers\etc\hosts):
+127.0.0.1 host.docker.internal
+
+------------------------------------------------
