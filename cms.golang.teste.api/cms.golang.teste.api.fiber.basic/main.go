@@ -69,6 +69,22 @@ func main() {
 		return c.Status(fiber.StatusOK).JSON("ok fiber 2")
 	})
 
+	app.Get("/ping", func(c *fiber.Ctx) error {
+		return c.Status(fiber.StatusOK).JSON("ok ping")
+	})
+
+	app.Get("/health", func(c *fiber.Ctx) error {
+		return c.Status(fiber.StatusOK).JSON("ok health")
+	})
+
+	app.Get("/data", func(c *fiber.Ctx) error {
+		return c.Status(fiber.StatusOK).JSON("ok data")
+	})
+
+	app.Get("/getall", func(c *fiber.Ctx) error {
+		return c.Status(fiber.StatusOK).JSON("ok getall")
+	})
+
 	// custom
 	// app.Get("/swagger/*", swagger.New(swagger.Config{
 	// 	URL:               "http://example.com/doc.json",

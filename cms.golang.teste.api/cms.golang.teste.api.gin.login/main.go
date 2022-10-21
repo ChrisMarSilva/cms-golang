@@ -34,6 +34,11 @@ func main() {
 	//router.Use(dbMiddleware(*conn))
 
 	router.GET("/", func(c *gin.Context) { c.JSON(200, gin.H{"hello": "world"}) })
+	router.GET("/ping", func(c *gin.Context) { c.JSON(200, gin.H{"ping": "ok"}) })
+	router.GET("/health", func(c *gin.Context) { c.JSON(200, gin.H{"health": "ok"}) })
+	router.GET("/data", func(c *gin.Context) { c.JSON(200, gin.H{"data": "ok"}) })
+	router.GET("/getall", func(c *gin.Context) { c.JSON(200, gin.H{"getall": "ok"}) })
+
 	//router.GET("/ping", func(c *gin.Context) { c.JSON(200, gin.H{"message": "pong"}) })
 
 	// routerGroup := router.Group("api/v1")
