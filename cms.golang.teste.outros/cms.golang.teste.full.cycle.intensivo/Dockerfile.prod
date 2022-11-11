@@ -1,0 +1,14 @@
+FROM golang:1.19 AS builder
+WORKDIR /app
+# RUN go clean --modcache
+# COPY go.mod go.sum ./
+# RUN go mod download
+COPY . .
+RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o server -ldflags "-w -s" ./cmd/consumer/main.go
+
+FROM scratch
+COPY --from=builder /app/server /server
+# WORKDIR /app
+# COPY --from=builder /app/main .
+# CMD ["./main"] 
+CMD ["/server"]
