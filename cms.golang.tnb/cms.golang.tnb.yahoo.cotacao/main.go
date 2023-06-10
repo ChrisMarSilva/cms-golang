@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	//"net/http"
 
 	finance "github.com/piquette/finance-go"
 	_ "github.com/piquette/finance-go/etf"
@@ -17,12 +18,11 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	
+	//"github.com/PuerkitoBio/goquery"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-
 	// "github.com/joho/godotenv"
 	// "github.com/joho/godotenv"
 )
@@ -38,9 +38,10 @@ import (
 // docker push chrismarsilva/cms-tnb-cotacao-golang:latest
 
 // go mod init github.com/chrismarsilva/cms.golang.tnb.yahoo
-// go get github.com/piquette/finance-go
-// go get github.com/joho/godotenv
-// go get go.mongodb.org/mongo-driver/mongo
+// go get -u github.com/piquette/finance-go
+// go get -u github.com/joho/godotenv
+// go get -u go.mongodb.org/mongo-driver/mongo
+// go get -u github.com/PuerkitoBio/goquery
 // go mod tidy
 
 // go run main.go
@@ -58,6 +59,41 @@ func init() {
 }
 
 func main() {
+
+	//qq, erre := quote.Get("ITSA4.SA")
+	// if erre != nil {
+	// 	panic(erre)
+	// }
+	// fmt.Println(qq)
+	// fmt.Printf("------- %v -------\n", qq.ShortName)
+    // fmt.Printf("Current Price: $%v\n", qq.Ask)
+    // fmt.Printf("52wk High: $%v\n", qq.FiftyTwoWeekHigh)
+    // fmt.Printf("52wk Low: $%v\n", qq.FiftyTwoWeekLow)
+
+	// symbol := "ITSA4.SA"
+	// res, err := http.Get("https://finance.yahoo.com/quote/" + symbol)
+	// if err != nil {
+	// 	log.Fatalln(err)
+	// }
+	// defer res.Body.Close()
+
+	// // if res.StatusCode != 200 {
+	// // 	log.Fatalf("status code %d: %s", res.StatusCode, res.Status)
+	// // }
+
+	// doc, err := goquery.NewDocumentFromReader(res.Body)
+	// if err != nil {
+	// 	log.Fatalln(err)
+	// }
+
+	// marketPrice := doc.Find("[data-field=regularMarketPrice][data-symbol=" + symbol + "]").Text()
+	// if marketPrice == "" {
+	// 	log.Fatalf("cannot access market price")
+	// }
+
+	// fmt.Printf("%s price: %s\n", symbol, marketPrice)
+
+	// return;
 
 	db := GetDatabase()
 	// 	db.Close()
@@ -81,9 +117,9 @@ func main() {
 	go processarAtivo("ACAO", db, ctx, collection, &wg)
 	// go processarAtivo("ACAO-FULL", db, ctx, collection, &wg)
 
-	wg.Add(1)
-	go processarAtivo("FII", db, ctx, collection, &wg)
-	// go processarAtivo("FII-FULL", db, ctx, collection, &wg)
+	 wg.Add(1)
+	 go processarAtivo("FII", db, ctx, collection, &wg)
+	 // go processarAtivo("FII-FULL", db, ctx, collection, &wg)
 
 	wg.Add(1)
 	// go processarAtivo("ETF", db, ctx, collection, &wg)
@@ -277,6 +313,11 @@ func processarAtivo(tipo string, db *gorm.DB, ctx context.Context, collection *m
 		// go func(tipo string, sql string, data string, cotacao float64, anterior float64, variacao float64, datahora string, id int64, ww *sync.WaitGroup) {
 		// go func(tipo string, sql string, data string, cotacao float64, anterior float64, variacao float64, datahora string, id int64, ww *sync.WaitGroup) {
 		//	defer ww.Done()
+
+		// if (row.Codigo == "ITSA4" || row.Codigo == "ITSA4.SA") {
+		// 	log.Println(row.Codigo, row.Cotacao,  row.Anterior,  row.Variacao)
+		// }
+
 		if row.Cotacao > 0.0 {
 			
 			err = tx.Exec(sql, row.Cotacao, row.Anterior, row.Variacao, dataHoraAtual, row.ID).Error
