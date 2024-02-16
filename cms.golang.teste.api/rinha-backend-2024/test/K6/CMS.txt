@@ -1,0 +1,17 @@
+
+winget install k6
+
+cd "C:\Users\chris\Desktop\CMS GoLang\cms.golang.teste.api\rinha-backend-2024\test\K6"
+
+k6 run 01_transacoes.js
+k6 run 02_extrato.js
+
+k6 run --vus 20 --duration 60s 01_transacoes.js
+k6 run --vus 20 --duration 60s 02_extrato.js
+
+k6 run --vus 1000 --duration 600s 01_transacoes.js
+k6 run --vus 1000 --duration 3600s 01_transacoes.js
+k6 run --vus=20 --iterations=100 01_transacoes.js
+
+(vus)      = usuários virtuais simultâneos 
+(duration) = duração em milissegundos

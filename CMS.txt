@@ -6,10 +6,23 @@ go mod init github.com/chrismarsilva/cms-golang-teste-xxxxxxxx
 go mod tidy
 go list -m all
 
+// go version
+
 go env
 go env -w GO111MODULE=auto
 go env -w CGO_ENABLED=1   -- certo 
 go env -w GOPATH=C:\Users\chris\go    --- certo
+
+// GOPROXY list is not the empty string, but contains no entries
+// go env GOPROXY
+// go env -w GOPROXY=proxy.golang.org
+// GOPROXY=off
+// go env GOSUMDB
+// go env -w GOSUMDB="sum.golang.org"
+
+go clean --modcache
+go get -u
+go build
 
 go get -u github.com/zephinzer/godev
 godev init

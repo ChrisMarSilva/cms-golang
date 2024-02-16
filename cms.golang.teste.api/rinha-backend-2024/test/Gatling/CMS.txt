@@ -1,0 +1,29 @@
+
+
+Para executar os testes
+
+    Baixe o Gatling em https://gatling.io/open-source/
+    Certifique-se de que tenha o JDK instalado (64bits OpenJDK LTS (Long Term Support) versions: 11, 17 e 21) https://gatling.io/docs/gatling/tutorials/installation/
+    Certifique-se de configurar a variável de ambiente GATLING_HOME para o diretório da instalação do Gatling. 
+      Para se certificar de que a variável está correta, os seguinte caminhos precisam ser válidos: $GATLING_HOME/bin/gatling.sh no Linux e %GATLING_HOME%\bin\gatling.bat no Windows.
+    Configure o script ./executar-teste-local.sh (ou ./executar-teste-local.ps1 se estiver no Windows)
+    Suba sua API (ou load balancer) na porta 9999
+    Execute ./executar-teste-local.sh (ou ./executar-teste-local.ps1 se estiver no Windows)
+    Agora é só aguardar o teste terminar e abrir o relatório O caminho do relatório é exibido ao término da simulação. Os resultados/relatórios são salvos em ./load-test/user-files/results.
+    Fique à vontade para alterar a simulação para testar diferentes aspectos e cenários. Não inclua essas alterações no pull request de submissão!
+
+JAVA_HOME = C:\Program Files\Java\jdk-21
+            C:\Program Files\Microsoft\jdk-11.0.22.7-hotspot
+
+JRE_HOME = C:\Program Files\Java\jre-1.8
+
+GATLING_HOME = C:\gatling\gatling-charts-highcharts-bundle-3.10.3
+PATH = C:\gatling\gatling-charts-highcharts-bundle-3.10.3\bin
+
+./executar-teste-local.sh
+
+
+power shell
+cd "C:\Users\chris\Desktop\CMS GoLang\cms.golang.teste.api\rinha-backend-2024\test\Gatling"
+./executar-teste-local.ps1
+
