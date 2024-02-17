@@ -45,14 +45,18 @@ func GetRoutes() *fiber.App {
 	app.Use(cors.New(cors.Config{AllowOrigins: "*", AllowMethods: "*", AllowHeaders: "*", AllowCredentials: true}))
 	app.Use(compress.New(compress.Config{Level: compress.LevelBestSpeed}))
 
-	//Database//Database
-	driverDB := databases.DatabasePostgres{}
-	driverDB.StartDB()
-	db := driverDB.GetDatabase()
+	//Database
+	driverDbWriter := databases.DatabasePostgres{}
+	driverDbWriter.StartDbWriter()
+	writer := driverDbWriter.GetDatabaseWriter()
+
+	driverDbReader := databases.DatabasePostgres{}
+	driverDbReader.StartDbReader()
+	reader := driverDbReader.GetDatabaseReader()
 
 	//Repository
-	clientRepo := repositories.NewClientRepository(db)
-	clientTransactionRepo := repositories.NewClientTransactionRepository(db)
+	clientRepo := repositories.NewClientRepository(writer, reader)
+	clientTransactionRepo := repositories.NewClientTransactionRepository(writer, reader)
 
 	//Service
 	clientServ := services.NewClientService(*clientRepo, *clientTransactionRepo)

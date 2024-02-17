@@ -16,16 +16,18 @@ type IClientRepository interface {
 }
 
 type ClientRepository struct {
-	db *sqlx.DB
+	writer *sqlx.DB
+	reader *sqlx.DB
 }
 
-func NewClientRepository(db *sqlx.DB) *ClientRepository {
-	return &ClientRepository{db: db}
+func NewClientRepository(writer, reader *sqlx.DB) *ClientRepository {
+	return &ClientRepository{writer: writer, reader: reader}
 }
 
 func (repo ClientRepository) Get(entity *models.Cliente, id int) (err error) {
 	query := "SELECT limite, saldo FROM cliente WHERE id = $1"
 
+	// repo.db.QueryRowxContext(context.Background(),query)
 	// row, err := repo.db.QueryContext(context.Background(), query, id)
 	// if err != nil {
 	// 	return err
@@ -48,7 +50,7 @@ func (repo ClientRepository) Get(entity *models.Cliente, id int) (err error) {
 	// 	return err
 	// }
 
-	stmt, err := repo.db.PrepareContext(context.Background(), query)
+	stmt, err := repo.reader.PrepareContext(context.Background(), query)
 	if err != nil {
 		return err
 	}
@@ -80,7 +82,7 @@ func (repo ClientRepository) UpdSaldo(id int, valor int64, tipo string) (err err
 		query = "UPDATE cliente SET saldo = saldo + $1 WHERE id = $2"
 	}
 
-	stmt, err := repo.db.PrepareContext(context.Background(), query)
+	stmt, err := repo.writer.PrepareContext(context.Background(), query)
 	if err != nil {
 		return err
 	}

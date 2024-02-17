@@ -45,28 +45,23 @@ func (s *ClientService) CreateTransaction(id int, request dtos.TransacaoRequestD
 
 	novoSado -= cliente.Limite
 
-	// tx, err := db.Begin() //tx := db.MustBegin()
-	// if err != nil {
-	// 	return transacao, err
-	// }
+	go func() {
+		//tx := db.MustBegin()
 
-	err = s.clientRepo.UpdSaldo(id, request.Valor, request.Tipo)
-	if err != nil {
-		// tx.Rollback()
-		return transacao, err
-	}
+		_ = s.clientRepo.UpdSaldo(id, request.Valor, request.Tipo)
+		// if err != nil {
+		// 	// tx.Rollback()
+		// 	return transacao, err
+		// }
 
-	err = s.clientTransactionRepo.Add(id, request.Valor, request.Tipo, request.Descricao)
-	if err != nil {
-		// tx.Rollback()
-		return transacao, err
-	}
+		_ = s.clientTransactionRepo.Add(id, request.Valor, request.Tipo, request.Descricao)
+		// if err != nil {
+		// 	// tx.Rollback()
+		// 	return transacao, err
+		// }
 
-	//err = tx.Commit()
-	// if err != nil {
-	// 	// tx.Rollback()
-	// 	return transacao, err
-	// }
+		// tx.Commit()
+	}()
 
 	transacao = dtos.TransacaoResponseDto{
 		Limite: cliente.Limite,
@@ -85,13 +80,13 @@ func (s *ClientService) GetExtract(id int) (dtos.ExtratoResponseDto, error) {
 		return extrato, err
 	}
 
-	clienteTransacoes := []models.ClienteTransacao{}
+	clienteTransacoes := map[int]models.ClienteTransacao{}
 	err = s.clientTransactionRepo.GetAll(&clienteTransacoes, id)
 	if err != nil {
 		return extrato, err
 	}
 
-	transacoes := []dtos.ExtratoTransacoesResponseDto{}
+	transacoes := make([]dtos.ExtratoTransacoesResponseDto, 0, 100) // transacoes := make([]dtos.ExtratoTransacoesResponseDto, len(clienteTransacoes))
 
 	for _, value := range clienteTransacoes {
 		transacao := dtos.ExtratoTransacoesResponseDto{
@@ -101,7 +96,7 @@ func (s *ClientService) GetExtract(id int) (dtos.ExtratoResponseDto, error) {
 			RealizadaEm: value.DtHrRegistro.Format("2006-01-02T15:04:05.000000Z"),
 		}
 
-		transacoes = append(transacoes, transacao)
+		transacoes = append(transacoes, transacao) //transacoes[key] = transacao
 	}
 
 	extrato = dtos.ExtratoResponseDto{

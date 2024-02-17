@@ -22,7 +22,6 @@ PATH = C:\gatling\gatling-charts-highcharts-bundle-3.10.3\bin
 
 ./executar-teste-local.sh
 
-
 power shell
 cd "C:\Users\chris\Desktop\CMS GoLang\cms.golang.teste.api\rinha-backend-2024\test\Gatling"
 ./executar-teste-local.ps1

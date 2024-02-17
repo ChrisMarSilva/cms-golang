@@ -18,7 +18,7 @@ import (
 // go test -run GetClientDbPadrao -v
 // go test -run=GetClientDbPadrao -bench . -benchmem
 
-func GetClientDbPadrao() *sqlx.DB {
+func GetClientDbPadrao() (*sqlx.DB, *sqlx.DB) {
 	viper.AddConfigPath("./")
 	viper.SetConfigFile("../../cmd/api-server/.env")
 
@@ -27,27 +27,34 @@ func GetClientDbPadrao() *sqlx.DB {
 		panic(fmt.Errorf("Fatal error config file: %w \n", err))
 	}
 
-	driverDB := databases.DatabasePostgres{}
-	driverDB.StartDB()
-	return driverDB.GetDatabase()
+	driverDbWriter := databases.DatabasePostgres{}
+	driverDbWriter.StartDbWriter()
+	writer := driverDbWriter.GetDatabaseWriter()
+
+	driverDbReader := databases.DatabasePostgres{}
+	driverDbReader.StartDbReader()
+	reader := driverDbReader.GetDatabaseReader()
+
+	return writer, reader
 }
 
 func TestClientRepoGet(t *testing.T) {
-	db := GetClientDbPadrao()
-	repo := repositories.NewClientRepository(db)
-
-	// fmt.Println(entity)
+	writer, reader := GetClientDbPadrao()
+	repo := repositories.NewClientRepository(writer, reader)
+	defer writer.Close()
+	defer reader.Close()
 
 	var entity models.Cliente
 	if err := repo.Get(&entity, 1); err != nil {
 		t.Fatalf("error %t", err)
 	}
 
+	fmt.Println(entity)
 }
 
 func TestClientRepoUpdateDebito(t *testing.T) {
-	db := GetClientDbPadrao()
-	repo := repositories.NewClientRepository(db)
+	writer, reader := GetClientDbPadrao()
+	repo := repositories.NewClientRepository(writer, reader)
 
 	if err := repo.UpdSaldo(1, 100, "d"); err != nil {
 		t.Fatalf("error %t", err)
@@ -55,8 +62,8 @@ func TestClientRepoUpdateDebito(t *testing.T) {
 }
 
 func TestClientRepoUpdateCredito(t *testing.T) {
-	db := GetClientDbPadrao()
-	repo := repositories.NewClientRepository(db)
+	writer, reader := GetClientDbPadrao()
+	repo := repositories.NewClientRepository(writer, reader)
 
 	if err := repo.UpdSaldo(1, 100, "c"); err != nil {
 		t.Fatalf("error %t", err)
@@ -64,9 +71,11 @@ func TestClientRepoUpdateCredito(t *testing.T) {
 }
 
 func BenchmarkClientRepoGet(b *testing.B) {
-	db := GetClientDbPadrao()
-	repo := repositories.NewClientRepository(db)
+	writer, reader := GetClientDbPadrao()
+	repo := repositories.NewClientRepository(writer, reader)
 
+	b.ResetTimer()
+	
 	for i := 0; i < b.N; i++ {
 		var entity models.Cliente
 		if err := repo.Get(&entity, 1); err != nil {
@@ -76,8 +85,8 @@ func BenchmarkClientRepoGet(b *testing.B) {
 }
 
 func BenchmarkClientRepoUpdate(b *testing.B) {
-	db := GetClientDbPadrao()
-	repo := repositories.NewClientRepository(db)
+	writer, reader := GetClientDbPadrao()
+	repo := repositories.NewClientRepository(writer, reader)
 
 	for i := 0; i < b.N; i++ {
 		if err := repo.UpdSaldo(1, 100, "c"); err != nil {
@@ -87,8 +96,8 @@ func BenchmarkClientRepoUpdate(b *testing.B) {
 }
 
 func BenchmarkClientRepoGetAndUpdate(b *testing.B) {
-	db := GetClientDbPadrao()
-	repo := repositories.NewClientRepository(db)
+	writer, reader := GetClientDbPadrao()
+	repo := repositories.NewClientRepository(writer, reader)
 
 	for i := 0; i < b.N; i++ {
 		var entity models.Cliente
@@ -102,8 +111,8 @@ func BenchmarkClientRepoGetAndUpdate(b *testing.B) {
 }
 
 func BenchmarkClientRepoGet10Mil(b *testing.B) {
-	db := GetClientDbPadrao()
-	repo := repositories.NewClientRepository(db)
+	writer, reader := GetClientDbPadrao()
+	repo := repositories.NewClientRepository(writer, reader)
 
 	for i := 0; i < 10_001; i++ {
 		var entity models.Cliente
@@ -114,8 +123,8 @@ func BenchmarkClientRepoGet10Mil(b *testing.B) {
 }
 
 func BenchmarkClientRepoUpdate10Mil(b *testing.B) {
-	db := GetClientDbPadrao()
-	repo := repositories.NewClientRepository(db)
+	writer, reader := GetClientDbPadrao()
+	repo := repositories.NewClientRepository(writer, reader)
 
 	for i := 0; i < 10_001; i++ {
 		if err := repo.UpdSaldo(1, 100, "c"); err != nil {
@@ -125,8 +134,8 @@ func BenchmarkClientRepoUpdate10Mil(b *testing.B) {
 }
 
 func BenchmarkClientRepoGetAndUpdate10Mil(b *testing.B) {
-	db := GetClientDbPadrao()
-	repo := repositories.NewClientRepository(db)
+	writer, reader := GetClientDbPadrao()
+	repo := repositories.NewClientRepository(writer, reader)
 
 	for i := 0; i < 10_001; i++ {
 		var entity models.Cliente

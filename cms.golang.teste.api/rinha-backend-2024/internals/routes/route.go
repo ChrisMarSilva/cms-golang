@@ -43,13 +43,17 @@ func NewRoutes() *fiber.App {
 func setupConfigRoutes(app fiber.Router) {
 
 	//Database
-	driverDB := databases.DatabasePostgres{}
-	driverDB.StartDB()
-	db := driverDB.GetDatabase()
+	driverDbWriter := databases.DatabasePostgres{}
+	driverDbWriter.StartDbWriter()
+	writer := driverDbWriter.GetDatabaseWriter()
+
+	driverDbReader := databases.DatabasePostgres{}
+	driverDbReader.StartDbReader()
+	reader := driverDbReader.GetDatabaseReader()
 
 	//Repository
-	clientRepo := repositories.NewClientRepository(db)
-	clientTransactionRepo := repositories.NewClientTransactionRepository(db)
+	clientRepo := repositories.NewClientRepository(writer, reader)
+	clientTransactionRepo := repositories.NewClientTransactionRepository(writer, reader)
 
 	//Service
 	clientServ := services.NewClientService(*clientRepo, *clientTransactionRepo)

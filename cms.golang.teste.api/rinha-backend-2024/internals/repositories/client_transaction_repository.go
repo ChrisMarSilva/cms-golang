@@ -10,22 +10,35 @@ import (
 )
 
 type IClientTransactionRepository interface {
-	GetAll(entities *[]models.ClienteTransacao, idcliente int) error
+	GetAll(entities *map[int]models.ClienteTransacao, idcliente int) error
 	Add(idcliente int, valor int64, tipo string, descricao string) error
 }
 
 type ClientTransactionRepository struct {
-	db *sqlx.DB
+	writer *sqlx.DB
+	reader *sqlx.DB
 }
 
-func NewClientTransactionRepository(db *sqlx.DB) *ClientTransactionRepository {
-	return &ClientTransactionRepository{db: db}
+func NewClientTransactionRepository(writer, reader *sqlx.DB) *ClientTransactionRepository {
+	return &ClientTransactionRepository{writer: writer, reader: reader}
 }
 
-func (repo ClientTransactionRepository) GetAll(entities *[]models.ClienteTransacao, idcliente int) (err error) {
-	query := "SELECT valor, tipo, descricao, dthrregistro FROM cliente_transacao WHERE cliente_id = $1 ORDER BY id DESC LIMIT 10" // ?
+func (repo ClientTransactionRepository) GetAll(entities *map[int]models.ClienteTransacao, idcliente int) (err error) {
+	*entities = make(map[int]models.ClienteTransacao, 0)
 
-	stmt, err := repo.db.PrepareContext(context.Background(), query)
+	query := "SELECT valor, tipo, descricao, dthrregistro FROM cliente_transacao WHERE cliente_id = $1 ORDER BY id DESC LIMIT 10"
+	//repo.db.QueryxContext(context.Background(),query)
+
+	//users *[]entity.User
+	// rows, err := repo.db.Queryx(query)
+	// defer rows.Close()
+	// for rows.Next() {
+	// 	var user entity.User
+	// 	if err := rows.StructScan(&user); err != nil { return err }
+	// 	*users = append(*users, user)
+	// }
+
+	stmt, err := repo.reader.PrepareContext(context.Background(), query)
 	if err != nil {
 		return err
 	}
@@ -38,12 +51,14 @@ func (repo ClientTransactionRepository) GetAll(entities *[]models.ClienteTransac
 	}
 	defer rows.Close()
 
+	i := 0
 	for rows.Next() {
 		entity := models.ClienteTransacao{}
 		if err := rows.Scan(&entity.Valor, &entity.Tipo, &entity.Descricao, &entity.DtHrRegistro); err != nil { // if err := rows.StructScan(&entity); err != nil {
 			return err
 		}
-		*entities = append(*entities, entity)
+		(*entities)[i] = entity
+		i++
 	}
 
 	if err := rows.Err(); err != nil {
@@ -56,13 +71,17 @@ func (repo ClientTransactionRepository) GetAll(entities *[]models.ClienteTransac
 func (repo ClientTransactionRepository) Add(idcliente int, valor int64, tipo string, descricao string) (err error) {
 	query := "INSERT INTO cliente_transacao (cliente_id, valor, tipo, descricao) Values ($1, $2, $3, $4)"
 
-	stmt, err := repo.db.PrepareContext(context.Background(), query)
+	// res := repo.db.MustExec(query, user.ID, user.Nome, user.Status)
+	// _, err = res.RowsAffected()
+
+	//result, err := repo.db.ExecContext(context.Background(), query, idcliente, valor, tipo, descricao)
+
+	stmt, err := repo.writer.PrepareContext(context.Background(), query)
 	if err != nil {
 		return err
 	}
 	defer stmt.Close()
 
-	//result, err := repo.db.ExecContext(context.Background(), query, idcliente, valor, tipo, descricao)
 	result, err := stmt.ExecContext(context.Background(), idcliente, valor, tipo, descricao)
 	if err != nil {
 		return err
