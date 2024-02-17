@@ -36,12 +36,11 @@ func (s *ClientService) CreateTransaction(id int, request dtos.TransacaoRequestD
 
 	if request.Tipo == "d" {
 		novoSado = cliente.Saldo + cliente.Limite - request.Valor
+		if novoSado < 0 {
+			return transacao, errors.New("Novo saldo do cliente menor que seu limite disponível.")
+		}
 	} else {
 		novoSado = cliente.Saldo + cliente.Limite + request.Valor
-	}
-
-	if novoSado < 0 {
-		return transacao, errors.New("Novo saldo do cliente menor que seu limite disponível.")
 	}
 
 	novoSado -= cliente.Limite
@@ -63,7 +62,7 @@ func (s *ClientService) CreateTransaction(id int, request dtos.TransacaoRequestD
 		return transacao, err
 	}
 
-	//err = tx.Commit() 
+	//err = tx.Commit()
 	// if err != nil {
 	// 	// tx.Rollback()
 	// 	return transacao, err

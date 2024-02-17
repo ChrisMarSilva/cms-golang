@@ -1,4 +1,4 @@
-package route
+package routes
 
 import (
 	"github.com/chrismarsilva/rinha-backend-2024/internals/databases"
@@ -6,12 +6,11 @@ import (
 	"github.com/chrismarsilva/rinha-backend-2024/internals/repositories"
 	"github.com/chrismarsilva/rinha-backend-2024/internals/services"
 	"github.com/goccy/go-json"
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/compress"
-	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/gofiber/fiber/v2/middleware/monitor"
-	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/compress"
+	"github.com/gofiber/fiber/v3/middleware/cors"
+	"github.com/gofiber/fiber/v3/middleware/logger"
+	"github.com/gofiber/fiber/v3/middleware/recover"
 	_ "github.com/lib/pq"
 	"github.com/spf13/viper"
 )
@@ -32,7 +31,7 @@ func NewRoutes() *fiber.App {
 	app.Use(cors.New(cors.Config{AllowOrigins: "*", AllowMethods: "*", AllowHeaders: "*", AllowCredentials: true}))
 	app.Use(compress.New(compress.Config{Level: compress.LevelBestSpeed}))
 
-	app.Use(logger.New(logger.Config{Format: "${cyan}[${time}] ${red}${status} ${white}${latency} ${blue}[${method}] ${white}${path} Error: ${red}${error}\n", TimeFormat: "2006-01-02T15:04:05.00000", TimeZone: "America/Sao_Paulo"}))
+	app.Use(logger.New(logger.Config{Format: "${cyan}[${time}] ${white}${latency} ${red}[${status}] ${blue}[${method}] ${white}${path} Error: ${red}${error}\n", TimeFormat: "2006-01-02T15:04:05.00000", TimeZone: "America/Sao_Paulo"}))
 	//app.Use(logger.New(logger.Config{Format: "${cyan}[${time}] ${white}${pid} ${red}${status} ${blue}[${method}] ${white}${path} Error: ${error}\n", TimeFormat: "2006-01-02T15:04:05.00000", TimeZone: "America/Sao_Paulo"}))
 	//app.Use(logger.New(logger.Config{Format: "[${time}]: ${ip} ${status} ${latency} ${method} ${path} Error: ${error}\n", TimeFormat: "2006-01-02T15:04:05.00000", TimeZone: "America/Sao_Paulo"}))
 
@@ -62,15 +61,14 @@ func setupConfigRoutes(app fiber.Router) {
 	routes.Post(":id/transacoes", clientHandler.CreateTransaction)
 	routes.Get("/:id/extrato", clientHandler.GetExtract)
 
-	app.Get("/metrics", monitor.New())
 	app.Get("/msg", Menssage)
 	app.Use(NotFound)
 }
 
-func Menssage(c *fiber.Ctx) error {
+func Menssage(c fiber.Ctx) error {
 	return c.SendString(viper.GetString("MENSAGEM"))
 }
 
-func NotFound(c *fiber.Ctx) error {
+func NotFound(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNotFound)
 }

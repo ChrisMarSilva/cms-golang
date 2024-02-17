@@ -1,13 +1,14 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/chrismarsilva/rinha-backend-2024/internals/dtos"
 	"github.com/chrismarsilva/rinha-backend-2024/internals/services"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 type IClientHandler interface {
@@ -23,7 +24,7 @@ func NewClientHandler(service services.ClientService) *ClientHandler {
 	return &ClientHandler{service: service}
 }
 
-func (h *ClientHandler) CreateTransaction(ctx *fiber.Ctx) error {
+func (h *ClientHandler) CreateTransaction(ctx fiber.Ctx) error {
 	ctx.Accepts("application/json")
 
 	idStr := strings.Trim(ctx.Params("id"), " ")
@@ -38,7 +39,7 @@ func (h *ClientHandler) CreateTransaction(ctx *fiber.Ctx) error {
 
 	payload := new(dtos.TransacaoRequestDto)
 
-	if err := ctx.BodyParser(payload); err != nil {
+	if err := json.Unmarshal(ctx.Body(), &payload); err != nil { // if err := ctx.BodyParser(payload); err != nil {
 		return ctx.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"message": "Payload inválido: " + err.Error()})
 	}
 
@@ -61,7 +62,7 @@ func (h *ClientHandler) CreateTransaction(ctx *fiber.Ctx) error {
 	return ctx.Status(fiber.StatusOK).JSON(response)
 }
 
-func (h *ClientHandler) GetExtract(ctx *fiber.Ctx) error {
+func (h *ClientHandler) GetExtract(ctx fiber.Ctx) error {
 	ctx.Accepts("application/json")
 
 	strId := strings.Trim(ctx.Params("id"), " ")

@@ -4,18 +4,19 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/chrismarsilva/rinha-backend-2024/internals/route"
+	"github.com/chrismarsilva/rinha-backend-2024/internals/routes"
 	"github.com/spf13/viper"
 )
 
 // go mod init github.com/chrismarsilva/rinha-backend-2024
-// go get -u github.com/gofiber/fiber/v2
+// go get -u github.com/gofiber/fiber/v3
 // go get -u github.com/jmoiron/sqlx
 // go get -u github.com/goccy/go-json
 // go get -u github.com/spf13/viper
 // go mod tidy
 
 // go run main.go
+// go run ./cmd/api-server/main.go
 
 //http://127.0.0.1:3000/clientes/2/transacoes/
 //http://127.0.0.1:3000/clientes/2/extrato/
@@ -37,22 +38,7 @@ func init() {
 }
 
 func main() {
-	app := route.NewRoutes()
+	app := routes.NewRoutes() //server.Initialize()
 	log.Fatal(app.Listen(viper.GetString("PORT")))
-
-	/*
-
-		"goHexagonalBlog/internal/core/services"
-		"goHexagonalBlog/internal/handlers"
-		"goHexagonalBlog/internal/repositories"
-		"goHexagonalBlog/internal/server"
-
-
-		userRepository := repositories.NewUserRepository()
-		userService := services.NewUserService(userRepository)
-		userHandlers := handlers.NewUserHandlers(userService)
-		server.Initialize(userHandlers)
-
-	*/
 
 }

@@ -52,11 +52,7 @@ func (data *DatabasePostgres) StartDB() {
 	database.SetMaxOpenConns(maxConnections) // SetMaxOpenConns define o número máximo de conexões abertas com o banco de dados.
 	database.SetMaxIdleConns(100)            // SetMaxIdleConns define o número máximo de conexões no pool de conexão ociosa.
 	database.SetConnMaxIdleTime(time.Hour)
-	database.SetConnMaxLifetime(time.Minute * 5) // 24 *time.Hour // SetConnMaxLifetime define a quantidade máxima de tempo que uma conexão pode ser reutilizada.
-
-	// database.MustExec("TRUNCATE TABLE cliente_transacao")
-	// database.MustExec("UPDATE cliente_saldo SET total = 0")
-	// database.MustExec("UPDATE cliente SET saldo = 0")
+	database.SetConnMaxLifetime(0) // time.Minute * 5 // SetConnMaxLifetime define a quantidade máxima de tempo que uma conexão pode ser reutilizada.
 
 	Conn = database
 }
