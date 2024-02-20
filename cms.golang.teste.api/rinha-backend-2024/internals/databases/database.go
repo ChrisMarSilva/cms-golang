@@ -10,6 +10,11 @@ import (
 	"github.com/spf13/viper"
 )
 
+var (
+	ConnWriter *sqlx.DB // *sql.DB // *sqlx.DB
+	ConnReader *sqlx.DB // *sql.DB // *sqlx.DB
+)
+
 type IDatabase interface {
 	StartDbWriter()
 	GetDatabaseWriter() interface{}
@@ -20,13 +25,7 @@ type IDatabase interface {
 	CloseDatabaseReader()
 }
 
-var (
-	ConnWriter *sqlx.DB // *sql.DB // *sqlx.DB
-	ConnReader *sqlx.DB // *sql.DB // *sqlx.DB
-)
-
-type DatabasePostgres struct {
-}
+type DatabasePostgres struct{}
 
 func (DatabasePostgres) StartDb() *sqlx.DB {
 	database, err := sqlx.Connect(viper.GetString("DATABASE_DRIVER"), viper.GetString("DATABASE_URL"))
@@ -48,9 +47,9 @@ func (DatabasePostgres) StartDb() *sqlx.DB {
 	maxConnections, _ := strconv.Atoi(maxConnectionsStr)
 
 	database.SetMaxOpenConns(maxConnections) // SetMaxOpenConns define o número máximo de conexões abertas com o banco de dados.
-	database.SetMaxIdleConns(100)            // SetMaxIdleConns define o número máximo de conexões no pool de conexão ociosa.
-	database.SetConnMaxIdleTime(time.Hour)
-	database.SetConnMaxLifetime(time.Minute * 5) // SetConnMaxLifetime define a quantidade máxima de tempo que uma conexão pode ser reutilizada.
+	database.SetMaxIdleConns(50)             // SetMaxIdleConns define o número máximo de conexões no pool de conexão ociosa.
+	database.SetConnMaxIdleTime(time.Minute * 1)
+	database.SetConnMaxLifetime(time.Minute * 1) // SetConnMaxLifetime define a quantidade máxima de tempo que uma conexão pode ser reutilizada.
 
 	return database
 }
