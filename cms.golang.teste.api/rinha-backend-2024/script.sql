@@ -16,8 +16,6 @@ CREATE TABLE cliente_transacao (
   CONSTRAINT fk_transacao_to_cliente FOREIGN KEY(cliente_id) REFERENCES cliente(id)
 );
 
-CREATE INDEX idx_transacoes_id_desc ON cliente_transacao(id desc);
-
 CREATE TABLE cliente_saldo  (
 	id SERIAL PRIMARY KEY,
 	cliente_id INTEGER NOT NULL,
@@ -25,7 +23,13 @@ CREATE TABLE cliente_saldo  (
   CONSTRAINT fk_transacao_to_saldo FOREIGN KEY(cliente_id) REFERENCES cliente(id)
 );
 
-CREATE UNIQUE INDEX idx_saldo_cliente ON cliente_saldo (cliente_id) include (total);
+CREATE EXTENSION IF NOT EXISTS PG_TRGM;
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_transacoes_id_desc ON cliente_transacao(id desc);
+--CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_transacoes_id_desc ON cliente_transacao USING GIST (id desc GIST_TRGM_OPS);
+--CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_transacoes_id_desc ON cliente_transacao USING GIST (id desc GIST_TRGM_OPS(SIGLEN=64));
+--CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_transacoes_id_desc ON cliente_transacao USING GIN (id desc gin_trgm_ops);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_saldo_cliente ON cliente_saldo (cliente_id) include (total);
+
 
 DO $$
 BEGIN
@@ -34,20 +38,3 @@ BEGIN
 	INSERT INTO cliente_saldo (cliente_id, total) SELECT id, 0 FROM cliente;
 END;
 $$;
-
-/*
-
-CREATE UNLOGGED TABLE "Pessoas" (
-    "Id" uuid NOT NULL CONSTRAINT "PK_Pessoas" PRIMARY KEY,
-    "Apelido" character varying(32) NOT NULL,
-    "Nome" character varying(100) NOT NULL,
-    "Nascimento" date NOT NULL,
-    "Stack" character varying(32)[],
-    "Busca" TEXT
-);
-
-CREATE INDEX IF NOT EXISTS IDX_PESSOAS_APELIDO ON "Pessoas" ("Apelido");
-CREATE EXTENSION IF NOT EXISTS PG_TRGM;
-CREATE INDEX CONCURRENTLY IF NOT EXISTS IDX_PESSOAS_BUSCA ON "Pessoas" USING GIST ("Busca" GIST_TRGM_OPS(SIGLEN=64));
-
-*/

@@ -2,100 +2,112 @@ version: "3.5"
 
 services:
 
+  db:
+    image: postgres:latest
+    hostname: db
+    restart: always
+    #network_mode: host
+    environment:
+      - POSTGRES_PASSWORD=123
+      - POSTGRES_USER=admin
+      - POSTGRES_DB=rinha
+    ports:
+      - "5432:5432"
+    expose:
+      - "5432"
+    volumes:
+      - ./script.sql:/docker-entrypoint-initdb.d/script.sql
+      - ./postgres.conf:/etc/postgresql/postgresql.conf
+      - ./data:/var/lib/postgresql/data
+    command:
+      [
+        "postgres",
+        "-c",
+        "config_file=/etc/postgresql/postgresql.conf"
+      ]
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      #test: ["CMD-SHELL", "pg_isready", "-U postgres", "-h", "rinha"]
+      interval: 15s
+      timeout: 25s
+      retries: 3
+      start_period: 10s
+      # deploy:
+      # resources:
+      # limits:
+      # cpus: "0.8" # '0.75' # '0.4' # '1.0'
+      # memory: "2.5GB" # '1.5GB' # '1.8GB' # '1.7GB'
+
   api01: &api
     build:
       context: .
-      dockerfile: Dockerfile
+      #dockerfile: Dockerfile
     hostname: api01
-    restart: always
+    restart: on-failure
+    #network_mode: host
     environment:
-      - PORT=":3001"
-      - DATABASE_DRIVER="postgres"
-      - DATABASE_URL="host=db port=5432 dbname=postgres user=postgres password=postgres sslmode=disable"
-      - DATABASE_MAX_CONNECTIONS="100"
+      - GO_ENVIRONMENT=production
+      - DATABASE_DRIVER=postgres
+      - DATABASE_URL=host=localhost port=5432 user=admin password=123 dbname=rinha sslmode=disable
+      - DATABASE_MAX_CONNECTIONS=100
       - MENSAGEM="Teste via Docker Compose - api01"
+      - PORT=3001
     ports:
-      - "3001:8080"
-  
-  # db:
-  #   image: postgres:latest
-  #   hostname: db
-  #   restart: unless-stopped
-  #   environment:
-  #     - POSTGRES_PASSWORD=123
-  #     - POSTGRES_USER=admin
-  #     - POSTGRES_DB=rinha
-  #   ports:
-  #     - "5432:5432"
-  #   volumes:
-  #     - ./script.sql:/docker-entrypoint-initdb.d/script.sql
-  #     - ./postgres.conf:/etc/postgresql/postgresql.conf
-  #     - ./data:/var/lib/postgresql/data
-  #   command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
-  #   # network_mode: host
-  #   # deploy:
-  #     # resources:
-  #       # limits:
-  #         # cpus: "0.8"
-  #         # memory: "2.5GB"
+      - "3001:3001"
+    expose:
+      - "3001"
+    depends_on:
+      #- db
+      db:
+        condition: service_healthy
+      # deploy:
+      # resources:
+      # limits:
+      # cpus: "0.3" #  '0.25'  # '0.5' #  '0.1'  # '0.125'
+      # memory: "350MB" # '0.5GB' # '0.5GB' # '0.15GB' # '0.35GB'
 
-  # api01: &api
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #   hostname: api01
-  #   restart: always
-  #   environment:
-  #     - PORT=":3001"
-  #     - DATABASE_DRIVER="postgres"
-  #     - DATABASE_URL="host=db port=5432 dbname=postgres user=postgres password=postgres sslmode=disable"
-  #     - DATABASE_MAX_CONNECTIONS="100"
-  #     - MENSAGEM="Teste via Docker Compose - api01"
-  #   ports:
-  #     - "3001:8080"
-  #   depends_on:
-  #     - db
-  #   # network_mode: host
-  #   # deploy:
-  #     # resources:
-  #       # limits:
-  #         # cpus: "0.3"
-  #         # memory: "350MB"
+  api02:
+    <<: *api
+    hostname: api02
+    restart: on-failure
+    #network_mode: host
+    environment:
+      - GO_ENVIRONMENT=production
+      - DATABASE_DRIVER=postgres
+      - DATABASE_URL=host=localhost port=5432 user=admin password=123 dbname=rinha sslmode=disable
+      - DATABASE_MAX_CONNECTIONS=100
+      - MENSAGEM="Teste via Docker Compose - api02"
+      - PORT=3002
+    ports:
+      - "3002:3002"
+    expose:
+      - "3002"
+    depends_on:
+      #- db
+      db:
+        condition: service_healthy
+      # deploy:
+      # resources:
+      # limits:
+      # cpus: "0.3" #  '0.25'  # '0.5' #  '0.1'
+      # memory: "350MB" # '0.5GB' # '0.5GB' # '0.15GB'
 
-  # api02:
-  #   <<: *api 
-  #   hostname: api02
-  #   environment:
-  #     - PORT=":3000"
-  #     - DATABASE_DRIVER="postgres"
-  #     - DATABASE_URL="host=db port=5432 dbname=postgres user=postgres password=postgres sslmode=disable"
-  #     - DATABASE_MAX_CONNECTIONS="100"
-  #     - MENSAGEM="Teste via Docker Compose - api02"
-  #   ports:
-  #     - "3002:8080"
-  #   # network_mode: host
-  #   # deploy:
-  #     # resources:
-  #       # limits:
-  #         # cpus: "0.3"
-  #         # memory: "350MB"
-
-  # nginx:
-  #   image: nginx:latest  # nginx:1.21.6-alpine
-  #   restart: always
-  #   volumes:
-  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
-  #   ports:
-  #     - "9999:9999" 
-  #   #network_mode: host
-  #   depends_on:
-  #     - api01
-  #     - api02
-  #   # deploy:
-  #     # resources:
-  #       # limits:
-  #         # cpus: "0.1"
-  #         # memory: "100MB"
+  nginx:
+    image: nginx:1.25.4-alpine
+    restart: always
+    #network_mode: host
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "9999:9999"
+    depends_on:
+      - api01
+      - api02
+      # deploy:
+      # resources:
+      # limits:
+      # cpus: "0.1" # '0.25' # '0.1' # '0.2'  '0.15'
+      # memory: "100MB" # '0.5GB' # '0.2GB' # '0.5GB' '0.5GB'
 
 networks:
   default:

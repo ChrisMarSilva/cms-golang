@@ -5,8 +5,8 @@ export default function () {
 
     const idCliente = randomIntBetween(1, 5);
 
-    const url = `http://localhost:3000/clientes/${idCliente.toString()}/transacoes`; // Degub 
-    // const url = `http://localhost:9999/clientes/${idCliente.toString()}/transacoes`; // Docker 
+    // const url = `http://localhost:3000/clientes/${idCliente.toString()}/transacoes`; // Degub 
+    const url = `http://localhost:9999/clientes/${idCliente.toString()}/transacoes`; // Docker 
 
     const headers = { headers: { 'Accept-Encoding': 'gzip, deflate', 'Content-Type': 'application/json' } };
 

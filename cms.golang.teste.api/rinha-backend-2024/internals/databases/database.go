@@ -2,12 +2,12 @@ package databases
 
 import (
 	"log"
+	"os"
 	"strconv"
 	"time"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
-	"github.com/spf13/viper"
 )
 
 var (
@@ -28,7 +28,11 @@ type IDatabase interface {
 type DatabasePostgres struct{}
 
 func (DatabasePostgres) StartDb() *sqlx.DB {
-	database, err := sqlx.Connect(viper.GetString("DATABASE_DRIVER"), viper.GetString("DATABASE_URL"))
+	//connStr := "host=%s port=%s user=%s dbname=%s sslmode=%s"
+	//connStr = fmt.Sprintf(connStr, host, port, user, dbname, sslmode)
+
+	//database, err := sqlx.Connect(os.Getenv("DATABASE_DRIVER"), os.Getenv("DATABASE_URL"))
+	database, err := sqlx.Open(os.Getenv("DATABASE_DRIVER"), os.Getenv("DATABASE_URL"))
 	if err != nil {
 		log.Fatalf("Error connecting to database : error=%v", err)
 	}
@@ -40,7 +44,8 @@ func (DatabasePostgres) StartDb() *sqlx.DB {
 		log.Println("Connected")
 	}
 
-	maxConnectionsStr := viper.GetString("DATABASE_MAX_CONNECTIONS")
+	// maxConnectionsStr := viper.GetString("DATABASE_MAX_CONNECTIONS")
+	maxConnectionsStr := os.Getenv("DATABASE_MAX_CONNECTIONS")
 	if maxConnectionsStr == "" {
 		maxConnectionsStr = "50"
 	}
@@ -147,13 +152,3 @@ func (DatabasePostgres) CloseDatabaseReader() {
 	}
 	ConnReader.Close()
 }
-
-// func GetReaderSqlx() *sqlx.DB {
-// 	reader := sqlx.MustConnect("mysql", DB_CONNECTION)
-// 	return reader
-// }
-
-// func GetWriterSqlx() *sqlx.DB {
-// 	writer := sqlx.MustConnect("mysql", DB_CONNECTION)
-// 	return writer
-// }

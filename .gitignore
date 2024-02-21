@@ -30,3 +30,5 @@ cms.golang.teste.messageria/cms.golang.teste.rabittmq.grafana.prometheus/grafana
 cms.golang.teste.messageria/cms.golang.teste.rabittmq.grafana.prometheus/mysql
 cms.golang.teste.messageria/cms.golang.teste.rabittmq.grafana.prometheus/prometheus/data
 cms.golang.teste.messageria/cms.golang.teste.rabittmq.grafana.prometheus/rabbitmq
+
+cms.golang.teste.api/rinha-backend-2024/data
