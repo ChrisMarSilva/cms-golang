@@ -7,6 +7,7 @@ import (
 	"github.com/chrismarsilva/rinha-backend-2024/internals/dtos"
 	"github.com/chrismarsilva/rinha-backend-2024/internals/models"
 	"github.com/chrismarsilva/rinha-backend-2024/internals/repositories"
+	"github.com/jmoiron/sqlx"
 )
 
 type IClientService interface {
@@ -15,16 +16,27 @@ type IClientService interface {
 }
 
 type ClientService struct {
+	db                    *sqlx.DB
 	clientRepo            repositories.IClientRepository
 	clientTransactionRepo repositories.IClientTransactionRepository
 }
 
-func NewClientService(clientRepo repositories.IClientRepository, clientTransactionRepo repositories.IClientTransactionRepository) *ClientService {
-	return &ClientService{clientRepo: clientRepo, clientTransactionRepo: clientTransactionRepo}
+func NewClientService(db *sqlx.DB, clientRepo repositories.IClientRepository, clientTransactionRepo repositories.IClientTransactionRepository) *ClientService {
+	return &ClientService{
+		db:                    db,
+		clientRepo:            clientRepo,
+		clientTransactionRepo: clientTransactionRepo,
+	}
 }
 
 func (s *ClientService) CreateTransaction(id int, request dtos.TransacaoRequestDto) (dtos.TransacaoResponseDto, error) {
+
+	// conn := database.GetConnection()
+	// defer conn.Close()
+
 	var transacao dtos.TransacaoResponseDto
+
+	// s.db.Exec("SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;")
 
 	var cliente models.Cliente
 	err := s.clientRepo.Get(&cliente, id)
@@ -32,40 +44,48 @@ func (s *ClientService) CreateTransaction(id int, request dtos.TransacaoRequestD
 		return transacao, err
 	}
 
-	var novoSado int64 = 0
-
 	if request.Tipo == "d" {
-		novoSado = cliente.Saldo + cliente.Limite - request.Valor
-		if novoSado < 0 {
+		cliente.Saldo = cliente.Saldo + cliente.Limite - request.Valor
+		if cliente.Saldo < 0 {
 			return transacao, errors.New("Novo saldo do cliente menor que seu limite disponível.")
 		}
-	} else {
-		novoSado = cliente.Saldo + cliente.Limite + request.Valor
+		cliente.Saldo -= cliente.Limite
 	}
 
-	novoSado -= cliente.Limite
+	// if request.Tipo == "d" && cliente.Saldo < -cliente.Limite {
+	// 	return nil, ErroTransacaoDebito
+	// }
 
-	go func() {
-		//tx := db.MustBegin()
+	//go func() {
+	tx := s.db.MustBegin()
 
-		_ = s.clientRepo.UpdSaldo(id, request.Valor, request.Tipo)
-		// if err != nil {
-		// 	// tx.Rollback()
-		// 	return transacao, err
-		// }
+	// defer func() {
+	// 	err = txn.Rollback()
+	// 	if err != nil {
+	// 		if !errors.Is(err, sql.ErrTxDone) {
+	// 			log.Println("Error txn.Rollback(): "  +err.Error())
+	// 		}
+	// 	}
+	// }()
 
-		_ = s.clientTransactionRepo.Add(id, request.Valor, request.Tipo, request.Descricao)
-		// if err != nil {
-		// 	// tx.Rollback()
-		// 	return transacao, err
-		// }
+	err = s.clientRepo.UpdSaldo(tx, id, request.Valor, request.Tipo)
+	if err != nil {
+		tx.Rollback()
+		return transacao, err
+	}
 
-		// tx.Commit()
-	}()
+	err = s.clientTransactionRepo.Add(tx, id, request.Valor, request.Tipo, request.Descricao)
+	if err != nil {
+		tx.Rollback()
+		return transacao, err
+	}
+
+	tx.Commit()
+	//}()
 
 	transacao = dtos.TransacaoResponseDto{
 		Limite: cliente.Limite,
-		Saldo:  novoSado,
+		Saldo:  cliente.Saldo,
 	}
 
 	return transacao, nil
@@ -73,6 +93,8 @@ func (s *ClientService) CreateTransaction(id int, request dtos.TransacaoRequestD
 
 func (s *ClientService) GetExtract(id int) (dtos.ExtratoResponseDto, error) {
 	var extrato dtos.ExtratoResponseDto
+
+	// s.db.Exec("SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;")
 
 	var cliente models.Cliente
 	err := s.clientRepo.Get(&cliente, id)

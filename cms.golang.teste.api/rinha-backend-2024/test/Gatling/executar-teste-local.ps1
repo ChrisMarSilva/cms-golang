@@ -15,9 +15,9 @@ function Start-Test {
     for ($i = 1; $i -le 20; $i++) {
         try {
             # 2 requests to wake the 2 API instances up :) # 9999 # 3000
-            Invoke-RestMethod -Uri "http://localhost:3000/clientes/1/extrato" -ErrorAction Stop
+            Invoke-RestMethod -Uri "http://localhost:9999/clientes/1/extrato" -ErrorAction Stop
             Write-Host ""
-            Invoke-RestMethod -Uri "http://localhost:3000/clientes/1/extrato" -ErrorAction Stop
+            Invoke-RestMethod -Uri "http://localhost:9999/clientes/1/extrato" -ErrorAction Stop
             Write-Host ""
             Run-Gatling
             break

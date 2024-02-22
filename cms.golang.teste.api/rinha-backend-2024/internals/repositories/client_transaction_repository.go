@@ -11,7 +11,7 @@ import (
 
 type IClientTransactionRepository interface {
 	GetAll(entities *map[int]models.ClienteTransacao, idcliente int) error
-	Add(idcliente int, valor int64, tipo string, descricao string) error
+	Add(tx *sqlx.Tx, idcliente int, valor int64, tipo string, descricao string) error
 }
 
 type ClientTransactionRepository struct {
@@ -68,7 +68,7 @@ func (repo ClientTransactionRepository) GetAll(entities *map[int]models.ClienteT
 	return nil
 }
 
-func (repo ClientTransactionRepository) Add(idcliente int, valor int64, tipo string, descricao string) (err error) {
+func (repo ClientTransactionRepository) Add(tx *sqlx.Tx, idcliente int, valor int64, tipo string, descricao string) (err error) {
 	query := "INSERT INTO cliente_transacao (cliente_id, valor, tipo, descricao) Values ($1, $2, $3, $4)"
 
 	// res := repo.db.MustExec(query, user.ID, user.Nome, user.Status)
@@ -76,7 +76,8 @@ func (repo ClientTransactionRepository) Add(idcliente int, valor int64, tipo str
 
 	//result, err := repo.db.ExecContext(context.Background(), query, idcliente, valor, tipo, descricao)
 
-	stmt, err := repo.writer.PrepareContext(context.Background(), query)
+	//stmt, err := repo.writer.PrepareContext(context.Background(), query)
+	stmt, err := tx.PrepareContext(context.Background(), query)
 	if err != nil {
 		return err
 	}

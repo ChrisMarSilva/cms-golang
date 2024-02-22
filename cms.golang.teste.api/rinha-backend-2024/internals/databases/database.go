@@ -2,10 +2,10 @@ package databases
 
 import (
 	"log"
-	"os"
 	"strconv"
 	"time"
 
+	"github.com/chrismarsilva/rinha-backend-2024/internals/utils"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
@@ -14,6 +14,14 @@ var (
 	ConnWriter *sqlx.DB // *sql.DB // *sqlx.DB
 	ConnReader *sqlx.DB // *sql.DB // *sqlx.DB
 )
+
+// type IDatabaseWriter interface {
+//     Writer
+// }
+
+// type IDatabaseRead interface {
+//     Reader
+// }
 
 type IDatabase interface {
 	StartDbWriter()
@@ -28,31 +36,22 @@ type IDatabase interface {
 type DatabasePostgres struct{}
 
 func (DatabasePostgres) StartDb() *sqlx.DB {
-	//connStr := "host=%s port=%s user=%s dbname=%s sslmode=%s"
-	//connStr = fmt.Sprintf(connStr, host, port, user, dbname, sslmode)
+	cfg := utils.NewConfig()
 
-	//database, err := sqlx.Connect(os.Getenv("DATABASE_DRIVER"), os.Getenv("DATABASE_URL"))
-	database, err := sqlx.Open(os.Getenv("DATABASE_DRIVER"), os.Getenv("DATABASE_URL"))
+	database, err := sqlx.Connect(cfg.DbDriver, cfg.DbUri)
 	if err != nil {
 		log.Fatalf("Error connecting to database : error=%v", err)
 	}
 
-	err = database.Ping()
-	if err != nil {
+	if err = database.Ping(); err != nil {
 		log.Println(err)
 	} else {
 		log.Println("Connected")
 	}
 
-	// maxConnectionsStr := viper.GetString("DATABASE_MAX_CONNECTIONS")
-	maxConnectionsStr := os.Getenv("DATABASE_MAX_CONNECTIONS")
-	if maxConnectionsStr == "" {
-		maxConnectionsStr = "50"
-	}
-	maxConnections, _ := strconv.Atoi(maxConnectionsStr)
-
+	maxConnections, _ := strconv.Atoi(cfg.DbDriver)
 	database.SetMaxOpenConns(maxConnections) // SetMaxOpenConns define o número máximo de conexões abertas com o banco de dados.
-	database.SetMaxIdleConns(50)             // SetMaxIdleConns define o número máximo de conexões no pool de conexão ociosa.
+	database.SetMaxIdleConns(maxConnections) // SetMaxIdleConns define o número máximo de conexões no pool de conexão ociosa.
 	database.SetConnMaxIdleTime(time.Minute * 1)
 	database.SetConnMaxLifetime(time.Minute * 1) // SetConnMaxLifetime define a quantidade máxima de tempo que uma conexão pode ser reutilizada.
 

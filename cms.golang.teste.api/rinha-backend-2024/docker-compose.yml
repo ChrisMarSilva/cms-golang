@@ -1,20 +1,22 @@
 version: "3.5"
 
+networks:
+  default:
+    driver: bridge
+    name: rinha-nginx-2024q1
+
 services:
 
   db:
     image: postgres:latest
     hostname: db
     restart: always
-    #network_mode: host
     environment:
       - POSTGRES_PASSWORD=123
       - POSTGRES_USER=admin
       - POSTGRES_DB=rinha
     ports:
       - "5432:5432"
-    expose:
-      - "5432"
     volumes:
       - ./script.sql:/docker-entrypoint-initdb.d/script.sql
       - ./postgres.conf:/etc/postgresql/postgresql.conf
@@ -26,8 +28,15 @@ services:
         "config_file=/etc/postgresql/postgresql.conf"
       ]
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
-      #test: ["CMD-SHELL", "pg_isready", "-U postgres", "-h", "rinha"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready",
+          "-U",
+          "postgres",
+          "-h",
+          "rinha"
+        ]
       interval: 15s
       timeout: 25s
       retries: 3
@@ -41,23 +50,16 @@ services:
   api01: &api
     build:
       context: .
-      #dockerfile: Dockerfile
     hostname: api01
     restart: on-failure
-    #network_mode: host
     environment:
       - GO_ENVIRONMENT=production
       - DATABASE_DRIVER=postgres
-      - DATABASE_URL=host=localhost port=5432 user=admin password=123 dbname=rinha sslmode=disable
+      - DATABASE_URL=host=db port=5432 user=admin password=123 dbname=rinha sslmode=disable
       - DATABASE_MAX_CONNECTIONS=100
       - MENSAGEM="Teste via Docker Compose - api01"
-      - PORT=3001
-    ports:
-      - "3001:3001"
-    expose:
-      - "3001"
+      - PORT=80
     depends_on:
-      #- db
       db:
         condition: service_healthy
       # deploy:
@@ -70,34 +72,25 @@ services:
     <<: *api
     hostname: api02
     restart: on-failure
-    #network_mode: host
     environment:
       - GO_ENVIRONMENT=production
       - DATABASE_DRIVER=postgres
-      - DATABASE_URL=host=localhost port=5432 user=admin password=123 dbname=rinha sslmode=disable
+      - DATABASE_URL=host=db port=5432 user=admin password=123 dbname=rinha sslmode=disable
       - DATABASE_MAX_CONNECTIONS=100
       - MENSAGEM="Teste via Docker Compose - api02"
-      - PORT=3002
-    ports:
-      - "3002:3002"
-    expose:
-      - "3002"
+      - PORT=80
     depends_on:
-      #- db
       db:
         condition: service_healthy
-      # deploy:
-      # resources:
-      # limits:
-      # cpus: "0.3" #  '0.25'  # '0.5' #  '0.1'
-      # memory: "350MB" # '0.5GB' # '0.5GB' # '0.15GB'
 
   nginx:
     image: nginx:1.25.4-alpine
     restart: always
-    #network_mode: host
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    environment:
+      - NGINX_HOST=foobar.com
+      - NGINX_PORT=9999
     ports:
       - "9999:9999"
     depends_on:
@@ -108,8 +101,3 @@ services:
       # limits:
       # cpus: "0.1" # '0.25' # '0.1' # '0.2'  '0.15'
       # memory: "100MB" # '0.5GB' # '0.2GB' # '0.5GB' '0.5GB'
-
-networks:
-  default:
-    driver: bridge
-    name: rinha-nginx-2024q1

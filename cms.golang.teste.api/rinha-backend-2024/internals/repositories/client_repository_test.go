@@ -8,7 +8,6 @@ import (
 	"github.com/chrismarsilva/rinha-backend-2024/internals/models"
 	"github.com/chrismarsilva/rinha-backend-2024/internals/repositories"
 	"github.com/jmoiron/sqlx"
-	"github.com/spf13/viper"
 )
 
 // go test
@@ -19,14 +18,6 @@ import (
 // go test -run=GetClientDbPadrao -bench . -benchmem
 
 func GetClientDbPadrao() (*sqlx.DB, *sqlx.DB) {
-	viper.AddConfigPath("./")
-	viper.SetConfigFile("../../cmd/api-server/.env")
-
-	err := viper.ReadInConfig()
-	if err != nil {
-		panic(fmt.Errorf("Fatal error config file: %w \n", err))
-	}
-
 	driverDbWriter := databases.DatabasePostgres{}
 	driverDbWriter.StartDbWriter()
 	writer := driverDbWriter.GetDatabaseWriter()
@@ -56,18 +47,27 @@ func TestClientRepoUpdateDebito(t *testing.T) {
 	writer, reader := GetClientDbPadrao()
 	repo := repositories.NewClientRepository(writer, reader)
 
-	if err := repo.UpdSaldo(1, 100, "d"); err != nil {
+	tx := writer.MustBegin()
+
+	if err := repo.UpdSaldo(tx, 1, 100, "d"); err != nil {
+		tx.Rollback()
 		t.Fatalf("error %t", err)
 	}
+
+	tx.Commit()
 }
 
 func TestClientRepoUpdateCredito(t *testing.T) {
 	writer, reader := GetClientDbPadrao()
 	repo := repositories.NewClientRepository(writer, reader)
 
-	if err := repo.UpdSaldo(1, 100, "c"); err != nil {
+	tx := writer.MustBegin()
+
+	if err := repo.UpdSaldo(tx, 1, 100, "c"); err != nil {
+		tx.Rollback()
 		t.Fatalf("error %t", err)
 	}
+	tx.Commit()
 }
 
 func BenchmarkClientRepoGet(b *testing.B) {
@@ -75,7 +75,6 @@ func BenchmarkClientRepoGet(b *testing.B) {
 	repo := repositories.NewClientRepository(writer, reader)
 
 	b.ResetTimer()
-	
 	for i := 0; i < b.N; i++ {
 		var entity models.Cliente
 		if err := repo.Get(&entity, 1); err != nil {
@@ -88,32 +87,48 @@ func BenchmarkClientRepoUpdate(b *testing.B) {
 	writer, reader := GetClientDbPadrao()
 	repo := repositories.NewClientRepository(writer, reader)
 
+	b.ResetTimer()
+
+	tx := writer.MustBegin()
+
 	for i := 0; i < b.N; i++ {
-		if err := repo.UpdSaldo(1, 100, "c"); err != nil {
+		if err := repo.UpdSaldo(tx, 1, 100, "c"); err != nil {
+			tx.Rollback()
 			b.Fatalf("error %t", err)
 		}
 	}
+
+	tx.Commit()
 }
 
 func BenchmarkClientRepoGetAndUpdate(b *testing.B) {
 	writer, reader := GetClientDbPadrao()
 	repo := repositories.NewClientRepository(writer, reader)
 
+	b.ResetTimer()
+
+	tx := writer.MustBegin()
+
 	for i := 0; i < b.N; i++ {
 		var entity models.Cliente
 		if err := repo.Get(&entity, 1); err != nil {
+			tx.Rollback()
 			b.Fatalf("error %t", err)
 		}
-		if err := repo.UpdSaldo(1, 100, "c"); err != nil {
+		if err := repo.UpdSaldo(tx, 1, 100, "c"); err != nil {
+			tx.Rollback()
 			b.Fatalf("error %t", err)
 		}
 	}
+
+	tx.Commit()
 }
 
 func BenchmarkClientRepoGet10Mil(b *testing.B) {
 	writer, reader := GetClientDbPadrao()
 	repo := repositories.NewClientRepository(writer, reader)
 
+	b.ResetTimer()
 	for i := 0; i < 10_001; i++ {
 		var entity models.Cliente
 		if err := repo.Get(&entity, 1); err != nil {
@@ -126,24 +141,47 @@ func BenchmarkClientRepoUpdate10Mil(b *testing.B) {
 	writer, reader := GetClientDbPadrao()
 	repo := repositories.NewClientRepository(writer, reader)
 
+	b.ResetTimer()
+
+	tx := writer.MustBegin()
+
 	for i := 0; i < 10_001; i++ {
-		if err := repo.UpdSaldo(1, 100, "c"); err != nil {
+		if err := repo.UpdSaldo(tx, 1, 100, "c"); err != nil {
+			tx.Rollback()
 			b.Fatalf("error %t", err)
 		}
 	}
+
+	tx.Commit()
 }
 
 func BenchmarkClientRepoGetAndUpdate10Mil(b *testing.B) {
 	writer, reader := GetClientDbPadrao()
 	repo := repositories.NewClientRepository(writer, reader)
 
+	b.ResetTimer()
+
+	tx := writer.MustBegin()
+
 	for i := 0; i < 10_001; i++ {
 		var entity models.Cliente
-		if err := repo.Get(&entity, 1); err != nil {
+
+		b.StopTimer()
+		err := repo.Get(&entity, 1)
+		if err != nil {
+			tx.Rollback()
 			b.Fatalf("error %t", err)
 		}
-		if err := repo.UpdSaldo(1, 100, "c"); err != nil {
+		b.StartTimer()
+
+		b.StopTimer()
+		err = repo.UpdSaldo(tx, 1, 100, "c")
+		if err != nil {
+			tx.Rollback()
 			b.Fatalf("error %t", err)
 		}
+		b.StartTimer()
 	}
+
+	tx.Commit()
 }

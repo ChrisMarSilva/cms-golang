@@ -12,7 +12,7 @@ import (
 
 type IClientRepository interface {
 	Get(entity *models.Cliente, id int) error
-	UpdSaldo(id int, valor int64, tipo string) error
+	UpdSaldo(tx *sqlx.Tx, id int, valor int64, tipo string) error
 }
 
 type ClientRepository struct {
@@ -73,7 +73,7 @@ func (repo ClientRepository) Get(entity *models.Cliente, id int) (err error) {
 	return nil
 }
 
-func (repo ClientRepository) UpdSaldo(id int, valor int64, tipo string) (err error) {
+func (repo ClientRepository) UpdSaldo(tx *sqlx.Tx, id int, valor int64, tipo string) (err error) {
 	var query string
 
 	if tipo == "d" {
@@ -82,7 +82,8 @@ func (repo ClientRepository) UpdSaldo(id int, valor int64, tipo string) (err err
 		query = "UPDATE cliente SET saldo = saldo + $1 WHERE id = $2"
 	}
 
-	stmt, err := repo.writer.PrepareContext(context.Background(), query)
+	//stmt, err := repo.writer.PrepareContext(context.Background(), query)
+	stmt, err := tx.PrepareContext(context.Background(), query)
 	if err != nil {
 		return err
 	}

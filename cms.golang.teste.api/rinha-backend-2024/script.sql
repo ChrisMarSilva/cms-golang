@@ -6,6 +6,8 @@ CREATE TABLE cliente (
   saldo INTEGER NOT NULL DEFAULT 0
 );
 
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_cliente ON cliente (id) include (saldo);
+
 CREATE TABLE cliente_transacao (
   id SERIAL PRIMARY KEY,
   cliente_id INTEGER NOT NULL,
@@ -16,6 +18,8 @@ CREATE TABLE cliente_transacao (
   CONSTRAINT fk_transacao_to_cliente FOREIGN KEY(cliente_id) REFERENCES cliente(id)
 );
 
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_transacoes_id_desc ON cliente_transacao (id desc);
+
 CREATE TABLE cliente_saldo  (
 	id SERIAL PRIMARY KEY,
 	cliente_id INTEGER NOT NULL,
@@ -23,13 +27,12 @@ CREATE TABLE cliente_saldo  (
   CONSTRAINT fk_transacao_to_saldo FOREIGN KEY(cliente_id) REFERENCES cliente(id)
 );
 
-CREATE EXTENSION IF NOT EXISTS PG_TRGM;
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_transacoes_id_desc ON cliente_transacao(id desc);
---CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_transacoes_id_desc ON cliente_transacao USING GIST (id desc GIST_TRGM_OPS);
---CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_transacoes_id_desc ON cliente_transacao USING GIST (id desc GIST_TRGM_OPS(SIGLEN=64));
---CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_transacoes_id_desc ON cliente_transacao USING GIN (id desc gin_trgm_ops);
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_saldo_cliente ON cliente_saldo (cliente_id) include (total);
 
+--SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
+--SET TRANSACTION ISOLATION LEVEL READ_COMMITED;
+--SET GLOBAL TRANSACTION ISOLATION LEVEL READ UNCOMMITTED ;
+--SET default_transaction_isolation TO 'repeatable read'
 
 DO $$
 BEGIN
@@ -38,3 +41,5 @@ BEGIN
 	INSERT INTO cliente_saldo (cliente_id, total) SELECT id, 0 FROM cliente;
 END;
 $$;
+
+
