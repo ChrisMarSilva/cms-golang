@@ -23,6 +23,7 @@ import (
 
 // docker-compose down
 // docker-compose up -d --build
+
 // docker rm -f $(docker ps -a -q)
 // docker run -it rinha-backend-2024-api01:latest
 
