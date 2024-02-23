@@ -1,41 +1,50 @@
-// package routes
+package routes
 
-// import (
-// 	"fmt"
-// 	"net/http"
-// 	"time"
+import (
+	"github.com/chrismarsilva/rinha-backend-2024/internals/databases"
+	"github.com/chrismarsilva/rinha-backend-2024/internals/handlers"
+	"github.com/chrismarsilva/rinha-backend-2024/internals/repositories"
+	"github.com/chrismarsilva/rinha-backend-2024/internals/services"
+	"github.com/chrismarsilva/rinha-backend-2024/internals/utils"
+	"github.com/gofiber/fiber/v3"
+)
 
-// 	"cms.golang.tnb.api/controllers"
-// 	"github.com/gin-contrib/cache"
-// 	"github.com/gin-contrib/cache/persistence"
-// 	"github.com/gin-gonic/gin"
-// )
+func ConfigRoutes(app *fiber.App, cfg *utils.Config) *fiber.App {
 
-// func ConfigRoutes(router *gin.Engine) *gin.Engine {
+	//Database
+	driverDb := databases.DatabasePostgres{}
+	driverDb.StartDbConn(cfg)
+	db := driverDb.GetDatabaseConn()
 
-// 	router.GET("/ping", func(c *gin.Context) { c.JSON(http.StatusOK, "pong5") })
-// 	router.GET("/ping1", func(c *gin.Context) { c.String(200, "pong "+fmt.Sprint(time.Now().Unix())) })
+	// driverDbWriter := databases.DatabasePostgres{}
+	// driverDbWriter.StartDbWriter(cfg)
+	// writer := driverDbWriter.GetDatabaseWriter()
 
-// 	store := persistence.NewInMemoryStore(time.Second)
-// 	router.GET("/ping2", cache.CachePage(store, time.Minute, func(c *gin.Context) { c.String(200, "pong "+fmt.Sprint(time.Now().Unix())) }))
+	// driverDbReader := databases.DatabasePostgres{}
+	// driverDbReader.StartDbReader(cfg)
+	// reader := driverDbReader.GetDatabaseReader()
 
-// 	main := router.Group("api/v1")
-// 	{
-// 		situacoes := main.Group("situacoes")
-// 		{
-// 			situacaoRepo := controllers.New()
-// 			situacoes.GET("/", situacaoRepo.GetSituacoes)
-// 			situacoes.GET("/:id", situacaoRepo.GetSituacao)
-// 			// situacoes.POST("/", situacaoRepo.CreateUser)
-// 			// situacoes.PUT("/", situacaoRepo.UpdateUser)
-// 			// situacoes.DELETE("/:id", situacaoRepo.DeleteUser)
-// 		}
-// 	}
-// 	return router
-// }
+	//Repository
+	clientRepo := repositories.NewClientRepository(db)
+	clientTransactionRepo := repositories.NewClientTransactionRepository(db)
 
-// // r.GET("/situacoes", situacaoRepo.GetSituacoes)
-// // r.GET("/situacoes/:codigo", situacaoRepo.GetSituacao)
-// // // r.POST("/situacoes", situacaoRepo.CreateUser)
-// // // r.PUT("/situacoes/:codigo", situacaoRepo.UpdateUser)
-// // // r.DELETE("/situacoes/:codigo", situacaoRepo.DeleteUser)
+	//Service
+	clientServ := services.NewClientService(db, *clientRepo, *clientTransactionRepo)
+
+	//Handle
+	clientHandler := handlers.NewClientHandler(*clientServ)
+
+	routes := app.Group("/clientes")
+	routes.Post(":id/transacoes", clientHandler.CreateTransaction)
+	routes.Get("/:id/extrato", clientHandler.GetExtract)
+
+	app.Get("/msg", func(c fiber.Ctx) error {
+		return c.SendString(cfg.Msg)
+	})
+
+	app.Use(func(c fiber.Ctx) error {
+		return c.SendStatus(fiber.StatusNotFound)
+	})
+
+	return app
+}

@@ -2,7 +2,6 @@ package services_test
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http/httptest"
@@ -13,6 +12,7 @@ import (
 	"github.com/chrismarsilva/rinha-backend-2024/internals/handlers"
 	"github.com/chrismarsilva/rinha-backend-2024/internals/repositories"
 	"github.com/chrismarsilva/rinha-backend-2024/internals/services"
+	util "github.com/chrismarsilva/rinha-backend-2024/internals/utils"
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/compress"
@@ -20,7 +20,6 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/gofiber/utils"
 	_ "github.com/lib/pq"
-	"github.com/spf13/viper"
 )
 
 // go test
@@ -31,13 +30,7 @@ import (
 // go test -run=XXX -bench . -benchmem
 
 func GetRoutes() *fiber.App {
-	viper.AddConfigPath("./")
-	viper.SetConfigFile("../../cmd/api-server/.env")
-
-	err := viper.ReadInConfig()
-	if err != nil {
-		panic(fmt.Errorf("Fatal error config file: %w \n", err))
-	}
+	cfg := util.NewConfig()
 
 	app := fiber.New(fiber.Config{JSONEncoder: json.Marshal, JSONDecoder: json.Unmarshal})
 
@@ -46,20 +39,24 @@ func GetRoutes() *fiber.App {
 	app.Use(compress.New(compress.Config{Level: compress.LevelBestSpeed}))
 
 	//Database
-	driverDbWriter := databases.DatabasePostgres{}
-	driverDbWriter.StartDbWriter()
-	writer := driverDbWriter.GetDatabaseWriter()
+	driverDb := databases.DatabasePostgres{}
+	driverDb.StartDbConn(cfg)
+	db := driverDb.GetDatabaseConn()
 
-	driverDbReader := databases.DatabasePostgres{}
-	driverDbReader.StartDbReader()
-	reader := driverDbReader.GetDatabaseReader()
+	// driverDbWriter := databases.DatabasePostgres{}
+	// driverDbWriter.StartDbWriter()
+	// writer := driverDbWriter.GetDatabaseWriter()
+
+	// driverDbReader := databases.DatabasePostgres{}
+	// driverDbReader.StartDbReader()
+	// reader := driverDbReader.GetDatabaseReader()
 
 	//Repository
-	clientRepo := repositories.NewClientRepository(writer, reader)
-	clientTransactionRepo := repositories.NewClientTransactionRepository(writer, reader)
+	clientRepo := repositories.NewClientRepository(db)
+	clientTransactionRepo := repositories.NewClientTransactionRepository(db)
 
 	//Service
-	clientServ := services.NewClientService(*clientRepo, *clientTransactionRepo)
+	clientServ := services.NewClientService(db, *clientRepo, *clientTransactionRepo)
 
 	//Handle
 	clientHandler := handlers.NewClientHandler(*clientServ)
@@ -67,13 +64,12 @@ func GetRoutes() *fiber.App {
 	routes := app.Group("/clientes")
 	routes.Post(":id/transacoes", clientHandler.CreateTransaction)
 	routes.Get("/:id/extrato", clientHandler.GetExtract)
-	app.Use(NotFound)
+
+	app.Use(func(c fiber.Ctx) error {
+		return c.SendStatus(fiber.StatusNotFound)
+	})
 
 	return app
-}
-
-func NotFound(c *fiber.Ctx) error {
-	return c.SendStatus(fiber.StatusNotFound)
 }
 
 func TestRouteTransacao(t *testing.T) {

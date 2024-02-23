@@ -7,6 +7,7 @@ import (
 	"github.com/chrismarsilva/rinha-backend-2024/internals/databases"
 	"github.com/chrismarsilva/rinha-backend-2024/internals/models"
 	"github.com/chrismarsilva/rinha-backend-2024/internals/repositories"
+	"github.com/chrismarsilva/rinha-backend-2024/internals/utils"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -17,23 +18,28 @@ import (
 // go test -run GetClientDbPadrao -v
 // go test -run=GetClientDbPadrao -bench . -benchmem
 
-func GetClientDbPadrao() (*sqlx.DB, *sqlx.DB) {
-	driverDbWriter := databases.DatabasePostgres{}
-	driverDbWriter.StartDbWriter()
-	writer := driverDbWriter.GetDatabaseWriter()
+func GetClientDbPadrao() *sqlx.DB {
+	cfg := utils.NewConfig()
 
-	driverDbReader := databases.DatabasePostgres{}
-	driverDbReader.StartDbReader()
-	reader := driverDbReader.GetDatabaseReader()
+	driverDb := databases.DatabasePostgres{}
+	driverDb.StartDbConn(cfg)
+	db := driverDb.GetDatabaseConn()
 
-	return writer, reader
+	// driverDbWriter := databases.DatabasePostgres{}
+	// driverDbWriter.StartDbWriter()
+	// writer := driverDbWriter.GetDatabaseWriter()
+
+	// driverDbReader := databases.DatabasePostgres{}
+	// driverDbReader.StartDbReader()
+	// reader := driverDbReader.GetDatabaseReader()
+
+	return db
 }
 
 func TestClientRepoGet(t *testing.T) {
-	writer, reader := GetClientDbPadrao()
-	repo := repositories.NewClientRepository(writer, reader)
-	defer writer.Close()
-	defer reader.Close()
+	db := GetClientDbPadrao()
+	repo := repositories.NewClientRepository(db)
+	defer db.Close()
 
 	var entity models.Cliente
 	if err := repo.Get(&entity, 1); err != nil {
@@ -44,10 +50,11 @@ func TestClientRepoGet(t *testing.T) {
 }
 
 func TestClientRepoUpdateDebito(t *testing.T) {
-	writer, reader := GetClientDbPadrao()
-	repo := repositories.NewClientRepository(writer, reader)
+	db := GetClientDbPadrao()
+	repo := repositories.NewClientRepository(db)
+	defer db.Close()
 
-	tx := writer.MustBegin()
+	tx := db.MustBegin()
 
 	if err := repo.UpdSaldo(tx, 1, 100, "d"); err != nil {
 		tx.Rollback()
@@ -58,10 +65,11 @@ func TestClientRepoUpdateDebito(t *testing.T) {
 }
 
 func TestClientRepoUpdateCredito(t *testing.T) {
-	writer, reader := GetClientDbPadrao()
-	repo := repositories.NewClientRepository(writer, reader)
+	db := GetClientDbPadrao()
+	repo := repositories.NewClientRepository(db)
+	defer db.Close()
 
-	tx := writer.MustBegin()
+	tx := db.MustBegin()
 
 	if err := repo.UpdSaldo(tx, 1, 100, "c"); err != nil {
 		tx.Rollback()
@@ -71,8 +79,9 @@ func TestClientRepoUpdateCredito(t *testing.T) {
 }
 
 func BenchmarkClientRepoGet(b *testing.B) {
-	writer, reader := GetClientDbPadrao()
-	repo := repositories.NewClientRepository(writer, reader)
+	db := GetClientDbPadrao()
+	repo := repositories.NewClientRepository(db)
+	defer db.Close()
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -84,12 +93,13 @@ func BenchmarkClientRepoGet(b *testing.B) {
 }
 
 func BenchmarkClientRepoUpdate(b *testing.B) {
-	writer, reader := GetClientDbPadrao()
-	repo := repositories.NewClientRepository(writer, reader)
+	db := GetClientDbPadrao()
+	repo := repositories.NewClientRepository(db)
+	defer db.Close()
 
 	b.ResetTimer()
 
-	tx := writer.MustBegin()
+	tx := db.MustBegin()
 
 	for i := 0; i < b.N; i++ {
 		if err := repo.UpdSaldo(tx, 1, 100, "c"); err != nil {
@@ -102,12 +112,13 @@ func BenchmarkClientRepoUpdate(b *testing.B) {
 }
 
 func BenchmarkClientRepoGetAndUpdate(b *testing.B) {
-	writer, reader := GetClientDbPadrao()
-	repo := repositories.NewClientRepository(writer, reader)
+	db := GetClientDbPadrao()
+	repo := repositories.NewClientRepository(db)
+	defer db.Close()
 
 	b.ResetTimer()
 
-	tx := writer.MustBegin()
+	tx := db.MustBegin()
 
 	for i := 0; i < b.N; i++ {
 		var entity models.Cliente
@@ -125,8 +136,9 @@ func BenchmarkClientRepoGetAndUpdate(b *testing.B) {
 }
 
 func BenchmarkClientRepoGet10Mil(b *testing.B) {
-	writer, reader := GetClientDbPadrao()
-	repo := repositories.NewClientRepository(writer, reader)
+	db := GetClientDbPadrao()
+	repo := repositories.NewClientRepository(db)
+	defer db.Close()
 
 	b.ResetTimer()
 	for i := 0; i < 10_001; i++ {
@@ -138,12 +150,13 @@ func BenchmarkClientRepoGet10Mil(b *testing.B) {
 }
 
 func BenchmarkClientRepoUpdate10Mil(b *testing.B) {
-	writer, reader := GetClientDbPadrao()
-	repo := repositories.NewClientRepository(writer, reader)
+	db := GetClientDbPadrao()
+	repo := repositories.NewClientRepository(db)
+	defer db.Close()
 
 	b.ResetTimer()
 
-	tx := writer.MustBegin()
+	tx := db.MustBegin()
 
 	for i := 0; i < 10_001; i++ {
 		if err := repo.UpdSaldo(tx, 1, 100, "c"); err != nil {
@@ -156,12 +169,13 @@ func BenchmarkClientRepoUpdate10Mil(b *testing.B) {
 }
 
 func BenchmarkClientRepoGetAndUpdate10Mil(b *testing.B) {
-	writer, reader := GetClientDbPadrao()
-	repo := repositories.NewClientRepository(writer, reader)
+	db := GetClientDbPadrao()
+	repo := repositories.NewClientRepository(db)
+	defer db.Close()
 
 	b.ResetTimer()
 
-	tx := writer.MustBegin()
+	tx := db.MustBegin()
 
 	for i := 0; i < 10_001; i++ {
 		var entity models.Cliente

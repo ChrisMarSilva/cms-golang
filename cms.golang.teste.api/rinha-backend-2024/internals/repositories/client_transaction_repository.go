@@ -15,12 +15,13 @@ type IClientTransactionRepository interface {
 }
 
 type ClientTransactionRepository struct {
-	writer *sqlx.DB
-	reader *sqlx.DB
+	// writer *sqlx.DB
+	// reader *sqlx.DB
+	db *sqlx.DB
 }
 
-func NewClientTransactionRepository(writer, reader *sqlx.DB) *ClientTransactionRepository {
-	return &ClientTransactionRepository{writer: writer, reader: reader}
+func NewClientTransactionRepository(db *sqlx.DB) *ClientTransactionRepository {
+	return &ClientTransactionRepository{db: db}
 }
 
 func (repo ClientTransactionRepository) GetAll(entities *map[int]models.ClienteTransacao, idcliente int) (err error) {
@@ -38,7 +39,7 @@ func (repo ClientTransactionRepository) GetAll(entities *map[int]models.ClienteT
 	// 	*users = append(*users, user)
 	// }
 
-	stmt, err := repo.reader.PrepareContext(context.Background(), query)
+	stmt, err := repo.db.PrepareContext(context.Background(), query)
 	if err != nil {
 		return err
 	}
@@ -76,7 +77,7 @@ func (repo ClientTransactionRepository) Add(tx *sqlx.Tx, idcliente int, valor in
 
 	//result, err := repo.db.ExecContext(context.Background(), query, idcliente, valor, tipo, descricao)
 
-	//stmt, err := repo.writer.PrepareContext(context.Background(), query)
+	//stmt, err := repo.db.PrepareContext(context.Background(), query)
 	stmt, err := tx.PrepareContext(context.Background(), query)
 	if err != nil {
 		return err

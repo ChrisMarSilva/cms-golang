@@ -1,10 +1,7 @@
 package main
 
 import (
-	"log"
-
-	"github.com/chrismarsilva/rinha-backend-2024/internals/routes"
-	"github.com/chrismarsilva/rinha-backend-2024/internals/utils"
+	"github.com/chrismarsilva/rinha-backend-2024/internals/server"
 )
 
 // go mod init github.com/chrismarsilva/rinha-backend-2024
@@ -28,7 +25,6 @@ import (
 // docker run -it rinha-backend-2024-api01:latest
 
 func main() {
-	cfg := utils.NewConfig()
-	app := routes.NewRoutes()          // server.Initialize()
-	log.Fatal(app.Listen(cfg.UriPort)) //log.Fatal(app.Listen(":" + os.Getenv("PORT")))
+	app := server.NewServer()
+	app.Initialize()
 }
