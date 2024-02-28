@@ -6,28 +6,33 @@ CREATE TABLE cliente (
   saldo INTEGER NOT NULL DEFAULT 0
 );
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_cliente ON cliente (id) include (saldo);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_cliente ON cliente(id) INCLUDE (limite, saldo);
 
 CREATE TABLE cliente_transacao (
   id SERIAL PRIMARY KEY,
-  cliente_id INTEGER NOT NULL,
+  cliente_id INTEGER NOT NULL, 
   valor INTEGER NOT NULL,
-  tipo CHAR(1) NOT NULL,
+  -- saldo INTEGER NOT NULL,
+  tipo CHAR(1) NOT NULL CHECK (tipo IN ('c', 'd')),
   descricao VARCHAR(10) NOT NULL,
   dthrregistro TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT fk_transacao_to_cliente FOREIGN KEY(cliente_id) REFERENCES cliente(id)
-);
+  CONSTRAINT fk_transacao_to_cliente FOREIGN KEY(cliente_id) REFERENCES cliente(id) ON DELETE CASCADE
+); --  PARTITION by LIST(cliente_id); 
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_transacoes_id_desc ON cliente_transacao (id desc);
+--CREATE TABLE cliente_transacao_1 PARTITION OF cliente_transacao FOR VALUES IN (1);
+--CREATE TABLE cliente_transacao_2 PARTITION OF cliente_transacao FOR VALUES IN (2);
+--CREATE TABLE cliente_transacao_3 PARTITION OF cliente_transacao FOR VALUES IN (3);
+--CREATE TABLE cliente_transacao_4 PARTITION OF cliente_transacao FOR VALUES IN (4);
+--CREATE TABLE cliente_transacao_5 PARTITION OF cliente_transacao FOR VALUES IN (5);
 
-CREATE TABLE cliente_saldo  (
-	id SERIAL PRIMARY KEY,
-	cliente_id INTEGER NOT NULL,
-	total INTEGER NOT NULL,
-  CONSTRAINT fk_transacao_to_saldo FOREIGN KEY(cliente_id) REFERENCES cliente(id)
-);
+--CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_transacoes_cliente_id ON cliente_transacao (cliente_id);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_transacoes_id_desc ON cliente_transacao (cliente_id, id DESC) INCLUDE (valor, tipo, descricao, dthrregistro);
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_saldo_cliente ON cliente_saldo (cliente_id) include (total);
+--PREPARE consulta_cliente_por_id (INTEGER) AS SELECT id, limite, saldo  FROM cliente  WHERE id = $1;
+--PREPARE consulta_transacoes_por_cliente_id (INTEGER) AS SELECT valor, tipo, descricao, dthrregistro FROM cliente_transacao WHERE cliente_id = $1 ORDER BY id DESC LIMIT 10;
+
+--PREPARE update_saldo_cliente_por_id (INTEGER, INTEGER) AS UPDATE cliente SET saldo = $2 WHERE id = $1;
+--PREPARE insert_transacao_por_cliente (INTEGER, INTEGER, CHAR, VARCHAR, TIMESTAMP) AS INSERT INTO cliente_transacao (cliente_id, valor, tipo, descricao, dthrregistro) VALUES ($1, $2, $3, $4, $5);
 
 --SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 --SET TRANSACTION ISOLATION LEVEL READ_COMMITED;
@@ -37,9 +42,10 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_saldo_cliente ON cliente_saldo (clie
 DO $$
 BEGIN
 	INSERT INTO cliente (nome, limite)
-	VALUES ('cliente 01',   1000 * 100), ('cliente 02',    800 * 100), ('cliente 03',  10000 * 100), ('cliente 04', 100000 * 100), ('cliente 05',   5000 * 100);
-	INSERT INTO cliente_saldo (cliente_id, total) SELECT id, 0 FROM cliente;
+	VALUES ('cliente 01',   1000 * 100), 
+         ('cliente 02',    800 * 100), 
+         ('cliente 03',  10000 * 100), 
+         ('cliente 04', 100000 * 100), 
+         ('cliente 05',   5000 * 100);
 END;
 $$;
-
-

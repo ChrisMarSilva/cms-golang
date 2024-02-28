@@ -1,28 +1,31 @@
 package databases
 
 import (
+	"context"
 	"log"
-	"strconv"
-	"time"
+
+	//"strconv"
 
 	"github.com/chrismarsilva/rinha-backend-2024/internals/utils"
-	"github.com/jmoiron/sqlx"
-	_ "github.com/lib/pq"
+	// "github.com/jmoiron/sqlx"
+	// _ "github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 var (
-	Conn *sqlx.DB // *sql.DB // *sqlx.DB
+	// Conn *sqlx.DB // *sql.DB // *sqlx.DB
 	// ConnWriter *sqlx.DB
 	// ConnReader *sqlx.DB
+	ConnPgx *pgxpool.Pool
 )
 
 // type IDatabaseWriter interface { Writer }
 // type IDatabaseRead interface { Reader }
 
 type IDatabase interface {
-	StartDbConn()
-	GetDatabaseConn() interface{}
-	CloseDatabaseConn()
+	// StartDbConn()
+	// GetDatabaseConn() interface{}
+	// CloseDatabaseConn()
 
 	// 	StartDbWriter()
 	// 	GetDatabaseWriter() interface{}
@@ -31,33 +34,58 @@ type IDatabase interface {
 	// 	StartDbReader()
 	// 	GetDatabaseReader() interface{}
 	// 	CloseDatabaseReader()
+
+	StartDbConnPgx()
+	GetDatabaseConnPgx() interface{}
+	CloseDatabaseConnPgx()
 }
 
 type DatabasePostgres struct{}
 
-func (DatabasePostgres) startDb(cfg *utils.Config) *sqlx.DB {
-	database, err := sqlx.Connect(cfg.DbDriver, cfg.DbUri)
+// func (DatabasePostgres) startDb(cfg *utils.Config) *sqlx.DB {
+// 	database, err := sqlx.Connect(cfg.DbDriver, cfg.DbUri)
+// 	if err != nil {
+// 		log.Fatalf("Error connecting to database : error=%v", err)
+// 	}
+//
+// 	if err = database.Ping(); err != nil {
+// 		log.Println(err)
+// 	} else {
+// 		//log.Println("Connected")
+// 	}
+//
+// 	maxConnections, _ := strconv.Atoi(cfg.DbDriver)
+// 	database.SetMaxOpenConns(maxConnections) // SetMaxOpenConns define o número máximo de conexões abertas com o banco de dados.
+// 	database.SetMaxIdleConns(maxConnections) // SetMaxIdleConns define o número máximo de conexões no pool de conexão ociosa.
+// 	database.SetConnMaxIdleTime(0)           // time.Minute * 1
+// 	database.SetConnMaxLifetime(0)           // SetConnMaxLifetime define a quantidade máxima de tempo que uma conexão pode ser reutilizada.
+//
+// 	return database
+// }
+
+// func (data *DatabasePostgres) StartDbConn(cfg *utils.Config) {
+// 	Conn = data.startDb(cfg)
+// }
+
+func (data *DatabasePostgres) StartDbConnPgx(cfg *utils.Config) {
+	database, err := pgxpool.New(context.Background(), cfg.DbUri)
 	if err != nil {
-		log.Fatalf("Error connecting to database : error=%v", err)
+		log.Fatalf("Error connecting pool to database : error=%v", err)
 	}
 
-	if err = database.Ping(); err != nil {
+	if err = database.Ping(context.Background()); err != nil {
 		log.Println(err)
 	} else {
-		log.Println("Connected")
+		//log.Println("Connected")
 	}
 
-	maxConnections, _ := strconv.Atoi(cfg.DbDriver)
-	database.SetMaxOpenConns(maxConnections) // SetMaxOpenConns define o número máximo de conexões abertas com o banco de dados.
-	database.SetMaxIdleConns(maxConnections) // SetMaxIdleConns define o número máximo de conexões no pool de conexão ociosa.
-	database.SetConnMaxIdleTime(time.Minute * 1)
-	database.SetConnMaxLifetime(time.Minute * 1) // SetConnMaxLifetime define a quantidade máxima de tempo que uma conexão pode ser reutilizada.
+	database.Config().MaxConns = 1000     // Define o número máximo de conexões abertas
+	database.Config().MaxConnIdleTime = 0 // Define o tempo máximo de ociosidade para 5 minutos
+	database.Config().MaxConnLifetime = 0 // Define o tempo máximo de vida (lifetime) para 30 minutos
 
-	return database
-}
+	// database.Exec(context.Background(), "PREPARE consulta_cliente_por_id (INTEGER) AS SELECT id, limite, saldo  FROM cliente  WHERE id = $1;")
 
-func (data *DatabasePostgres) StartDbConn(cfg *utils.Config) {
-	Conn = data.startDb(cfg)
+	ConnPgx = database
 }
 
 // func (data *DatabasePostgres) StartDbWriter(cfg *utils.Config) {
@@ -68,8 +96,12 @@ func (data *DatabasePostgres) StartDbConn(cfg *utils.Config) {
 // 	ConnReader = data.startDb(cfg)
 // }
 
-func (DatabasePostgres) GetDatabaseConn() *sqlx.DB {
-	return Conn
+// func (DatabasePostgres) GetDatabaseConn() *sqlx.DB {
+// 	return Conn
+// }
+
+func (DatabasePostgres) GetDatabaseConnPgx() *pgxpool.Pool {
+	return ConnPgx
 }
 
 // func (DatabasePostgres) GetDatabaseWriter() *sqlx.DB {
@@ -80,11 +112,18 @@ func (DatabasePostgres) GetDatabaseConn() *sqlx.DB {
 // 	return ConnReader
 // }
 
-func (DatabasePostgres) CloseDatabaseConn() {
-	if Conn == nil {
+// func (DatabasePostgres) CloseDatabaseConn() {
+// 	if Conn == nil {
+// 		return
+// 	}
+// 	Conn.Close()
+// }
+
+func (DatabasePostgres) CloseDatabaseConnPgx() {
+	if ConnPgx == nil {
 		return
 	}
-	Conn.Close()
+	ConnPgx.Close()
 }
 
 // func (DatabasePostgres) CloseDatabaseWriter() {

@@ -1,13 +1,16 @@
 package services
 
 import (
+	"context"
 	"errors"
 	"time"
 
 	"github.com/chrismarsilva/rinha-backend-2024/internals/dtos"
 	"github.com/chrismarsilva/rinha-backend-2024/internals/models"
 	"github.com/chrismarsilva/rinha-backend-2024/internals/repositories"
-	"github.com/jmoiron/sqlx"
+
+	//"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type IClientService interface {
@@ -16,12 +19,12 @@ type IClientService interface {
 }
 
 type ClientService struct {
-	db                    *sqlx.DB
+	db                    *pgxpool.Pool
 	clientRepo            repositories.IClientRepository
 	clientTransactionRepo repositories.IClientTransactionRepository
 }
 
-func NewClientService(db *sqlx.DB, clientRepo repositories.IClientRepository, clientTransactionRepo repositories.IClientTransactionRepository) *ClientService {
+func NewClientService(db *pgxpool.Pool, clientRepo repositories.IClientRepository, clientTransactionRepo repositories.IClientTransactionRepository) *ClientService {
 	return &ClientService{
 		db:                    db,
 		clientRepo:            clientRepo,
@@ -45,19 +48,27 @@ func (s *ClientService) CreateTransaction(id int, request dtos.TransacaoRequestD
 	}
 
 	if request.Tipo == "d" {
-		cliente.Saldo = cliente.Saldo + cliente.Limite - request.Valor
+		cliente.Saldo += cliente.Limite - request.Valor
 		if cliente.Saldo < 0 {
 			return transacao, errors.New("Novo saldo do cliente menor que seu limite disponível.")
 		}
 		cliente.Saldo -= cliente.Limite
+	} else {
+		cliente.Saldo += request.Valor
 	}
 
 	// if request.Tipo == "d" && cliente.Saldo < -cliente.Limite {
 	// 	return nil, ErroTransacaoDebito
 	// }
 
+	ctx := context.Background()
+
 	//go func() {
-	tx := s.db.MustBegin()
+	//tx := s.db.MustBegin()
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return transacao, err
+	}
 
 	// defer func() {
 	// 	err = txn.Rollback()
@@ -70,17 +81,17 @@ func (s *ClientService) CreateTransaction(id int, request dtos.TransacaoRequestD
 
 	err = s.clientRepo.UpdSaldo(tx, id, request.Valor, request.Tipo)
 	if err != nil {
-		tx.Rollback()
+		tx.Rollback(ctx)
 		return transacao, err
 	}
 
 	err = s.clientTransactionRepo.Add(tx, id, request.Valor, request.Tipo, request.Descricao)
 	if err != nil {
-		tx.Rollback()
+		tx.Rollback(ctx)
 		return transacao, err
 	}
 
-	tx.Commit()
+	tx.Commit(ctx)
 	//}()
 
 	transacao = dtos.TransacaoResponseDto{

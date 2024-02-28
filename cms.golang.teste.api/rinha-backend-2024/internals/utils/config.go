@@ -26,7 +26,7 @@ type Config struct {
 func NewConfig() *Config {
 	production := os.Getenv("GO_ENVIRONMENT") == "production"
 	if !production {
-		log.Println("loading .env file")
+		//log.Println("loading .env file")
 		if err := godotenv.Load("./../../.env"); err != nil {
 			if err := godotenv.Load("./../.env"); err != nil {
 				if err := godotenv.Load("./.env"); err != nil {
@@ -53,14 +53,14 @@ func NewConfig() *Config {
 		cfg.DbMaxConn = "50"
 	}
 
-	log.Println("Config.PORT", cfg.UriPort)
-	log.Println("Config.DATABASE_DRIVER", cfg.DbDriver)
-	log.Println("Config.DATABASE_URL", cfg.DbUri)
-	log.Println("Config.DATABASE_MAX_CONNECTIONS", cfg.DbMaxConn)
-	log.Println("Config.NUM_BATCH", cfg.NumBatch)
-	log.Println("Config.NUM_WORKERS", cfg.NumWorkers)
-	log.Println("Config.WORKER_TIMEOUT", cfg.WorkerTimeout)
-	log.Println("Config.MENSAGEM", cfg.Msg)
+	// log.Println("Config.PORT", cfg.UriPort)
+	// log.Println("Config.DATABASE_DRIVER", cfg.DbDriver)
+	// log.Println("Config.DATABASE_URL", cfg.DbUri)
+	// log.Println("Config.DATABASE_MAX_CONNECTIONS", cfg.DbMaxConn)
+	// log.Println("Config.NUM_BATCH", cfg.NumBatch)
+	// log.Println("Config.NUM_WORKERS", cfg.NumWorkers)
+	// log.Println("Config.WORKER_TIMEOUT", cfg.WorkerTimeout)
+	// log.Println("Config.MENSAGEM", cfg.Msg)
 
 	//connStr := "host=%s port=%s user=%s dbname=%s sslmode=%s"
 	//connStr = fmt.Sprintf(connStr, host, port, user, dbname, sslmode)

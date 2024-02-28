@@ -12,9 +12,9 @@ import (
 func ConfigRoutes(app *fiber.App, cfg *utils.Config) *fiber.App {
 
 	//Database
-	driverDb := databases.DatabasePostgres{}
-	driverDb.StartDbConn(cfg)
-	db := driverDb.GetDatabaseConn()
+	// driverDb := databases.DatabasePostgres{}
+	// driverDb.StartDbConn(cfg)
+	// db := driverDb.GetDatabaseConn()
 
 	// driverDbWriter := databases.DatabasePostgres{}
 	// driverDbWriter.StartDbWriter(cfg)
@@ -23,6 +23,10 @@ func ConfigRoutes(app *fiber.App, cfg *utils.Config) *fiber.App {
 	// driverDbReader := databases.DatabasePostgres{}
 	// driverDbReader.StartDbReader(cfg)
 	// reader := driverDbReader.GetDatabaseReader()
+
+	driverDb := databases.DatabasePostgres{}
+	driverDb.StartDbConnPgx(cfg)
+	db := driverDb.GetDatabaseConnPgx()
 
 	//Repository
 	clientRepo := repositories.NewClientRepository(db)
