@@ -1,9 +1,24 @@
-version: "3.5"
+version: "3.8"
 
 networks:
   default:
     driver: bridge
     name: rinha-nginx-2024q1
+
+# volumes:
+  # pg-data:
+  # pg-config:
+  #   driver: local
+  #   driver_opts:
+  #     type: none
+  #     o: bind
+  #     device: ./configs/pg-config
+  # pg-script:
+  #   driver: local
+  #   driver_opts:
+  #     type: none
+  #     o: bind
+  #     device: ./scripts
 
 services:
 
@@ -18,15 +33,10 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./script.sql:/docker-entrypoint-initdb.d/script.sql
-      - ./postgres.conf:/etc/postgresql/postgresql.conf
-      - ./data:/var/lib/postgresql/data
-    command:
-      [
-        "postgres",
-        "-c",
-        "config_file=/etc/postgresql/postgresql.conf"
-      ]
+      - ./data:/var/lib/postgresql/data # - pg-data:/var/lib/postgresql/data
+      - ./configs/postgres.conf:/etc/postgresql/postgresql.conf # - pg-config:/etc/postgresql
+      - ./scripts/script.sql:/docker-entrypoint-initdb.d/script.sql
+    command: [ "postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"] #entrypoint: [ "docker-entrypoint.sh", "-c", "config_file=/etc/postgresql/postgresql.conf"]
     healthcheck:
       test:
         [
@@ -87,7 +97,7 @@ services:
     image: nginx:1.25.4-alpine
     restart: always
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./configs/nginx.conf:/etc/nginx/nginx.conf:ro
     environment:
       - NGINX_HOST=foobar.com
       - NGINX_PORT=9999
