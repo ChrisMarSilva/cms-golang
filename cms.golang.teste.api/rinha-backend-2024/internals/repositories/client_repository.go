@@ -11,15 +11,15 @@ import (
 )
 
 type IClientRepository interface {
-	Get(entity *models.Cliente, id int) error
+	Get(ctx context.Context, entity *models.Cliente, id int) error
 	// GetWithPrepare(entity *models.Cliente, id int) error
 	// GetWithouPrepare(entity *models.Cliente, id int) error
 	// GetWithPgx(entity *models.Cliente, id int) error
-	
+
 	// UpdSaldoWithPrepare(tx *sqlx.Tx, id int, valor int64, tipo string) error
 	// UpdSaldoWithouPrepare(tx *sqlx.Tx, id int, valor int64, tipo string) error
 	// UpdSaldoWithPgx(tx *sql.Tx, id int, valor int64, tipo string) error
-	UpdSaldo(tx pgx.Tx, id int, valor int64, tipo string) error
+	UpdSaldo(ctx context.Context, tx pgx.Tx, id int, valor int64, tipo string) error
 }
 
 type ClientRepository struct {
@@ -33,9 +33,9 @@ func NewClientRepository(db *pgxpool.Pool) *ClientRepository {
 	return &ClientRepository{db: db}
 }
 
-func (repo ClientRepository) Get(entity *models.Cliente, id int) (err error) {
+func (repo ClientRepository) Get(ctx context.Context, entity *models.Cliente, id int) (err error) {
 	query := "SELECT limite, saldo FROM cliente WHERE id = $1"
-	row := repo.db.QueryRow(context.Background(), query, id)
+	row := repo.db.QueryRow(ctx, query, id)
 
 	if err := row.Scan(&entity.Limite, &entity.Saldo); err != nil {
 		if err == sql.ErrNoRows || errors.Is(err, sql.ErrNoRows) {
@@ -128,7 +128,7 @@ func (repo ClientRepository) Get(entity *models.Cliente, id int) (err error) {
 // 	return nil
 // }
 
-func (repo ClientRepository) UpdSaldo(tx pgx.Tx, id int, valor int64, tipo string) (err error) {
+func (repo ClientRepository) UpdSaldo(ctx context.Context, tx pgx.Tx, id int, valor int64, tipo string) (err error) {
 	var query string
 
 	if tipo == "d" {
@@ -137,7 +137,7 @@ func (repo ClientRepository) UpdSaldo(tx pgx.Tx, id int, valor int64, tipo strin
 		query = "UPDATE cliente SET saldo = saldo + $1 WHERE id = $2"
 	}
 
-	result, err := tx.Exec(context.Background(), query, valor, id)
+	result, err := tx.Exec(ctx, query, valor, id)
 	if err != nil {
 		return err
 	}

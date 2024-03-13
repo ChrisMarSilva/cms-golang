@@ -72,6 +72,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    # command: app -max_queue_size=10000 -batch_size=1000 -batch_sleep=2000
       # deploy:
       # resources:
       # limits:

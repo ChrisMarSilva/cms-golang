@@ -14,8 +14,9 @@ import (
 )
 
 type IClientService interface {
-	CreateTransaction(id int, request dtos.TransacaoRequestDto) (dtos.TransacaoResponseDto, error)
-	GetExtract(id int) (dtos.ExtratoResponseDto, error)
+	CreateTransaction(ctx context.Context, id int, request dtos.TransacaoRequestDto) (dtos.TransacaoResponseDto, error)
+	GetExtract(ctx context.Context, id int) (dtos.ExtratoResponseDto, error)
+	CreateTransactionBatch(ctx context.Context, id int, request dtos.TransacaoRequestDto) (dtos.TransacaoResponseDto, error)
 }
 
 type ClientService struct {
@@ -32,7 +33,7 @@ func NewClientService(db *pgxpool.Pool, clientRepo repositories.IClientRepositor
 	}
 }
 
-func (s *ClientService) CreateTransaction(id int, request dtos.TransacaoRequestDto) (dtos.TransacaoResponseDto, error) {
+func (s *ClientService) CreateTransaction(ctx context.Context, id int, request dtos.TransacaoRequestDto) (dtos.TransacaoResponseDto, error) {
 
 	// conn := database.GetConnection()
 	// defer conn.Close()
@@ -42,7 +43,7 @@ func (s *ClientService) CreateTransaction(id int, request dtos.TransacaoRequestD
 	// s.db.Exec("SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;")
 
 	var cliente models.Cliente
-	err := s.clientRepo.Get(&cliente, id)
+	err := s.clientRepo.Get(ctx, &cliente, id)
 	if err != nil {
 		return transacao, err
 	}
@@ -61,7 +62,7 @@ func (s *ClientService) CreateTransaction(id int, request dtos.TransacaoRequestD
 	// 	return nil, ErroTransacaoDebito
 	// }
 
-	ctx := context.Background()
+	//ctx := context.Background()
 
 	//go func() {
 	//tx := s.db.MustBegin()
@@ -79,13 +80,13 @@ func (s *ClientService) CreateTransaction(id int, request dtos.TransacaoRequestD
 	// 	}
 	// }()
 
-	err = s.clientRepo.UpdSaldo(tx, id, request.Valor, request.Tipo)
+	err = s.clientRepo.UpdSaldo(ctx, tx, id, request.Valor, request.Tipo)
 	if err != nil {
 		tx.Rollback(ctx)
 		return transacao, err
 	}
 
-	err = s.clientTransactionRepo.Add(tx, id, request.Valor, request.Tipo, request.Descricao)
+	err = s.clientTransactionRepo.Add(ctx, tx, id, request.Valor, request.Tipo, request.Descricao)
 	if err != nil {
 		tx.Rollback(ctx)
 		return transacao, err
@@ -102,19 +103,19 @@ func (s *ClientService) CreateTransaction(id int, request dtos.TransacaoRequestD
 	return transacao, nil
 }
 
-func (s *ClientService) GetExtract(id int) (dtos.ExtratoResponseDto, error) {
+func (s *ClientService) GetExtract(ctx context.Context, id int) (dtos.ExtratoResponseDto, error) {
 	var extrato dtos.ExtratoResponseDto
 
 	// s.db.Exec("SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;")
 
 	var cliente models.Cliente
-	err := s.clientRepo.Get(&cliente, id)
+	err := s.clientRepo.Get(ctx, &cliente, id)
 	if err != nil {
 		return extrato, err
 	}
 
 	clienteTransacoes := map[int]models.ClienteTransacao{}
-	err = s.clientTransactionRepo.GetAll(&clienteTransacoes, id)
+	err = s.clientTransactionRepo.GetAll(ctx, &clienteTransacoes, id)
 	if err != nil {
 		return extrato, err
 	}
@@ -142,4 +143,13 @@ func (s *ClientService) GetExtract(id int) (dtos.ExtratoResponseDto, error) {
 	}
 
 	return extrato, nil
+}
+
+func (s *ClientService) SaveTransactionBatch(batch []models.ClienteTransacao) {
+	var transactionBatch []models.ClienteTransacao
+	for _, transaction := range batch {
+		transactionBatch = append(transactionBatch, transaction)
+	}
+
+	s.clientTransactionRepo.SaveTransactionBatch(transactionBatch)
 }

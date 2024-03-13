@@ -3,6 +3,9 @@ package repositories
 import (
 	"context"
 	"errors"
+	"fmt"
+	"log"
+	"strings"
 
 	"github.com/chrismarsilva/rinha-backend-2024/internals/models"
 	"github.com/jackc/pgx/v5"
@@ -10,10 +13,11 @@ import (
 )
 
 type IClientTransactionRepository interface {
-	GetAll(entities *map[int]models.ClienteTransacao, idcliente int) error
+	GetAll(ctx context.Context, entities *map[int]models.ClienteTransacao, idcliente int) error
 	// GetAllWithPrepare(entities *map[int]models.ClienteTransacao, idcliente int) error
-	Add(tx pgx.Tx, idcliente int, valor int64, tipo string, descricao string) error
+	Add(ctx context.Context, tx pgx.Tx, idcliente int, valor int64, tipo string, descricao string) error
 	// AddWithPrepare(tx *sqlx.Tx, idcliente int, valor int64, tipo string, descricao string) error
+	SaveTransactionBatch(transactionBatch []models.ClienteTransacao) error
 }
 
 type ClientTransactionRepository struct {
@@ -27,28 +31,44 @@ func NewClientTransactionRepository(db *pgxpool.Pool) *ClientTransactionReposito
 	return &ClientTransactionRepository{db: db}
 }
 
-func (repo ClientTransactionRepository) GetAll(entities *map[int]models.ClienteTransacao, idcliente int) (err error) {
+func (repo ClientTransactionRepository) GetAll(ctx context.Context, entities *map[int]models.ClienteTransacao, idcliente int) (err error) {
 	*entities = make(map[int]models.ClienteTransacao, 0)
 
 	query := "SELECT valor, tipo, descricao, dthrregistro FROM cliente_transacao WHERE cliente_id = $1 ORDER BY id DESC LIMIT 10"
-	rows, err := repo.db.Query(context.Background(), query, idcliente)
+	rows, err := repo.db.Query(ctx, query, idcliente)
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
 
+	var totalRows int
+	for rows.Next() {
+		totalRows++ // Obter o número total de linhas retornadas pela consulta
+	}
+
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("erro ao contar linhas: %w", err)
+	}
+
+	//entities := make([]*models.ClienteTransacao, 0, totalRows)
+	// if err := rows.Err(); err != nil {
+	//     return fmt.Errorf("erro ao iterar sobre transacoes: %w", err)
+	// }
+
 	i := 0
 	for rows.Next() {
-		entity := models.ClienteTransacao{}
+		//entity := models.ClienteTransacao{}
+		var entity models.ClienteTransacao
 		if err := rows.Scan(&entity.Valor, &entity.Tipo, &entity.Descricao, &entity.DtHrRegistro); err != nil {
 			return err
 		}
 		(*entities)[i] = entity
+		//entities = append(entities, &entity)
 		i++
 	}
 
 	if err := rows.Err(); err != nil {
-		return err
+		return fmt.Errorf("erro ao iterar sobre transacoes: %w", err)
 	}
 
 	return nil
@@ -99,10 +119,10 @@ func (repo ClientTransactionRepository) GetAll(entities *map[int]models.ClienteT
 // 	return nil
 // }
 
-func (repo ClientTransactionRepository) Add(tx pgx.Tx, idcliente int, valor int64, tipo string, descricao string) (err error) {
+func (repo ClientTransactionRepository) Add(ctx context.Context, tx pgx.Tx, idcliente int, valor int64, tipo string, descricao string) (err error) {
 	query := "INSERT INTO cliente_transacao (cliente_id, valor, tipo, descricao) Values ($1, $2, $3, $4)"
 
-	result, err := tx.Exec(context.Background(), query, idcliente, valor, tipo, descricao)
+	result, err := tx.Exec(ctx, query, idcliente, valor, tipo, descricao)
 	if err != nil {
 		return err
 	}
@@ -146,3 +166,26 @@ func (repo ClientTransactionRepository) Add(tx pgx.Tx, idcliente int, valor int6
 //
 // 	return nil
 // }
+
+func (repo ClientTransactionRepository) SaveTransactionBatch(transactionBatch []models.ClienteTransacao) error {
+
+	sql := "INSERT INTO cliente_transacao (cliente_id, valor, tipo, descricao) Values %s"
+	//INSERT INTO cliente_transacao (cliente_id, valor, tipo, descricao) Values ($1, $2, $3, $4)
+
+	params := []interface{}{}
+	paramSql := []string{}
+
+	for index, transaction := range transactionBatch {
+		i := index * 4
+		params = append(params, transaction.IdCliente, transaction.Valor, transaction.Tipo, transaction.Descricao, transaction.DtHrRegistro)
+		paramSql = append(paramSql, fmt.Sprintf("($%d, $%d, $%d, $%d)", i+1, i+2, i+3, i+4))
+	}
+
+	_, err := repo.db.Exec(context.Background(), fmt.Sprintf(sql, strings.Join(paramSql, ",")), params...)
+	if err != nil {
+		log.Println(fmt.Sprintf("error executing insert %v", err))
+		return err
+	}
+
+	return nil
+}

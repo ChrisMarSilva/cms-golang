@@ -41,3 +41,20 @@ type ExtratoTransacoesResponseDto struct {
 // 		RealizadaEm: realizadaEm,
 // 	}
 // }
+
+// type Date struct {
+// 	time.Time
+// }
+
+// func (t Date) MarshalJSON() (string, error) {
+// 	return t.Time.Format(`"2006-01-02T15:04:05.000000Z"`), nil
+// }
+
+// func (t *Date) UnmarshalJSON(b []byte) (err error) {
+// 	date, err := time.Parse(`"2006-01-02"`, string(b))
+// 	if err != nil {
+// 		return fmt.Errorf("error on converting date: %w", err)
+// 	}
+// 	t.Time = date
+// 	return
+// }

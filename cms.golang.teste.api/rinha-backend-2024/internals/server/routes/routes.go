@@ -3,6 +3,7 @@ package routes
 import (
 	"github.com/chrismarsilva/rinha-backend-2024/internals/databases"
 	"github.com/chrismarsilva/rinha-backend-2024/internals/handlers"
+	"github.com/chrismarsilva/rinha-backend-2024/internals/models"
 	"github.com/chrismarsilva/rinha-backend-2024/internals/repositories"
 	"github.com/chrismarsilva/rinha-backend-2024/internals/services"
 	"github.com/chrismarsilva/rinha-backend-2024/internals/utils"
@@ -12,6 +13,10 @@ import (
 func ConfigRoutes(app *fiber.App, cfg *utils.Config) *fiber.App {
 
 	//Database
+	driverDb := databases.DatabasePostgres{}
+	driverDb.StartDbConnPgx(cfg)
+	db := driverDb.GetDatabaseConnPgx()
+
 	// driverDb := databases.DatabasePostgres{}
 	// driverDb.StartDbConn(cfg)
 	// db := driverDb.GetDatabaseConn()
@@ -24,10 +29,6 @@ func ConfigRoutes(app *fiber.App, cfg *utils.Config) *fiber.App {
 	// driverDbReader.StartDbReader(cfg)
 	// reader := driverDbReader.GetDatabaseReader()
 
-	driverDb := databases.DatabasePostgres{}
-	driverDb.StartDbConnPgx(cfg)
-	db := driverDb.GetDatabaseConnPgx()
-
 	//Repository
 	clientRepo := repositories.NewClientRepository(db)
 	clientTransactionRepo := repositories.NewClientTransactionRepository(db)
@@ -38,8 +39,17 @@ func ConfigRoutes(app *fiber.App, cfg *utils.Config) *fiber.App {
 	//Handle
 	clientHandler := handlers.NewClientHandler(*clientServ)
 
+	batchChannelCreateTransaction := make(chan models.Job, cfg.MaxQueueSize)
+	go clientHandler.ProcessBatch(batchChannelCreateTransaction, clientHandler.CreateTransactionBatch)
+	//time.Sleep(3 * time.Second) // wait for db is up
+
 	routes := app.Group("/clientes")
-	routes.Post(":id/transacoes", clientHandler.CreateTransaction)
+	//routes.Post(":id/transacoes", clientHandler.CreateTransaction)
+
+	routes.Post(":id/transacoes", func(c fiber.Ctx) error {
+		return clientHandler.CreateTransactionBatch(c, batchChannelCreateTransaction)
+	})
+
 	routes.Get("/:id/extrato", clientHandler.GetExtract)
 
 	app.Get("/msg", func(c fiber.Ctx) error {

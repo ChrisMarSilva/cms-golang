@@ -68,7 +68,25 @@ type DatabasePostgres struct{}
 // }
 
 func (data *DatabasePostgres) StartDbConnPgx(cfg *utils.Config) {
+
+	/*
+	 config, err := pgxpool.ParseConfig(os.Getenv("DATABASE_URL"))
+	    if err != nil {
+	        return nil, err
+	    }
+	    config.MaxConns = 10000 // Defina o número máximo de conexões
+	    config.MinConns = 100   // Defina o número mínimo de conexões
+	    config.MaxConnIdleTime = 0 // Desative o tempo máximo de inatividade da conexão
+	    config.AcquireTimeout = 0  // Desative o tempo máximo de espera para adquirir uma conexão
+
+	    pool, err := pgxpool.ConnectConfig(context.Background(), config)
+	    if err != nil {
+	        return nil, err
+	    }
+	*/
+
 	database, err := pgxpool.New(context.Background(), cfg.DbUri)
+	//database, err := pgxpool.Connect(context.Background(), cfg.DbUri)
 	if err != nil {
 		log.Fatalf("Error connecting pool to database : error=%v", err)
 	}
@@ -79,9 +97,11 @@ func (data *DatabasePostgres) StartDbConnPgx(cfg *utils.Config) {
 		//log.Println("Connected")
 	}
 
-	database.Config().MaxConns = 1000     // Define o número máximo de conexões abertas
-	database.Config().MaxConnIdleTime = 0 // Define o tempo máximo de ociosidade para 5 minutos
-	database.Config().MaxConnLifetime = 0 // Define o tempo máximo de vida (lifetime) para 30 minutos
+	database.Config().MaxConns = 1000     // Define o número máximo de conexões abertas// Defina o número máximo de conexões
+	database.Config().MinConns = 100      // Defina o número mínimo de conexões
+	database.Config().MaxConnIdleTime = 0 // Define o tempo máximo de ociosidade para 5 minutos// Desative o tempo máximo de inatividade da conexão
+	database.Config().MaxConnLifetime = 0 // Define o tempo máximo de vida (lifetime) para 30 minutos// Desative o tempo máximo de espera para adquirir uma conexão
+	//database.Config().MaxConnIdleTime = time.Minute * 3
 
 	// database.Exec(context.Background(), "PREPARE consulta_cliente_por_id (INTEGER) AS SELECT id, limite, saldo  FROM cliente  WHERE id = $1;")
 

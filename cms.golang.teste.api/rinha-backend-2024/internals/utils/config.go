@@ -13,14 +13,19 @@ import (
 // }
 
 type Config struct {
-	UriPort       string
-	DbDriver      string
-	DbUri         string
-	DbMaxConn     string
+	UriPort   string
+	DbDriver  string
+	DbUri     string
+	DbMaxConn string
+	Msg       string
+
 	NumBatch      int
 	NumWorkers    int
 	WorkerTimeout time.Duration
-	Msg           string
+
+	MaxQueueSize int
+	BatchSize    int
+	BatchSleep   int
 }
 
 func NewConfig() *Config {
@@ -44,10 +49,15 @@ func NewConfig() *Config {
 	cfg.DbDriver = os.Getenv("DATABASE_DRIVER")
 	cfg.DbUri = os.Getenv("DATABASE_URL")
 	cfg.DbMaxConn = os.Getenv("DATABASE_MAX_CONNECTIONS")
+	cfg.Msg = os.Getenv("MENSAGEM")
+
 	cfg.NumBatch = 1000
 	cfg.NumWorkers = runtime.GOMAXPROCS(0) * 2
 	cfg.WorkerTimeout = 1 * time.Second
-	cfg.Msg = os.Getenv("MENSAGEM")
+
+	cfg.MaxQueueSize = 5000 // The size of job queue
+	cfg.BatchSize = 1000    // The batch size
+	cfg.BatchSleep = 2000   // Sleep time before batch
 
 	if cfg.DbMaxConn == "" {
 		cfg.DbMaxConn = "50"
@@ -57,10 +67,13 @@ func NewConfig() *Config {
 	// log.Println("Config.DATABASE_DRIVER", cfg.DbDriver)
 	// log.Println("Config.DATABASE_URL", cfg.DbUri)
 	// log.Println("Config.DATABASE_MAX_CONNECTIONS", cfg.DbMaxConn)
+	// log.Println("Config.MENSAGEM", cfg.Msg)
 	// log.Println("Config.NUM_BATCH", cfg.NumBatch)
 	// log.Println("Config.NUM_WORKERS", cfg.NumWorkers)
 	// log.Println("Config.WORKER_TIMEOUT", cfg.WorkerTimeout)
-	// log.Println("Config.MENSAGEM", cfg.Msg)
+	// log.Println("Config.MAXQUEUESIZE", cfg.maxQueueSize)
+	// log.Println("Config.BATCHSIZE", cfg.batchSize)
+	// log.Println("Config.BATCHSLEEP", cfg.batchSleep)
 
 	//connStr := "host=%s port=%s user=%s dbname=%s sslmode=%s"
 	//connStr = fmt.Sprintf(connStr, host, port, user, dbname, sslmode)
