@@ -1,0 +1,100 @@
+version: "3.9"
+
+networks:
+  default:
+    driver: bridge
+    name: network-simples
+
+volumes:
+  prometheus_data: {}
+  grafana_data: {}
+
+services:
+
+  # nginx:
+  #   image: nginx:1.22.1
+  #   ports:
+  #   - 8180:8080
+  #   - 8181:80
+  #   volumes:
+  #   - ./nginx/status.conf:/etc/nginx/conf.d/status.conf
+  #   - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+  #   - ./nginx/myapp.conf:/etc/nginx/conf.d/default.conf
+  #   - ./test-access.log:/var/log/nginx/access.log
+
+  prometheus-nginx-exporter:
+    build: ./prometheus-nginx-exporter
+    command: --target.host=nginx
+    ports:
+    - 9150:9150
+    volumes:
+    - ./test-access.log:/var/log/nginx/access.log
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.55 # jaegertracing/all-in-one:latest
+    hostname: jaeger
+    container_name: jaeger
+    ports:
+      - 5775:5775/udp
+      - 6831:6831/udp
+      - 6832:6832/udp
+      - 16686:16686
+      - 14250:14250
+      - 14268:14268
+      - 14269:14269
+      - 4317:4317
+      - 5778:5778
+      - 4318:4318
+      - 9411:9411
+    environment:
+      - LOG_LEVEL=debug
+      - COLLECTOR_ZIPKIN_HTTP_PORT=9411
+      - COLLECTOR_ZIPKIN_HOST_PORT=9411
+    labels:
+        NAME: "jaeger-agent"
+    restart: always
+
+  prometheus:
+    image: prom/prometheus:v2.51.0 # prom/prometheus:v2.40.4 # 
+    container_name: prometheus
+    ports:
+      - 9090:9090
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml # Monta o arquivo de configuração do Prometheus no contêiner
+      - prometheus_data:/prometheus # Persiste os dados do Prometheus
+    # command:
+    #   - '--config.file=/etc/prometheus/prometheus.yml'
+    #   - '--storage.tsdb.path=/prometheus'
+    #   - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+    #   - '--web.console.templates=/usr/share/prometheus/consoles'
+
+  grafana:
+    image: grafana/grafana:10.1.9 # grafana/grafana:9.3.0 #
+    container_name: grafana
+    ports:
+      - 3000:3000
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=devops123
+    volumes:
+      - ./grafana/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - jaeger
+      - prometheus
+
+  api01: &api
+    container_name: api01
+    build:
+      context: .
+    hostname: api01
+    restart: on-failure
+    environment:
+      - GO_ENVIRONMENT=production
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    depends_on:
+      - jaeger
+      - prometheus
+      - grafana
