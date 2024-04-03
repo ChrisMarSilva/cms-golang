@@ -1,11 +1,11 @@
 package handlers
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
+	"github.com/bytedance/sonic"
 	"github.com/chrismarsilva/rinha-backend-2024/internals/dtos"
 	"github.com/chrismarsilva/rinha-backend-2024/internals/models"
 	"github.com/chrismarsilva/rinha-backend-2024/internals/services"
@@ -48,7 +48,7 @@ func (h *ClientHandler) CreateTransaction(ctx fiber.Ctx) error {
 	//var payload dtos.TransacaoRequestDto
 	payload := new(dtos.TransacaoRequestDto)
 
-	if err := json.Unmarshal(ctx.Body(), &payload); err != nil { // if err := ctx.BodyParser(payload); err != nil {
+	if err := sonic.Unmarshal(ctx.Body(), &payload); err != nil { // if err := ctx.BodyParser(payload); err != nil {
 		return ctx.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"message": "Payload inválido: " + err.Error()})
 	}
 
@@ -132,7 +132,7 @@ func (h *ClientHandler) CreateTransactionBatch(ctx fiber.Ctx, batchCreateTransac
 
 func parseTransaction(clienteId int, bytes []byte, result chan models.ParseTransactionResult) {
 	payload := new(dtos.TransacaoRequestDto)
-	if err := json.Unmarshal(bytes, &payload); err != nil {
+	if err := sonic.Unmarshal(bytes, &payload); err != nil {
 		result <- models.ParseTransactionResult{
 			Transacao: nil,
 			Error:     err,

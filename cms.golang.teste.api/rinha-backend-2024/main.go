@@ -11,10 +11,13 @@ import (
 // go get -u github.com/jackc/pgx/v5/pgxpool
 // go get -u github.com/goccy/go-json
 // go get -u github.com/joho/godotenv
-// go install github.com/cosmtrek/air@latest
+// go get -u github.com/bytedance/sonic
 // go mod tidy
 
+// go install github.com/cosmtrek/air@latest
+// air init
 // air
+
 // go run main.go
 // go run ./cmd/api-server/main.go
 
