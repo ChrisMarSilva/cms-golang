@@ -10,8 +10,10 @@ go list -m all
 
 go env
 go env -w GO111MODULE=auto
-go env -w CGO_ENABLED=1   -- certo 
-go env -w GOPATH=C:\Users\chris\go    --- certo
+go env -w CGO_ENABLED=1 
+go env -w GOPATH=C:\Users\chris\go 
+go env -w GOPATH=C:\\Users\\chris\\go 
+
 
 // GOPROXY list is not the empty string, but contains no entries
 // go env GOPROXY
