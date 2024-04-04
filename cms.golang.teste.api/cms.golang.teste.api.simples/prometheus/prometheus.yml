@@ -18,7 +18,7 @@ scrape_configs:
   scrape_interval: 5s
   scrape_timeout: 5s
   metrics_path: /metrics
-  shceme: http
+  #shceme: http
   follow_redirects: true
   static_configs:
   - targets: # ["api01:8081"] # A direção do alvo a ser raspado.

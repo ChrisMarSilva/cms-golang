@@ -34,7 +34,7 @@ const (
 func main() {
 	log.Println("Main.Ini")
 
-	ctx := context.Background()
+	//ctx := context.Background()
 
 	//tp, err := tracerProvider("http://localhost:14268/api/traces")
 	tp, err := tracerProvider("http://localhost:16686/api/traces")

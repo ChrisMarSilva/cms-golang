@@ -22,18 +22,20 @@ services:
   #   - ./nginx/myapp.conf:/etc/nginx/conf.d/default.conf
   #   - ./test-access.log:/var/log/nginx/access.log
 
-  prometheus-nginx-exporter:
-    build: ./prometheus-nginx-exporter
-    command: --target.host=nginx
-    ports:
-    - 9150:9150
-    volumes:
-    - ./test-access.log:/var/log/nginx/access.log
+  # prometheus-nginx-exporter:
+  #   build: ./prometheus-nginx-exporter
+  #   command: --target.host=nginx
+  #   ports:
+  #   - 9150:9150
+  #   volumes:
+  #   - ./test-access.log:/var/log/nginx/access.log
 
   jaeger:
     image: jaegertracing/all-in-one:1.55 # jaegertracing/all-in-one:latest
     hostname: jaeger
     container_name: jaeger
+    # labels:
+    #     NAME: "jaeger-agent"
     ports:
       - 5775:5775/udp
       - 6831:6831/udp
@@ -50,8 +52,6 @@ services:
       - LOG_LEVEL=debug
       - COLLECTOR_ZIPKIN_HTTP_PORT=9411
       - COLLECTOR_ZIPKIN_HOST_PORT=9411
-    labels:
-        NAME: "jaeger-agent"
     restart: always
 
   prometheus:
@@ -83,18 +83,18 @@ services:
       - jaeger
       - prometheus
 
-  api01: &api
-    container_name: api01
-    build:
-      context: .
-    hostname: api01
-    restart: on-failure
-    environment:
-      - GO_ENVIRONMENT=production
-    ports:
-      - "8080:8080"
-      - "8081:8081"
-    depends_on:
-      - jaeger
-      - prometheus
-      - grafana
+  # api01: &api
+  #   container_name: api01
+  #   build:
+  #     context: .
+  #   hostname: api01
+  #   restart: on-failure
+  #   environment:
+  #     - GO_ENVIRONMENT=production
+  #   ports:
+  #     - "8080:8080"
+  #     - "8081:8081"
+  #   depends_on:
+  #     - jaeger
+  #     - prometheus
+  #     - grafana
