@@ -34,8 +34,6 @@ services:
     image: jaegertracing/all-in-one:1.55 # jaegertracing/all-in-one:latest
     hostname: jaeger
     container_name: jaeger
-    # labels:
-    #     NAME: "jaeger-agent"
     ports:
       - 5775:5775/udp
       - 6831:6831/udp
@@ -83,18 +81,20 @@ services:
       - jaeger
       - prometheus
 
-  # api01: &api
-  #   container_name: api01
-  #   build:
-  #     context: .
-  #   hostname: api01
-  #   restart: on-failure
-  #   environment:
-  #     - GO_ENVIRONMENT=production
-  #   ports:
-  #     - "8080:8080"
-  #     - "8081:8081"
-  #   depends_on:
-  #     - jaeger
-  #     - prometheus
-  #     - grafana
+  api01: &api
+    container_name: api01
+    build:
+      context: .
+    hostname: api01
+    restart: on-failure
+    environment:
+      - GO_ENVIRONMENT=production
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    depends_on:
+      - jaeger
+      - prometheus
+      - grafana
+    volumes:
+      - ./banco.db:/app/banco.db

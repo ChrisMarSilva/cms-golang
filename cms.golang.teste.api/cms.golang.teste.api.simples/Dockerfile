@@ -1,11 +1,13 @@
 ## Build
 #FROM golang:1.22.1 AS builder
 FROM golang:1.22.1-alpine3.19 AS builder
+ENV CGO_ENABLED=1
 WORKDIR /app
 #RUN apt-get autoremove && apt-get autoclean && apt-get update --fix-missing && apt-get upgrade -y && apt-get install curl build-essential -y
 RUN go clean --modcache
 COPY go.mod go.sum ./
 RUN go mod download && go mod tidy && go mod verify
+RUN go get -u github.com/mattn/go-sqlite3
 COPY . .
 RUN GO111MODULE=on CGO_ENABLED=0 GO_GC=off GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o main .
 
@@ -13,8 +15,9 @@ RUN GO111MODULE=on CGO_ENABLED=0 GO_GC=off GOOS=linux GOARCH=amd64 go build -a -
 FROM scratch AS final
 WORKDIR /app
 COPY --from=builder /app/main .
-RUN apk --no-cache add sqlite
+#RUN apk --no-cache add sqlite
 EXPOSE 8080
+EXPOSE 8081
 CMD ["./main"] 
 # 7,66mb
 

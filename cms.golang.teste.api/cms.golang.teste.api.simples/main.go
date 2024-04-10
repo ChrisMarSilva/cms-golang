@@ -14,7 +14,7 @@ package main
 // go get -u go.opentelemetry.io/otel/semconv/v1.24.0
 // go get -u go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp
 // go get -u go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp
-// go get -u get github.com/mattn/go-sqlite3
+// go get -u github.com/mattn/go-sqlite3
 // go mod tidy
 // go run main.go
 // go run .
@@ -33,15 +33,14 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"log"
-	"math/rand"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
+	_ "github.com/mattn/go-sqlite3"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -50,18 +49,446 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
-	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
-	oteltrace "go.opentelemetry.io/otel/sdk/trace"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
+var (
+	service      = "myapp"
+	environment  = "production"
+	tracer       trace.Tracer
+	otlpEndpoint = "jaeger:4318" // "127.0.0.1:4318"
+)
+
+func init() {
+}
+
+func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	tp := newTraceProvider(ctx)
+	tracer = tp.Tracer(service)
+
+	defer func(ctx context.Context) {
+		ctx, cancel = context.WithTimeout(ctx, time.Second*5)
+		defer cancel()
+		if err := tp.Shutdown(ctx); err != nil {
+			log.Fatal(err)
+		}
+	}(ctx)
+
+	reg := prometheus.NewRegistry()
+	reg.MustRegister()
+	m := NewMetrics(reg)
+	promHandler := promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg}) // promhttp.HandlerOpts{}
+
+	router := mux.NewRouter().StrictSlash(true)
+
+	router.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			route := mux.CurrentRoute(r)
+			path, _ := route.GetPathTemplate()
+
+			w.Header().Set("Content-Type", "application/json")
+			//w.WriteHeader(http.StatusBadRequest)
+
+			start := time.Now()
+			timer := prometheus.NewTimer(m.httpDuration.WithLabelValues(path))
+			//rw := NewResponseWriter(w)
+			//next.ServeHTTP(rw, r)
+			next.ServeHTTP(w, r)
+			elapsed := time.Since(start).Seconds()
+
+			statusCode := w.Header().Get("Status-Code")
+			if statusCode == "" {
+				statusCode = strconv.Itoa(http.StatusBadRequest)
+			}
+
+			m.responseStatus.WithLabelValues(statusCode).Inc()
+			m.totalRequests.WithLabelValues(path).Inc()
+			//m.totalRequests.With(prometheus.Labels{"path": r.URL.Path}).Inc()
+			//m.httpDuration.WithLabelValues(path)
+			//m.httpDuration.Observe(elapsed)
+
+			log.Printf("%s %s %v %v", r.Method, r.URL.Path, statusCode, elapsed)
+
+			timer.ObserveDuration()
+		})
+	})
+
+	//router.HandleFunc("/", HomeHandler).Methods("GET")
+	router.HandleFunc("/user", CreateUserHandler).Methods("POST")
+	router.HandleFunc("/user", GetUsersHandler).Methods("GET")
+	router.HandleFunc("/user/{id}", GetUserHandler).Methods("GET")
+	router.HandleFunc("/user/{id}", UpdateUserHandler).Methods("PUT")
+	router.HandleFunc("/user/{id}", DeleteUserHandler).Methods("DELETE")
+
+	routerMetrics := mux.NewRouter().StrictSlash(true)
+	routerMetrics.Handle("/metricsOld", promhttp.Handler())
+	routerMetrics.Handle("/metrics", promHandler)
+
+	go func() {
+		log.Println("Localhost:8080")
+		log.Fatal(http.ListenAndServe(":8080", router))
+	}()
+
+	go func() {
+		log.Println("Localhost:8081")
+		log.Fatal(http.ListenAndServe(":8081", routerMetrics))
+	}()
+
+	select {}
+}
+
+func HomeHandler(w http.ResponseWriter, r *http.Request) {
+	// _, span := tracer.Start(r.Context(), "HTTP GET /")
+	// defer span.End()
+
+	json.NewEncoder(w).Encode("Hello, World!")
+	// w.Write([]byte("Hello, World!"))
+	//fmt.Fprintf(w, "Hello, World!")
+	w.WriteHeader(http.StatusOK)
+}
+
 type User struct {
 	ID   int    `json:"id"`
 	Name string `json:"name"`
 }
+
+func db(ctx context.Context) (*sql.DB, error) {
+	_, span_Banco := tracer.Start(ctx, "sql.Open)")
+	db, err := sql.Open("sqlite3", "./banco.db")
+	if err != nil {
+		span_Banco.SetStatus(codes.Error, err.Error())
+		span_Banco.End()
+		return nil, err
+	}
+	span_Banco.End()
+
+	// _, span_CREATE := tracer.Start(ctx, "db.Exe(CREATE TABLE)")
+	// const create string = `CREATE TABLE IF NOT EXISTS users ( ID INTEGER NOT NULL PRIMARY KEY, Name TEXT );`
+	// _, err = db.Exec(create)
+	// if err != nil {
+	// 	span_CREATE.SetStatus(codes.Error, err.Error())
+	// 	span_CREATE.End()
+	// 	return nil, err
+	// }
+	// span_CREATE.End()
+
+	return db, err
+}
+
+func GetUsersHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, span_Main := tracer.Start(r.Context(), "HTTP GET /user")
+	defer span_Main.End()
+
+	db, err := db(ctx)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	_, span_SELECT := tracer.Start(ctx, "db.Query(SELECT)")
+	rows, err := db.Query("SELECT ID, Name FROM users ORDER BY ID")
+	if err != nil {
+		span_SELECT.SetStatus(codes.Error, err.Error())
+		span_SELECT.End()
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	span_SELECT.End()
+	defer rows.Close()
+
+	_, span_Next := tracer.Start(ctx, "rows.Next()")
+	users := []*User{}
+	for rows.Next() {
+		var user User // user := User{}
+		err = rows.Scan(&user.ID, &user.Name)
+		if err != nil {
+			span_Next.SetStatus(codes.Error, err.Error())
+			span_Next.End()
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		users = append(users, &user)
+	}
+	span_Next.End()
+
+	_, span_Json := tracer.Start(ctx, "json.NewEncoder().Encode()")
+	err = json.NewEncoder(w).Encode(users)
+	if err != nil {
+		span_Json.SetStatus(codes.Error, err.Error())
+		span_Json.End()
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	span_Json.End()
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func GetUserHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, span_Main := tracer.Start(r.Context(), "HTTP GET /user/id")
+	defer span_Main.End()
+
+	// params := mux.Vars(r)
+	// id := params["id"]
+	id := r.PathValue("id")
+	span_Main.SetAttributes(attribute.Key("id").String(id))
+
+	db, err := db(ctx)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	_, span_SELECT := tracer.Start(ctx, "db.Query(SELECT)")
+	rows, err := db.Query("SELECT ID, Name FROM users WHERE ID = ?", id)
+	if err != nil {
+		span_SELECT.SetStatus(codes.Error, err.Error())
+		span_SELECT.End()
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	span_SELECT.End()
+	defer rows.Close()
+
+	user := User{}
+
+	_, span_Next := tracer.Start(ctx, "rows.Next()")
+	for rows.Next() {
+		err = rows.Scan(&user.ID, &user.Name)
+		if err != nil {
+			span_Next.SetStatus(codes.Error, err.Error())
+			span_Next.End()
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+	span_Next.End()
+
+	_, span_Json := tracer.Start(ctx, "json.NewEncoder().Encode()")
+	err = json.NewEncoder(w).Encode(user)
+	if err != nil {
+		span_Json.SetStatus(codes.Error, err.Error())
+		span_Json.End()
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	span_Json.End()
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func CreateUserHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, span_Main := tracer.Start(r.Context(), "HTTP POST /user")
+	defer span_Main.End()
+
+	db, err := db(ctx)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	var user User
+	err = json.NewDecoder(r.Body).Decode(&user)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	_, span_INSERT := tracer.Start(r.Context(), "db.Exec(INSERT)")
+	_, err = db.Exec("INSERT INTO users (ID, Name) VALUES (?, ?)", user.ID, user.Name)
+	if err != nil {
+		span_INSERT.SetStatus(codes.Error, err.Error())
+		span_INSERT.End()
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	span_INSERT.End()
+
+	_, span_Json := tracer.Start(ctx, "json.NewEncoder().Encode()")
+	err = json.NewEncoder(w).Encode(user)
+	if err != nil {
+		span_Json.SetStatus(codes.Error, err.Error())
+		span_Json.End()
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	span_Json.End()
+
+	w.WriteHeader(http.StatusCreated)
+}
+
+func UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, span_Main := tracer.Start(r.Context(), "HTTP PUT /user/id")
+	defer span_Main.End()
+
+	// params := mux.Vars(r)
+	// id := params["id"]
+	id := r.PathValue("id")
+	span_Main.SetAttributes(attribute.Key("id").String(id))
+
+	var user User
+	err := json.NewDecoder(r.Body).Decode(&user)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	db, err := db(ctx)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	_, span_UPDATE := tracer.Start(ctx, "db.Query(UPDATE)")
+	_, err = db.Exec("UPDATE users SET name = ? WHERE ID = ?", user.Name, id)
+	if err != nil {
+		span_UPDATE.SetStatus(codes.Error, err.Error())
+		span_UPDATE.End()
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	span_UPDATE.End()
+
+	_, span_Json := tracer.Start(ctx, "json.NewEncoder().Encode()")
+	err = json.NewEncoder(w).Encode("")
+	if err != nil {
+		span_Json.SetStatus(codes.Error, err.Error())
+		span_Json.End()
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	span_Json.End()
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, span_Main := tracer.Start(r.Context(), "HTTP GET /user/id")
+	defer span_Main.End()
+
+	// params := mux.Vars(r)
+	// id := params["id"]
+	id := r.PathValue("id")
+	span_Main.SetAttributes(attribute.Key("id").String(id))
+
+	db, err := db(ctx)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	_, span_SELECT := tracer.Start(ctx, "db.Query(DELETE)")
+	_, err = db.Exec("DELETE FROM users WHERE ID = ?", id)
+	if err != nil {
+		span_SELECT.SetStatus(codes.Error, err.Error())
+		span_SELECT.End()
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	span_SELECT.End()
+
+	_, span_Json := tracer.Start(ctx, "json.NewEncoder().Encode()")
+	err = json.NewEncoder(w).Encode("")
+	if err != nil {
+		span_Json.SetStatus(codes.Error, err.Error())
+		span_Json.End()
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	span_Json.End()
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func newTraceProvider(ctx context.Context) *sdktrace.TracerProvider {
+	insecureOpt := otlptracehttp.WithInsecure()
+	endpointOpt := otlptracehttp.WithEndpoint(otlpEndpoint)
+	exp, err := otlptracehttp.New(ctx, insecureOpt, endpointOpt)
+	if err != nil {
+		log.Fatalf("failed to initialize exporter: %v", err)
+		return nil
+	}
+
+	r, err := resource.Merge(
+		resource.Default(),
+		resource.NewWithAttributes(
+			semconv.SchemaURL,
+			semconv.ServiceName(service),
+			semconv.ServiceVersionKey.String("1.0.0"),
+			semconv.DeploymentEnvironmentKey.String(environment),
+		),
+	)
+	if err != nil {
+		log.Fatalf("failed to initialize exporter 2: %v", err)
+		return nil
+	}
+
+	tp := sdktrace.NewTracerProvider(
+		sdktrace.WithBatcher(exp),
+		sdktrace.WithResource(r),
+	)
+
+	otel.SetTracerProvider(tp)
+	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.Baggage{}, propagation.TraceContext{}))
+
+	return tp
+}
+
+type metrics struct {
+	totalRequests  *prometheus.CounterVec
+	responseStatus *prometheus.CounterVec
+	httpDuration   *prometheus.HistogramVec
+}
+
+func NewMetrics(reg prometheus.Registerer) *metrics {
+	m := &metrics{
+		totalRequests: prometheus.NewCounterVec(prometheus.CounterOpts{
+			Namespace: service,
+			Name:      "http_requests_total",
+			Help:      "Number of get requests.",
+		}, []string{"path"}),
+		responseStatus: prometheus.NewCounterVec(prometheus.CounterOpts{
+			Namespace: service,
+			Name:      "response_status",
+			Help:      "Status of HTTP response",
+		}, []string{"status"}),
+		httpDuration: promauto.NewHistogramVec(prometheus.HistogramOpts{
+			Namespace: service,
+			Name:      "http_response_time_seconds",
+			Help:      "Duration of HTTP requests.",
+		}, []string{"path"}),
+	}
+
+	reg.MustRegister(m.totalRequests)
+	reg.MustRegister(m.responseStatus)
+	reg.MustRegister(m.httpDuration)
+
+	return m
+}
+
+/*
+
+var (
+	// users        []User
+	//dvs          []Device
+	//version      string
+	service      = "myapp" // "cms.teste.trace"
+	environment  = "production"
+	tracer       trace.Tracer
+	otlpEndpoint string
+)
 
 type Device struct {
 	ID       int    `json:"id"`
@@ -89,18 +516,23 @@ type manageDevicesHandler struct {
 	metrics *metrics
 }
 
-type loginHandler struct {
-}
+func init() {
+	//version = "2.10.5"
 
-var (
-	// users        []User
-	//dvs          []Device
-	//version      string
-	service      = "myapp" // "cms.teste.trace"
-	environment  = "production"
-	tracer       trace.Tracer
-	otlpEndpoint string
-)
+	// dvs = []Device{
+	// 	{1, "5F-33-CC-1F-43-82", "2.1.6"},
+	// 	{2, "EF-2B-C4-F5-D6-34", "2.1.6"},
+	// }
+
+	// users = append(users, User{ID: 1, Name: "John Doe"})
+	// users = append(users, User{ID: 2, Name: "Koko Snow"})
+	// users = append(users, User{ID: 3, Name: "Francis Sunday"})
+
+	otlpEndpoint = "127.0.0.1:4318" // "127.0.0.1:4318" // "http://localhost:4318/" // "http://jaeger:4318" // os.Getenv("OTLP_ENDPOINT") // OTEL_EXPORTER_OTLP_ENDPOINT
+	if otlpEndpoint == "" {
+		log.Fatalln("You MUST set OTLP_ENDPOINT env variable!")
+	}
+}
 
 type responseWriter struct {
 	http.ResponseWriter
@@ -114,24 +546,6 @@ func NewResponseWriter(w http.ResponseWriter) *responseWriter {
 func (rw *responseWriter) WriteHeader(code int) {
 	rw.statusCode = code
 	rw.ResponseWriter.WriteHeader(code)
-}
-
-func init() {
-	//version = "2.10.5"
-
-	// dvs = []Device{
-	// 	{1, "5F-33-CC-1F-43-82", "2.1.6"},
-	// 	{2, "EF-2B-C4-F5-D6-34", "2.1.6"},
-	// }
-
-	// users = append(users, User{ID: 1, Name: "John Doe"})
-	// users = append(users, User{ID: 2, Name: "Koko Snow"})
-	// users = append(users, User{ID: 3, Name: "Francis Sunday"})
-
-	otlpEndpoint = "127.0.0.1:4318" // "127.0.0.1:4318" // "http://localhost:16686/api/traces" // "http://localhost:4318/" // "http://jaeger:4318" // os.Getenv("OTLP_ENDPOINT") // OTEL_EXPORTER_OTLP_ENDPOINT
-	if otlpEndpoint == "" {
-		log.Fatalln("You MUST set OTLP_ENDPOINT env variable!")
-	}
 }
 
 func main() {
@@ -169,182 +583,35 @@ func main() {
 	// promHandler := promhttp.HandlerFor(reg, promhttp.HandlerOpts{})
 	promHandler := promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg})
 
-	router := mux.NewRouter()
-
-	//router.Use(prometheusMiddleware)
-	router.Use(func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			route := mux.CurrentRoute(r)
-			path, _ := route.GetPathTemplate()
-
-			// 	start := time.Now()
-			timer := prometheus.NewTimer(m.httpDuration.WithLabelValues(path))
-			rw := NewResponseWriter(w)
-			next.ServeHTTP(rw, r)
-			// 	elapsed := time.Since(start).Seconds()
-
-			statusCode := rw.statusCode
-
-			m.responseStatus.WithLabelValues(strconv.Itoa(statusCode)).Inc()
-			m.totalRequests.WithLabelValues(path).Inc()
-
-			timer.ObserveDuration()
-		})
-	})
-
-	router.HandleFunc("/", HomeHandler).Methods("GET")
-	router.HandleFunc("/user", GetUsersHandler).Methods("GET")
-	router.HandleFunc("/user/{id}", GetUserHandler).Methods("GET")
-	router.HandleFunc("/user/{id}", CreateUserHandler).Methods("POST")
-	router.HandleFunc("/user/{id}", DeleteUserHandler).Methods("DELETE")
 	// router.HandleFunc("/devices", getDevices).Methods("GET")
 	// router.HandleFunc("/devices", createDevice).Methods("POST")
 	// router.Handle("/devices", rdh)
 	// router.Handle("/devices", mdh)
 	// router.Handle("/login", mlh)
 
-	routerMetrics := mux.NewRouter()
-	routerMetrics.Handle("/metricsOld", promhttp.Handler())
-	routerMetrics.Handle("/metrics", promHandler)
-
-	go func() {
-		log.Println("Localhost:8080")
-		log.Fatal(http.ListenAndServe(":8080", router))
-	}()
-
-	go func() {
-		log.Println("Localhost:8081")
-		log.Fatal(http.ListenAndServe(":8081", routerMetrics))
-	}()
-
-	select {}
-}
-
-func db(ctx context.Context) (*sql.DB, error) {
-	_, span_Banco := tracer.Start(ctx, "sql.Open)")
-	db, err := sql.Open("sqlite3", "./banco.db")
-	if err != nil {
 		span_Banco.SetStatus(codes.Error, err.Error())
 		span_Banco.SetAttributes(attribute.Key("erro-Banco").String(err.Error()))
 		span_Banco.RecordError(err)
-		span_Banco.End()
-		return nil, err
-	}
-	span_Banco.End()
-
-	_, span_CREATE := tracer.Start(ctx, "db.Exe(CREATE TABLE)")
-	const create string = `CREATE TABLE IF NOT EXISTS users ( ID INTEGER NOT NULL PRIMARY KEY, Name TEXT );`
-	_, err = db.Exec(create)
-	if err != nil {
-		span_CREATE.SetStatus(codes.Error, err.Error())
-		span_CREATE.SetAttributes(attribute.Key("erro-CREATE").String(err.Error()))
-		span_CREATE.RecordError(err)
-		span_CREATE.End()
-		return nil, err
-	}
-	span_CREATE.End()
-
-	return db, err
 }
 
-func HomeHandler(w http.ResponseWriter, r *http.Request) {
-	_, span := tracer.Start(r.Context(), "HTTP GET /")
-	defer span.End()
-
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "Hello, World!")
+// Console Exporter, only for testing
+func newConsoleExporter() (oteltrace.SpanExporter, error) {
+	return stdouttrace.New()
 }
 
-func GetUsersHandler(w http.ResponseWriter, r *http.Request) {
-	ctx, span_Main := tracer.Start(r.Context(), "HTTP GET /user")
-	defer span_Main.End()
-
-	db, err := db(ctx)
-	if err != nil {
-		return
-	}
-	defer db.Close()
-
-	_, span_SELECT := tracer.Start(ctx, "db.Query(SELECT)")
-	rows, err := db.Query("SELECT ID, Name FROM users ORDER BY ID")
-	if err != nil {
-		span_SELECT.SetStatus(codes.Error, err.Error())
-		span_SELECT.SetAttributes(attribute.Key("erro-SELECT").String(err.Error()))
-		span_SELECT.RecordError(err)
-		span_SELECT.End()
-		return
-	}
-	span_SELECT.End()
-	defer rows.Close()
-
-	_, span_Next := tracer.Start(ctx, "rows.Next()")
-	data := []User{}
-	for rows.Next() {
-		user := User{}
-		err = rows.Scan(&user.ID, &user.Name)
-		if err != nil {
-			span_Next.SetStatus(codes.Error, err.Error())
-			span_Next.SetAttributes(attribute.Key("erro-Next").String(err.Error()))
-			span_Next.RecordError(err)
-			span_Next.End()
-			return
-		}
-		data = append(data, user)
-	}
-	span_Next.End()
-
-	json.NewEncoder(w).Encode(data)
+// OTLP Exporter
+func newOTLPExporter(ctx context.Context) (oteltrace.SpanExporter, error) {
+	insecureOpt := otlptracehttp.WithInsecure()             // Change default HTTPS -> HTTP
+	endpointOpt := otlptracehttp.WithEndpoint(otlpEndpoint) // Update default OTLP reciver endpoint
+	return otlptracehttp.New(ctx, insecureOpt, endpointOpt)
 }
 
-func GetUserHandler(w http.ResponseWriter, r *http.Request) {
-	_, span := tracer.Start(r.Context(), "HTTP GET /user")
-	defer span.End()
 
-	//params := mux.Vars(r)
-	//id := params["id"]
-
-	// for _, item := range users {
-	// 	if strconv.Itoa(item.ID) == id {
-	// 		json.NewEncoder(w).Encode(item)
-	// 		return
-	// 	}
-	// }
-
-	json.NewEncoder(w).Encode(&User{})
-}
-
-func CreateUserHandler(w http.ResponseWriter, r *http.Request) {
-	_, span := tracer.Start(r.Context(), "HTTP GET /user")
-	defer span.End()
-
-	params := mux.Vars(r)
-	idStr := params["id"]
-	id, _ := strconv.Atoi(idStr)
-
-	var user User
-	_ = json.NewDecoder(r.Body).Decode(&user)
-
-	user.ID = id
-	// users = append(users, user)
-
-	//json.NewEncoder(w).Encode(users)
-}
-
-func DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
-	_, span := tracer.Start(r.Context(), "HTTP GET /user")
-	defer span.End()
-
-	//params := mux.Vars(r)
-	//id := params["id"]
-
-	// for index, item := range users {
-	// 	if strconv.Itoa(item.ID) == id {
-	// 		users = append(users[:index], users[index+1:]...)
-	// 		break
-	// 	}
-	// }
-
-	// json.NewEncoder(w).Encode(users)
+func sleep(ms int) {
+	rand.Seed(time.Now().UnixNano())
+	now := time.Now()
+	n := rand.Intn(ms + now.Second())
+	time.Sleep(time.Duration(n) * time.Millisecond)
 }
 
 func (rdh registerDevicesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -454,12 +721,7 @@ func upgradeDevice(w http.ResponseWriter, r *http.Request, m *metrics) {
 	w.Write([]byte("Upgrading..."))
 }
 
-func (l loginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	_, span := tracer.Start(r.Context(), "HTTP GET /login")
-	defer span.End()
-
-	sleep(200)
-	w.Write([]byte("Welcome to the app!"))
+type loginHandler struct {
 }
 
 func middleware(next http.Handler, m *metrics) http.Handler {
@@ -469,13 +731,14 @@ func middleware(next http.Handler, m *metrics) http.Handler {
 		//m.loginDuration.Observe(time.Since(now).Seconds())
 	})
 }
+func (l loginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	_, span := tracer.Start(r.Context(), "HTTP GET /login")
+	defer span.End()
 
-func sleep(ms int) {
-	rand.Seed(time.Now().UnixNano())
-	now := time.Now()
-	n := rand.Intn(ms + now.Second())
-	time.Sleep(time.Duration(n) * time.Millisecond)
+	sleep(200)
+	w.Write([]byte("Welcome to the app!"))
 }
+
 
 func NewMetrics(reg prometheus.Registerer) *metrics {
 	m := &metrics{
@@ -550,86 +813,17 @@ func NewMetrics(reg prometheus.Registerer) *metrics {
 	// 	Help: "Duration of HTTP requests.",
 	// }, []string{"path"})
 
-	// reg.MustRegister(m.devices, m.users, m.info, m.upgrades, m.duration, m.loginDuration)
-	// reg.MustRegister(m.devices)
-	// reg.MustRegister(m.users)
-	// reg.MustRegister(m.info)
-	// reg.MustRegister(m.upgrades)
-	// reg.MustRegister(m.duration)
-	// reg.MustRegister(m.loginDuration)
+	 reg.MustRegister(m.devices, m.users, m.info, m.upgrades, m.duration, m.loginDuration)
+	 reg.MustRegister(m.devices)
+	reg.MustRegister(m.users)
+	 reg.MustRegister(m.info)
+	reg.MustRegister(m.upgrades)
+	reg.MustRegister(m.duration)
+	reg.MustRegister(m.loginDuration)
 	reg.MustRegister(m.totalRequests)  // prometheus.Register(totalRequests)
 	reg.MustRegister(m.responseStatus) // prometheus.Register(responseStatus)
 	reg.MustRegister(m.httpDuration)   // prometheus.Register(httpDuration)
 
 	return m
 }
-
-// Console Exporter, only for testing
-func newConsoleExporter() (oteltrace.SpanExporter, error) {
-	return stdouttrace.New()
-}
-
-// OTLP Exporter
-func newOTLPExporter(ctx context.Context) (oteltrace.SpanExporter, error) {
-	insecureOpt := otlptracehttp.WithInsecure()             // Change default HTTPS -> HTTP
-	endpointOpt := otlptracehttp.WithEndpoint(otlpEndpoint) // Update default OTLP reciver endpoint
-	return otlptracehttp.New(ctx, insecureOpt, endpointOpt)
-}
-
-// TracerProvider is an OpenTelemetry TracerProvider.
-// It provides Tracers to instrumentation so it can trace operational flow through a system.
-func newTraceProvider(exp sdktrace.SpanExporter) *sdktrace.TracerProvider {
-	// exp, err := jaeger.New(
-	//     jaeger.WithAgentEndpoint(
-	//         jaeger.WithAgentHost("localhost"),
-	//         jaeger.WithAgentPort("6831"),
-	//     ),
-	// )
-	// if err != nil {
-	//     return err
-	// }
-
-	// Ensure default SDK resources and the required service name are set.
-	r, err := resource.Merge(
-		resource.Default(),
-		resource.NewWithAttributes(
-			semconv.SchemaURL,
-			semconv.ServiceName(service), // emconv.ServiceNameKey.String(service),
-			semconv.ServiceVersionKey.String("1.0.0"),
-			semconv.DeploymentEnvironmentKey.String(environment), // attribute.String("environment", environment),
-			// attribute.Int64("ID", id),
-		),
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	return sdktrace.NewTracerProvider(
-		sdktrace.WithBatcher(exp),
-		sdktrace.WithResource(r),
-	)
-
-	// tp := tracesdk.NewTracerProvider(
-	//     tracesdk.WithBatcher(exporter),
-	//     tracesdk.WithResource(resource.NewWithAttributes(
-	//         semconv.SchemaURL,
-	//         semconv.ServiceNameKey.String("server"),
-	//         semconv.ServiceVersionKey.String("1.0.0"),
-	//         semconv.DeploymentEnvironmentKey.String("local"),
-	//     )),
-	// )
-
-	// defer func() {
-	//     if err := tp.Shutdown(context.Background()); err != nil {
-	//         log.Fatal(err)
-	//     }
-	// }()
-
-	// otel.SetTracerProvider(tp)
-
-	// otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
-	//     propagation.TraceContext{},
-	//     propagation.Baggage{},
-	//     propagators.Jaeger{},
-	// ))
-}
+*/
