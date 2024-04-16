@@ -12,18 +12,18 @@ import (
 
 func TestOperacionString(t *testing.T) {
 	op := models.Operacion{
-		DateTime:        time.Now(),
-		Type:            "Compra",
-		OriginCoin:      "BRL",
-		DestinationCoin: "ETH",
-		QuantidadeMoeda: decimal.NewFromFloat(1.5),
-		QuantidadeTaxa:  decimal.NewFromFloat(0.01),
-		QuantidadeTotal: decimal.NewFromFloat(1.51),
-		ValorPrecoMoeda: decimal.NewFromFloat(5000),
-		ValorTotalMoeda: decimal.NewFromFloat(7500),
-		ValorTotalTaxa:  decimal.NewFromFloat(75),
-		ValorTotal:      decimal.NewFromFloat(7575),
-		ValorSaldo:      decimal.NewFromFloat(10000),
+		DataHora:      time.Now(),
+		Tipo:          "Compra",
+		CriptoDe:      "BRL",
+		CriptoPara:    "ETH",
+		Qtd:           decimal.NewFromFloat(1.5),
+		AmountTax:     decimal.NewFromFloat(0.01),
+		AmountTotal:   decimal.NewFromFloat(1.51),
+		VlrPreco:      decimal.NewFromFloat(5000),
+		TotVlrPreco:   decimal.NewFromFloat(7500),
+		ValueTotalTax: decimal.NewFromFloat(75),
+		TotVlr:        decimal.NewFromFloat(7575),
+		ValueBalance:  decimal.NewFromFloat(10000),
 	}
 
 	// expected := "DateTime: " + op.DateTime.String() +
@@ -41,18 +41,18 @@ func TestOperacionString(t *testing.T) {
 
 	expected := fmt.Sprintf(
 		"{%s: %s-%s-%s; QtdOp:%s; QtdTx:%s; QtdTot:%s; Price:%s; VlrTotCoin:%s; VlrTotTx:%s; VlrTot:%s; VlrSaldo:%s;}",
-		op.DateTime.Format("02/01/2006 15:04:05"),
-		op.Type,
-		op.OriginCoin,
-		op.DestinationCoin,
-		op.QuantidadeMoeda.String(),
-		op.QuantidadeTaxa.String(),
-		op.QuantidadeTotal.String(),
-		op.ValorPrecoMoeda.String(),
-		op.ValorTotalMoeda.String(),
-		op.ValorTotalTaxa.String(),
-		op.ValorTotal.String(),
-		op.ValorSaldo.String(),
+		op.DataHora.Format("02/01/2006 15:04:05"),
+		op.Tipo,
+		op.CriptoDe,
+		op.CriptoPara,
+		op.Qtd.String(),
+		op.AmountTax.String(),
+		op.AmountTotal.String(),
+		op.VlrPreco.String(),
+		op.TotVlrPreco.String(),
+		op.ValueTotalTax.String(),
+		op.TotVlr.String(),
+		op.ValueBalance.String(),
 	)
 
 	result := op.String()
@@ -70,18 +70,18 @@ func TestNewOperacion(t *testing.T) {
 	expectedDateTime, _ := time.Parse("02/01/2006 15:04:05", "23/04/2021 23:47:57")
 
 	expected := models.Operacion{
-		DateTime:        expectedDateTime,
-		Type:            "Compra",
-		OriginCoin:      "BRL",
-		DestinationCoin: "ETH",
-		QuantidadeMoeda: decimal.NewFromFloat(0.05904694),
-		QuantidadeTaxa:  decimal.NewFromFloat(0.00029523),
-		QuantidadeTotal: decimal.NewFromFloat(0.05875171),
-		ValorPrecoMoeda: decimal.NewFromFloat(12752.39000000),
-		ValorTotalMoeda: decimal.NewFromFloat(752.9896071866),
-		ValorTotalTaxa:  decimal.NewFromFloat(3.7648880997),
-		ValorTotal:      decimal.NewFromFloat(749.2247190869),
-		ValorSaldo:      decimal.NewFromFloat(4247.010392814), // 4247.01 // 4247.010392814
+		DataHora:      expectedDateTime,
+		Tipo:          "Compra",
+		CriptoDe:      "BRL",
+		CriptoPara:    "ETH",
+		Qtd:           decimal.NewFromFloat(0.05904694),
+		AmountTax:     decimal.NewFromFloat(0.00029523),
+		AmountTotal:   decimal.NewFromFloat(0.05875171),
+		VlrPreco:      decimal.NewFromFloat(12752.39000000),
+		TotVlrPreco:   decimal.NewFromFloat(752.9896071866),
+		ValueTotalTax: decimal.NewFromFloat(3.7648880997),
+		TotVlr:        decimal.NewFromFloat(749.2247190869),
+		ValueBalance:  decimal.NewFromFloat(4247.010392814), // 4247.01 // 4247.010392814
 	}
 
 	if reflect.ValueOf(op) == reflect.ValueOf(expected) { // if *op != expected {

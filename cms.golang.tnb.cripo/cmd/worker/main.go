@@ -4,6 +4,7 @@ package main
 // go get -u github.com/xuri/excelize/v2
 // go get -u github.com/mattn/go-sqlite3
 // go get -u github.com/shopspring/decimal
+// go get -u github.com/stretchr/testify/assert
 // go mod tidy
 // go run main.go
 // go run .

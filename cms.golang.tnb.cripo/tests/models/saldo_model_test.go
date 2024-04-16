@@ -6,6 +6,7 @@ import (
 
 	"github.com/chrismarsilva/cms.golang.tnb.cripo/internals/models"
 	"github.com/shopspring/decimal"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewBalance(t *testing.T) {
@@ -88,14 +89,18 @@ func TestAddWithdrawal(t *testing.T) {
 }
 
 func TestNewItemBalance(t *testing.T) {
+	// Arrange
 	datahora := "01/01/2022 10:00:00"
 	tipo := "Depósito"
 	valor := "100.00"
 	saldo := "100.00"
 
+	// Act
 	item := models.NewItemBalance(datahora, tipo, valor, saldo)
 
-	// Assert that the item is created correctly
+	// Assert
+	assert.Nil(t, item)
+
 	expectedDateTime, _ := time.Parse("02/01/2006 15:04:05", datahora)
 	if !item.DateTime.Equal(expectedDateTime) {
 		t.Errorf("Expected DateTime to be %s, got %s", expectedDateTime.Format("02/01/2006 15:04:05"), item.DateTime.Format("02/01/2006 15:04:05"))

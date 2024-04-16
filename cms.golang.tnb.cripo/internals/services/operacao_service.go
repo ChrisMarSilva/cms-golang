@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/chrismarsilva/cms.golang.tnb.cripo/internals/models"
+	"github.com/shopspring/decimal"
 	"github.com/xuri/excelize/v2"
 )
 
@@ -44,50 +45,46 @@ func (op *OperacionService) ProcessFile() error {
 	}
 
 	totLines := len(rows)
-	balance := models.NewBalance()
-	portfolio := models.NewPortfolio()
+	operacoes := make(map[int]models.Operacion)
 
-	//log.Println("")
-	//log.Println("OPERATIONS...")
 	for idx := 0; idx < totLines; idx++ {
 		lineOne := rows[idx]
-		datahora := strings.TrimSpace(lineOne[1])
-		descricao := strings.TrimSpace(lineOne[2])
-		moeda := strings.TrimSpace(lineOne[3])
-		valor := strings.TrimSpace(lineOne[4])
-		saldo := strings.TrimSpace(lineOne[6])
+		typeOperation := strings.TrimSpace(lineOne[2])
+		coin := strings.TrimSpace(lineOne[3])
 
-		if descricao == "descrição" || descricao == "EarnApplication" {
+		if typeOperation == "descrição" {
 			continue
 		}
 
-		if descricao == "Depósito" && moeda == "BRL" {
-			balance.AddDeposit(datahora, valor, saldo)
-		} else if descricao == "Retirada" && moeda == "BRL" {
-			balance.AddWithdrawal(datahora, valor, saldo)
-		} else if descricao == "Trade" && moeda == "BRL" {
+		if typeOperation == "Trade" && coin == "BRL" {
 			if idx+1 < totLines {
 				idx++
 				lineTwo := rows[idx]
-				op := models.NewOperacion(lineOne, lineTwo)
-				portfolio.Add(op.DestinationCoin, op.QuantidadeTotal, op.ValorPrecoMoeda)
-				//log.Println("Lines:", idx, "and", idx+1, "\t", "Operacion:", op)
+				operacoes[len(operacoes)] = *models.NewOperacion(lineOne, lineTwo)
 			}
 		} else {
 			log.Println(idx, "\tTYPE NOT DEFINED\t", lineOne)
 		}
 	}
 
-	// log.Println("")
-	// log.Println("TOTAL BALANCE...")
-	// log.Println("TOTAL DEPOSIT\t: R$", balance.TotalDeposit.String())
-	// log.Println("TOTAL WITHDRAWAL\t: R$", balance.TotalWithdrawal.String())
-	// log.Println("CURRENT BALANCE\t: R$", balance.TotalDeposit.Sub(balance.TotalWithdrawal).String())
+	portfolio := models.NewPortfolio()
+	totLines = len(operacoes)
+	qtdAtual := decimal.NewFromFloat(0)
+	vlrPrecoMedioAtual := decimal.NewFromFloat(0)
 
-	log.Println("")
-	log.Println("PORTFOLIO...")
+	for idx := 0; idx < totLines; idx++ {
+		oper := operacoes[idx]
+
+		qtdAtual, vlrPrecoMedioAtual = oper.CalcVlrPrecoMedio(qtdAtual, vlrPrecoMedioAtual)
+		oper.VlrValorizacao = oper.CalcVlrValorizacao()
+		oper.PercValorizacao = oper.CalcPercValorizacao()
+
+		portfolio.Add(oper)
+		//log.Println(oper)
+	}
+
 	for _, item := range portfolio.Items {
-		log.Println("Coin:", item.Coin, "\t\tAmount:", item.Amount.String(), "\tAverage Price:", item.AveragePrice.String())
+		log.Printf("Coin: %s; Amount: %s; Total: %s; Average Price: %s; Profit: %s; \n", item.Coin, item.Amount.Round(8).String(), item.Total.Round(8).String(), item.AveragePrice.Round(8).String(), item.Profit.Round(8).String())
 	}
 
 	return nil
