@@ -79,7 +79,7 @@ func (op *OperacionService) ProcessFile() error {
 		oper.VlrValorizacao = oper.CalcVlrValorizacao()
 		oper.PercValorizacao = oper.CalcPercValorizacao()
 
-		portfolio.Add(oper)
+		//portfolio.Add(oper)
 		//log.Println(oper)
 	}
 
