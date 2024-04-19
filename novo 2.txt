@@ -1,6 +1,0 @@
-Go 1.21
-Fiber (HTTP framework w/ fasthttp) / Gin
-Fx (DI framework)
-Redis (cache) - Rueidis (Redis client)
-Postgres - pgx (SQL Driver)
-Nginx
