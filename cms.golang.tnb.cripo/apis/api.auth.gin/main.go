@@ -76,3 +76,32 @@ func UpdateAuth(c *gin.Context) {
 func DeleteAuth(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "ok"})
 }
+
+/*
+
+
+gin.DebugPrintRouteFunc = func(httpMethod, absolutePath, handlerName string, nuHandlers int) {
+	log.Printf("endpoint %v %v %v %v\n", httpMethod, absolutePath, handlerName, nuHandlers)
+}
+
+
+r.POST("/foo", func(c *gin.Context) {
+	c.JSON(http.StatusOK, "foo")
+})
+
+r.GET("/bar", func(c *gin.Context) {
+	c.JSON(http.StatusOK, "bar")
+})
+
+
+r.GET("/JSONP?callback=x", func(c *gin.Context) {
+	data := map[string]interface{}{
+		"foo": "bar",
+	}
+
+	//callback is x
+	// Will output  :   x({\"foo\":\"bar\"})
+	c.JSONP(http.StatusOK, data)
+})
+
+*/
