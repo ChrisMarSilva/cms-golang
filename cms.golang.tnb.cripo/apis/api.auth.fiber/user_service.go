@@ -1,11 +1,11 @@
 package main
 
 import (
-	"context"
 	"errors"
 	"time"
 
-	"github.com/gofiber/fiber/v3/log"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/log"
 	"github.com/golang-jwt/jwt"
 )
 
@@ -17,8 +17,8 @@ func NewUserService(userRepo UserRepository) *UserService {
 	return &UserService{userRepo: userRepo}
 }
 
-func (h UserService) Login(ctx context.Context, payload UserRequest) (string, error) {
-	user, err := h.userRepo.GetByEmail(ctx, payload.Email)
+func (h UserService) Login(c *fiber.Ctx, payload UserRequest) (string, error) {
+	user, err := h.userRepo.GetByEmail(c.Context(), payload.Email)
 	if err != nil {
 		log.Error("Erro no repository:", err.Error())
 		return "", err
@@ -39,17 +39,89 @@ func (h UserService) Login(ctx context.Context, payload UserRequest) (string, er
 	})
 
 	tokenStr, err := token.SignedString([]byte(secretKey))
+
+	sess, err := store.Get(c)
+	if err != nil {
+		log.Error("Erro no store: ", err.Error())
+		return "", err // c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"message": err.Error()})
+	}
+
+	sess.Set("jwt", tokenStr)
+	if err := sess.Save(); err != nil {
+		log.Error("Erro no token: ", err.Error())
+		return "", err // c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"message": err.Error()})
+	}
+
+	sess.SetExpiry(time.Hour * 24)
+
 	return tokenStr, err
 }
 
-func (h UserService) Logout(ctx context.Context) error {
-	return nil
+func (h UserService) Logout(c *fiber.Ctx) error {
+	sess, err := store.Get(c)
+	if err != nil {
+		return err // c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": err.Error()})
+	}
+
+	sess.Destroy()
+
+	if err := sess.Save(); err != nil {
+		return err // c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": err.Error()})
+	}
+
+	return nil // c.SendStatus(fiber.StatusOK)
 }
 
-func (h UserService) Refresh(ctx context.Context) error {
-	return nil
+func (h UserService) Refresh(c *fiber.Ctx) (jwt.MapClaims, error) {
+	sess, err := store.Get(c)
+	if err != nil {
+		return nil, err // c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": err.Error()})
+	}
+
+	tokenStr := sess.Get("jwt")
+	if tokenStr == nil {
+		return nil, err // c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "No token found"})
+	}
+
+	token, err := jwt.Parse(tokenStr.(string), func(token *jwt.Token) (interface{}, error) {
+		return []byte(secretKey), nil
+	})
+
+	if err != nil {
+		return nil, err // c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Invalid token"})
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok || !token.Valid {
+		return nil, errors.New("Invalid token.") // c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Invalid token"})
+	}
+
+	//sess.SetExpiry(time.Second * 2)
+	// if err := sess.Save(); err != nil {
+	//     return nil, err // c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": err.Error()})
+	// }
+
+	return claims, nil
 }
 
-func (h UserService) Verify(ctx context.Context) error {
+func (h UserService) Verify(c *fiber.Ctx) error {
+	sess, err := store.Get(c)
+	if err != nil {
+		return err // c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": err.Error()})
+	}
+
+	tokenStr := sess.Get("jwt")
+	if tokenStr == nil {
+		return err // c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "No token found"})
+	}
+
+	token, err := jwt.Parse(tokenStr.(string), func(token *jwt.Token) (interface{}, error) {
+		return []byte(secretKey), nil
+	})
+
+	if err != nil || !token.Valid {
+		return err // c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Invalid token"})
+	}
+
 	return nil
 }

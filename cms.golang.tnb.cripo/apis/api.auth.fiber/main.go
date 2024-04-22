@@ -1,20 +1,31 @@
 package main
 
-// go mod init github.com/chrismarsilva/cms.golang.tnb.cripo.api.auth2
-// go get -u github.com/gofiber/fiber/v3
-// go get -u github.com/gofiber/fiber/v3/middleware/cors
+// go mod init github.com/chrismarsilva/cms.golang.tnb.cripo.api.auth
+// go get -u github.com/gofiber/fiber/v2
+// go get -u github.com/gofiber/fiber/v2/middleware/adaptor
+// go get -u github.com/gofiber/fiber/v2/middleware/compress
+// go get -u github.com/gofiber/fiber/v2/middleware/cors
+// go get -u github.com/gofiber/fiber/v2/middleware/healthcheck
+// go get -u github.com/gofiber/fiber/v2/middleware/idempotency
+// go get -u github.com/gofiber/fiber/v2/middleware/logger
+// go get -u github.com/gofiber/fiber/v2/middleware/monitor
+// go get -u github.com/gofiber/fiber/v2/middleware/recover
+// go get -u github.com/gofiber/fiber/v2/middleware/session
+// go get -u github.com/gofiber/fiber/v2/middleware/timeout
+// go get -u github.com/gofiber/fiber/v2/log
 // go get -u github.com/golang-jwt/jwt
 // go get -u github.com/mattn/go-sqlite3
 // go get -u github.com/gofiber/storage/sqlite3
 // go get -u github.com/google/uuid
 // go get -u github.com/goccy/go-json
+
 // go get -u github.com/golang-migrate/migrate/v4
 // go get -u github.com/golang-migrate/migrate/v4/database
 // go get -u github.com/stretchr/testify/require
 // go get -u github.com/stretchr/testify/suite
 // go get -u github.com/stretchr/testify/assert
 // go mod tidy
-// go run main.go // go run .
+// go run .
 
 // go install migrate
 // go install github.com/cosmtrek/air@latest
@@ -24,16 +35,22 @@ package main
 import (
 	"time"
 
-	"github.com/gofiber/fiber/v3/middleware/session"
+	"github.com/gofiber/fiber/v2/middleware/session"
 	"github.com/gofiber/storage/sqlite3"
 )
 
 var (
 	secretKey = "cms-golang.tnb.cripo.api.auth-secret-key"
-	store     = session.New(session.Config{
+
+	storage = sqlite3.New(sqlite3.Config{Database: "./banco.db"})
+
+	store = session.New(session.Config{
 		Expiration: 24 * time.Hour,
 		KeyLookup:  "cookie:session_id",
-		Storage:    sqlite3.New(sqlite3.Config{Database: "./banco.db"}),
+		//KeyGenerator: utils.UUIDv4,
+		//source:       "cookie",
+		//sessionName:  "session_id",
+		Storage: storage,
 	})
 )
 

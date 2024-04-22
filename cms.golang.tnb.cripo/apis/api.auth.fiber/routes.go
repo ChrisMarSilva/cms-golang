@@ -3,9 +3,9 @@ package main
 import (
 	"time"
 
-	"github.com/gofiber/fiber/v3"
-	"github.com/gofiber/fiber/v3/log"
-	"github.com/gofiber/fiber/v3/middleware/timeout"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/log"
+	"github.com/gofiber/fiber/v2/middleware/timeout"
 )
 
 func ConfigRoutes(app *fiber.App) *fiber.App {
@@ -36,7 +36,7 @@ func ConfigRoutes(app *fiber.App) *fiber.App {
 	routes.Get("/refresh", userHandler.Refresh)
 	routes.Get("/verify", userHandler.Verify)
 
-	app.Use(func(c fiber.Ctx) error {
+	app.Use(func(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusNotFound)
 	})
 
