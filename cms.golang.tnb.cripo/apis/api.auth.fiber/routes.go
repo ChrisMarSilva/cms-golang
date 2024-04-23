@@ -6,6 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/gofiber/fiber/v2/middleware/timeout"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func ConfigRoutes(app *fiber.App) *fiber.App {
@@ -27,8 +28,15 @@ func ConfigRoutes(app *fiber.App) *fiber.App {
 
 	//routes
 
+	app.Use(AuthMiddleware)
+
+	jwt := NewAuthMiddleware(SecretKey)
+
 	app.Get("/", timeout.New(userHandler.Home, 5*time.Second))
-	//app.Get("/metrics", monitor.New())
+	app.Get("/accessible", accessible)
+	app.Get("/restricted", jwt, restricted)
+	// app.Get("/users/me", middleware.DeserializeUser, controllers.GetMe)
+	// app.Get("/metrics", monitor.New())
 
 	routes := app.Group("/api/v1/auth")
 	routes.Post("/login", userHandler.Login)
@@ -37,8 +45,29 @@ func ConfigRoutes(app *fiber.App) *fiber.App {
 	routes.Get("/verify", userHandler.Verify)
 
 	app.Use(func(c *fiber.Ctx) error {
+		if err := recover(); err != nil {
+			// Handle the error and respond with an error message
+			return c.Status(500).SendString("Internal Server Error")
+		}
+		return c.Next()
+	})
+
+	app.Use(func(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusNotFound)
 	})
 
 	return app
+}
+
+func accessible(c *fiber.Ctx) error {
+	return c.SendString("Accessible")
+}
+
+func restricted(c *fiber.Ctx) error {
+	user := c.Locals("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	id := claims["id"].(string)
+	name := claims["nome"].(string)
+	email := claims["email"].(string)
+	return c.SendString("Welcome " + name + " " + email + " " + id)
 }

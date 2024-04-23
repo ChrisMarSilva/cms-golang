@@ -21,7 +21,7 @@ func (repo UserRepository) GetByEmail(ctx context.Context, email string) (*UserM
 	row := repo.db.QueryRowContext(ctx, query, email)
 
 	user := &UserModel{}
-	err := row.Scan(&user.ID, &user.Nome, &user.Email, &user.Password, &user.IsActive, &user.Created_at)
+	err := row.Scan(&user.ID, &user.Nome, &user.Email, &user.Password, &user.IsActive, &user.CreatedAt)
 	if err != nil {
 		// if err == sql.ErrNoRows {
 		// 	log.Error("Erro no ErrNoRows:", err.Error())
@@ -44,7 +44,7 @@ func (repo UserRepository) Create(ctx context.Context, user *UserModel) error {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.ExecContext(ctx, user.ID, user.Nome, user.Email, user.Password, user.IsActive, user.Created_at)
+	_, err = stmt.ExecContext(ctx, user.ID, user.Nome, user.Email, user.Password, user.IsActive, user.CreatedAt)
 	if err != nil {
 		return err
 	}

@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	log2 "log"
 
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v2"
@@ -18,15 +17,35 @@ func NewUserHandler(service UserService) *UserHandler {
 }
 
 func (h UserHandler) Home(c *fiber.Ctx) error {
-	log.Info("request /")
-	log.Debug("Are you OK?")
-	log2.Println("request /")
-
 	return c.Status(fiber.StatusOK).SendString("I'm a GET / request!")
 }
 
+func (h UserHandler) Register(c *fiber.Ctx) error {
+	payload := new(UserRegisterRequest)
+	if err := json.Unmarshal(c.Body(), &payload); err != nil {
+		log.Error("Erro no payload:", err.Error())
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"message": err.Error()})
+	}
+	// log.Info("Payload: ", payload)
+
+	user, err := h.service.Register(c, *payload)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": err.Error()})
+	}
+
+	response := fiber.Map{"status": "success", "data": fiber.Map{"user": user}}
+	return c.Status(fiber.StatusCreated).JSON(response)
+}
+
 func (h UserHandler) Login(c *fiber.Ctx) error {
-	payload := new(UserRequest)
+
+	// Validate user input (username/email, password)
+	// Retrieve user data from the database based on input
+	// Compare hashed password with input password
+	// Generate a session or token for authentication
+	// Return a success message or error response
+
+	payload := new(UserLoginRequest)
 	if err := json.Unmarshal(c.Body(), &payload); err != nil {
 		log.Error("Erro no payload:", err.Error())
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"message": err.Error()})
@@ -44,7 +63,8 @@ func (h UserHandler) Login(c *fiber.Ctx) error {
 	}
 
 	//log.Info("Token: ", token)
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{"token": token})
+	response := UserLoginResponse{Token: token}
+	return c.Status(fiber.StatusOK).JSON(response)
 }
 
 func (h UserHandler) Logout(c *fiber.Ctx) error {
@@ -57,12 +77,12 @@ func (h UserHandler) Logout(c *fiber.Ctx) error {
 }
 
 func (h UserHandler) Refresh(c *fiber.Ctx) error {
-	claims, err := h.service.Refresh(c)
+	response, err := h.service.Refresh(c)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": err.Error()})
 	}
 
-	return c.Status(fiber.StatusOK).JSON(claims)
+	return c.Status(fiber.StatusOK).JSON(response)
 }
 
 func (h UserHandler) Verify(c *fiber.Ctx) error {
