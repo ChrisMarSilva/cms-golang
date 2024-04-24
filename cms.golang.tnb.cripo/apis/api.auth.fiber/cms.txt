@@ -1,0 +1,3450 @@
+ // PATH: go-auth/models/Claims.go
+
+ package models
+
+ import "github.com/dgrijalva/jwt-go"
+
+ type Claims struct {
+     Role string `json:"role"`
+     jwt.StandardClaims
+ }
+
+
+// PATH: go-auth/models/index.go
+
+package models
+
+import (
+    "fmt"
+
+    "gorm.io/driver/postgres"
+    "gorm.io/gorm"
+)
+
+type Config struct {
+    Host     string
+    Port     string
+    User     string
+    Password string
+    DBName   string
+    SSLMode  string
+}
+
+var DB *gorm.DB
+
+func InitDB(cfg Config) {
+
+    dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s", cfg.Host, cfg.User, cfg.Password, cfg.DBName, cfg.Port, cfg.SSLMode)
+
+    db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+    if err != nil {
+        panic(err)
+    }
+
+    if err := db.AutoMigrate(&User{}); err != nil {
+        panic(err)
+    }
+
+    fmt.Println("Migrated database")
+
+    DB = db
+}
+Let's understand the above code in detail:
+
+The Config struct holds the configuration values for the database connection, such as the host, port, user, password, database name, and SSL mode.
+
+The DB variable is a global variable that will store the instance of the database connection.
+
+The InitDB function is used to initialize the database connection using the values from the Config struct.
+
+It generates the data source name (DSN) string from the configuration values.
+
+It opens a connection to the PostgreSQL database using the GORM library and the generated DSN. If there is an error, it panics.
+
+It automatically migrates the User model by calling AutoMigrate. This creates the necessary table in the database if it doesn't exist. If there is an error, it panics.
+
+It sets the global DB variable to the instance of the database connection.
+
+3️⃣ Creating Routes:
+Now, let's define the routes for a web application using the Gin HTTP framework.
+
+
+COPY
+
+COPY
+// PATH: go-auth/routes/auth.go
+
+package routes
+
+import (
+    "go-auth/controllers"
+
+    "github.com/gin-gonic/gin"
+)
+
+func AuthRoutes(r *gin.Engine) {
+    r.POST("/login", controllers.Login)
+    r.POST("/signup", controllers.Signup)
+    r.GET("/home", controllers.Home)
+    r.GET("/premium", controllers.Premium)
+    r.GET("/logout", controllers.Logout)
+}
+This code defines the routes for the web application but does not handle the logic for each route. That logic is implemented in the controllers package.
+
+Let's understand the above code in detail:
+
+The AuthRoutes function takes a gin.Engine instance as an argument and sets up the routes for the application.
+
+Using the r.POST method, a route for a login request is defined that maps to the Login function in the controllers package.
+
+Similarly, using the r.POST method, a route for a signup request is defined that maps to the Signup function in the controllers package.
+
+Using the r.GET method, a route for a home request is defined that maps to the Home function in the controllers package.
+
+Using the r.GET method, a route for a premium request is defined that maps to the Premium function in the controllers package.
+
+Using the r.GET method, a route for a logout request is defined that maps to the Logout function in the controllers package.
+
+4️⃣ Defining main.go (The Driver Code):
+This is the main driver code that will orchestrate the whole project.
+
+
+COPY
+
+COPY
+// PATH: go-auth/main.go
+
+package main
+
+import (
+    "go-auth/models"
+    "go-auth/routes"
+    "log"
+    "os"
+
+    "github.com/gin-gonic/gin"
+    "github.com/joho/godotenv"
+)
+
+func main() {
+    // Create a new gin instance
+    r := gin.Default()
+
+    // Load .env file and Create a new connection to the database
+    err := godotenv.Load()
+    if err != nil {
+        log.Fatal("Error loading .env file")
+    }
+    config := models.Config{
+        Host:     os.Getenv("DB_HOST"),
+        Port:     os.Getenv("DB_PORT"),
+        User:     os.Getenv("DB_USER"),
+        Password: os.Getenv("DB_PASSWORD"),
+        DBName:   os.Getenv("DB_NAME"),
+        SSLMode:  os.Getenv("DB_SSLMODE"),
+    }
+
+    // Initialize DB
+    models.InitDB(config)
+
+    // Load the routes
+    routes.AuthRoutes(r)
+
+    // Run the server
+    r.Run(":8080")
+}
+This is the main function of the application. It performs the following actions:
+
+Creates a new instance of the Gin web framework.
+
+Loads the environment variables from a .env file.
+
+Initializes the database connection using the configurations obtained from the environment variables.
+
+Calls the AuthRoutes function to define the routes for the application.
+
+Starts the web server on port 8080.
+
+Meme Time:
+Tired? Refresh your mind with this Low Effort Meme:
+*le gophers after reading this much.
+
+Go pointers demystified
+
+5️⃣ Defining Controllers:
+This will contain all the logic for the authentication and authorization which was previously mapped in routes package.
+
+
+COPY
+
+COPY
+// PATH: go-auth/controllers/auth.go
+
+package controllers
+
+import (
+    "go-auth/models"
+    "time"
+
+    "go-auth/utils"
+
+    "github.com/dgrijalva/jwt-go"
+    "github.com/gin-gonic/gin"
+)
+
+// The string "my_secret_key" is just an example and should be replaced with a secret key of sufficient length and complexity in a real-world scenario.
+var jwtKey = []byte("my_secret_key")
+This code consists of several functions each handling different parts of the authentication process.
+
+Login: Handles user login requests by receiving user credentials, verifying if the user exists, and checking if the provided password is correct. If everything is okay, it generates a JSON Web Token (JWT) and sets it as a cookie in the client's browser.
+
+
+COPY
+
+COPY
+  // PATH: go-auth/controllers/auth.go
+
+  func Login(c *gin.Context) {
+
+      var user models.User
+
+      if err := c.ShouldBindJSON(&user); err != nil {
+          c.JSON(400, gin.H{"error": err.Error()})
+          return
+      }
+
+      var existingUser models.User
+
+      models.DB.Where("email = ?", user.Email).First(&existingUser)
+
+      if existingUser.ID == 0 {
+          c.JSON(400, gin.H{"error": "user does not exist"})
+          return
+      }
+
+      errHash := utils.CompareHashPassword(user.Password, existingUser.Password)
+
+      if !errHash {
+          c.JSON(400, gin.H{"error": "invalid password"})
+          return
+      }
+
+      expirationTime := time.Now().Add(5 * time.Minute)
+
+      claims := &models.Claims{
+          Role: existingUser.Role,
+          StandardClaims: jwt.StandardClaims{
+              Subject:   existingUser.Email,
+              ExpiresAt: expirationTime.Unix(),
+          },
+      }
+
+      token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+      tokenString, err := token.SignedString(jwtKey)
+
+      if err != nil {
+          c.JSON(500, gin.H{"error": "could not generate token"})
+          return
+      }
+
+      c.SetCookie("token", tokenString, int(expirationTime.Unix()), "/", "localhost", false, true)
+      c.JSON(200, gin.H{"success": "user logged in"})
+  }
+Signup: Handles user signup requests by receiving user information, checking if the user already exists, hashing the password, and creating a new user in the database.
+
+
+COPY
+
+COPY
+  // PATH: go-auth/controllers/auth.go
+
+  func Signup(c *gin.Context) {
+      var user models.User
+
+      if err := c.ShouldBindJSON(&user); err != nil {
+          c.JSON(400, gin.H{"error": err.Error()})
+          return
+      }
+
+      var existingUser models.User
+
+      models.DB.Where("email = ?", user.Email).First(&existingUser)
+
+      if existingUser.ID != 0 {
+          c.JSON(400, gin.H{"error": "user already exists"})
+          return
+      }
+
+      var errHash error
+      user.Password, errHash = utils.GenerateHashPassword(user.Password)
+
+      if errHash != nil {
+          c.JSON(500, gin.H{"error": "could not generate password hash"})
+          return
+      }
+
+      models.DB.Create(&user)
+
+      c.JSON(200, gin.H{"success": "user created"})
+  }
+Home: Handles requests to the home page by checking if the user is authorized to access it by looking for the JWT in the client's cookie and verifying it. If the user is authorized, the function returns the "home page" message along with the user's role.
+
+
+COPY
+
+COPY
+  // PATH: go-auth/controllers/auth.go
+
+  func Home(c *gin.Context) {
+
+      cookie, err := c.Cookie("token")
+
+      if err != nil {
+          c.JSON(401, gin.H{"error": "unauthorized"})
+          return
+      }
+
+      claims, err := utils.ParseToken(cookie)
+
+      if err != nil {
+          c.JSON(401, gin.H{"error": "unauthorized"})
+          return
+      }
+
+      if claims.Role != "user" && claims.Role != "admin" {
+          c.JSON(401, gin.H{"error": "unauthorized"})
+          return
+      }
+
+      c.JSON(200, gin.H{"success": "home page", "role": claims.Role})
+  }
+Premium: Similar to the Home function but only returns the "premium page" message and the user's role if the user has an "admin" role.
+
+
+COPY
+
+COPY
+  // PATH: go-auth/controllers/auth.go
+
+  func Premium(c *gin.Context) {
+
+      cookie, err := c.Cookie("token")
+
+      if err != nil {
+          c.JSON(401, gin.H{"error": "unauthorized"})
+          return
+      }
+
+      claims, err := utils.ParseToken(cookie)
+
+      if err != nil {
+          c.JSON(401, gin.H{"error": "unauthorized"})
+          return
+      }
+
+      if claims.Role != "admin" {
+          c.JSON(401, gin.H{"error": "unauthorized"})
+          return
+      }
+
+      c.JSON(200, gin.H{"success": "premium page", "role": claims.Role})
+  }
+Logout: Handles user logout requests by deleting the JWT cookie in the client's browser.
+
+
+COPY
+
+COPY
+  // PATH: go-auth/controllers/auth.go
+
+  func Logout(c *gin.Context) {
+      c.SetCookie("token", "", -1, "/", "localhost", false, true)
+      c.JSON(200, gin.H{"success": "user logged out"})
+  }
+The JWT is encrypted and signed using the HS256 algorithm and the secret key jwtKey.
+
+REMEMBER: The string "my_secret_key" is just an example and should be replaced with a secret key of sufficient length and complexity in a real-world scenario.
+
+6️⃣ Creating Utility Function:
+We are going to need these 3 utility functions in our project.
+
+GenerateHashPassword: This function takes a plain text password as input and returns a hash value generated from it using a one-way hashing algorithm. The purpose of this function is to store a user's password securely in the database. This way, even if the database is compromised, the attacker cannot retrieve the original password as it is encrypted.
+
+
+COPY
+
+COPY
+ // PATH: go-auth/utils/GenerateHashPassword.go
+
+ package utils
+
+ import "golang.org/x/crypto/bcrypt"
+
+ func GenerateHashPassword(password string) (string, error) {
+     bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+     return string(bytes), err
+ }
+CompareHashPassword: This function takes the user input password and the hashed password stored in the database and compares them. If the hashes match, it returns true. This function is used to verify if the user has entered the correct password during login.
+
+
+COPY
+
+COPY
+ // PATH: go-auth/utils/CompareHashPassword.go
+
+ package utils
+
+ import "golang.org/x/crypto/bcrypt"
+
+ func CompareHashPassword(password, hash string) bool {
+     err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+     return err == nil
+ }
+ParseToken: This function takes a JWT token as input and returns the claims contained in it. Claims are a set of key-value pairs that represent the information being transmitted between parties. In this case, the claims may include the subject (email), role, and expiration time of the token. This function is used to validate if the token is legitimate and to retrieve information contained in it.
+
+
+COPY
+
+COPY
+ // PATH: go-auth/utils/ParseToken.go
+
+ package utils
+
+ import (
+     "go-auth/models"
+
+     "github.com/dgrijalva/jwt-go"
+ )
+
+ func ParseToken(tokenString string) (claims *models.Claims, err error) {
+     token, err := jwt.ParseWithClaims(tokenString, &models.Claims{}, func(token *jwt.Token) (interface{}, error) {
+         return []byte("my_secret_key"), nil
+     })
+
+     if err != nil {
+         return nil, err
+     }
+
+     claims, ok := token.Claims.(*models.Claims)
+
+     if !ok {
+         return nil, err
+     }
+
+     return claims, nil
+ }
+7️⃣ Creating Middlewares:
+This is an example of middleware for authorization. You can use this to authorize any route you create.
+
+
+COPY
+
+COPY
+// PATH: go-auth/middlewares/isAuthorized.go
+
+package middlewares
+
+import (
+    "go-auth/utils"
+
+    "github.com/gin-gonic/gin"
+)
+
+func IsAuthorized() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        cookie, err := c.Cookie("token")
+
+        if err != nil {
+            c.JSON(401, gin.H{"error": "unauthorized"})
+            c.Abort()
+            return
+        }
+
+        claims, err := utils.ParseToken(cookie)
+
+        if err != nil {
+            c.JSON(401, gin.H{"error": "unauthorized"})
+            c.Abort()
+            return
+        }
+
+        c.Set("role", claims.Role)
+        c.Next()
+    }
+}
+The function IsAuthorized returns a Gin handler function, which is used to process HTTP requests and responses in a Gin web application.
+
+The handler function retrieves the "token" cookie from the incoming HTTP request and tries to parse it using the ParseToken function from the utils package. If the cookie is missing or the parsing fails, the function returns a JSON response with a 401 Unauthorized HTTP status code and an error message, indicating that the user is not authorized to access the requested resource.
+
+If the token parsing is successful, the function sets the "role" value in the context object (c) to the value of the "Role" claim in the parsed token, and calls the Next method to continue processing the request in the next middleware or handler in the middleware chain.
+
+😇 Conclusion
+In conclusion, implementing authentication and authorization in Golang is a straightforward process. By following the steps outlined in this article, you can create a secure and efficient authentication and authorization system for your Golang application. Whether you are building a simple web app or a complex enterprise system, Golang provides all the tools you need to ensure that your users' data is protected. By using JWT tokens and hashing techniques, you can ensure that your authentication and authorization system is reliable, scalable, and easy to maintain. With the right tools and knowledge, you can make your Golang application a secure and trusted platform for your users.
+
+GitHub Repository of the Project: https://github.com/tanmayVaish/go-auth
+
+
+
+
+
+// PATH: go-auth/routes/auth.go
+
+package routes
+
+import (
+    "go-auth/controllers"
+
+    "github.com/gin-gonic/gin"
+)
+
+func AuthRoutes(r *gin.Engine) {
+    r.POST("/login", controllers.Login)
+    r.POST("/signup", controllers.Signup)
+    r.GET("/home", controllers.Home)
+    r.GET("/premium", controllers.Premium)
+    r.GET("/logout", controllers.Logout)
+}
+
+
+// PATH: go-auth/main.go
+
+package main
+
+import (
+    "go-auth/models"
+    "go-auth/routes"
+    "log"
+    "os"
+
+    "github.com/gin-gonic/gin"
+    "github.com/joho/godotenv"
+)
+
+func main() {
+    // Create a new gin instance
+    r := gin.Default()
+
+    // Load .env file and Create a new connection to the database
+    err := godotenv.Load()
+    if err != nil {
+        log.Fatal("Error loading .env file")
+    }
+    config := models.Config{
+        Host:     os.Getenv("DB_HOST"),
+        Port:     os.Getenv("DB_PORT"),
+        User:     os.Getenv("DB_USER"),
+        Password: os.Getenv("DB_PASSWORD"),
+        DBName:   os.Getenv("DB_NAME"),
+        SSLMode:  os.Getenv("DB_SSLMODE"),
+    }
+
+    // Initialize DB
+    models.InitDB(config)
+
+    // Load the routes
+    routes.AuthRoutes(r)
+
+    // Run the server
+    r.Run(":8080")
+}
+
+
+
+// PATH: go-auth/controllers/auth.go
+
+package controllers
+
+import (
+    "go-auth/models"
+    "time"
+
+    "go-auth/utils"
+
+    "github.com/dgrijalva/jwt-go"
+    "github.com/gin-gonic/gin"
+)
+
+// The string "my_secret_key" is just an example and should be replaced with a secret key of sufficient length and complexity in a real-world scenario.
+var jwtKey = []byte("my_secret_key")
+
+
+ // PATH: go-auth/controllers/auth.go
+
+  func Login(c *gin.Context) {
+
+      var user models.User
+
+      if err := c.ShouldBindJSON(&user); err != nil {
+          c.JSON(400, gin.H{"error": err.Error()})
+          return
+      }
+
+      var existingUser models.User
+
+      models.DB.Where("email = ?", user.Email).First(&existingUser)
+
+      if existingUser.ID == 0 {
+          c.JSON(400, gin.H{"error": "user does not exist"})
+          return
+      }
+
+      errHash := utils.CompareHashPassword(user.Password, existingUser.Password)
+
+      if !errHash {
+          c.JSON(400, gin.H{"error": "invalid password"})
+          return
+      }
+
+      expirationTime := time.Now().Add(5 * time.Minute)
+
+      claims := &models.Claims{
+          Role: existingUser.Role,
+          StandardClaims: jwt.StandardClaims{
+              Subject:   existingUser.Email,
+              ExpiresAt: expirationTime.Unix(),
+          },
+      }
+
+      token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+      tokenString, err := token.SignedString(jwtKey)
+
+      if err != nil {
+          c.JSON(500, gin.H{"error": "could not generate token"})
+          return
+      }
+
+      c.SetCookie("token", tokenString, int(expirationTime.Unix()), "/", "localhost", false, true)
+      c.JSON(200, gin.H{"success": "user logged in"})
+  }
+
+
+// PATH: go-auth/controllers/auth.go
+
+  func Signup(c *gin.Context) {
+      var user models.User
+
+      if err := c.ShouldBindJSON(&user); err != nil {
+          c.JSON(400, gin.H{"error": err.Error()})
+          return
+      }
+
+      var existingUser models.User
+
+      models.DB.Where("email = ?", user.Email).First(&existingUser)
+
+      if existingUser.ID != 0 {
+          c.JSON(400, gin.H{"error": "user already exists"})
+          return
+      }
+
+      var errHash error
+      user.Password, errHash = utils.GenerateHashPassword(user.Password)
+
+      if errHash != nil {
+          c.JSON(500, gin.H{"error": "could not generate password hash"})
+          return
+      }
+
+      models.DB.Create(&user)
+
+      c.JSON(200, gin.H{"success": "user created"})
+  }
+
+
+// PATH: go-auth/controllers/auth.go
+
+  func Home(c *gin.Context) {
+
+      cookie, err := c.Cookie("token")
+
+      if err != nil {
+          c.JSON(401, gin.H{"error": "unauthorized"})
+          return
+      }
+
+      claims, err := utils.ParseToken(cookie)
+
+      if err != nil {
+          c.JSON(401, gin.H{"error": "unauthorized"})
+          return
+      }
+
+      if claims.Role != "user" && claims.Role != "admin" {
+          c.JSON(401, gin.H{"error": "unauthorized"})
+          return
+      }
+
+      c.JSON(200, gin.H{"success": "home page", "role": claims.Role})
+  }
+
+
+// PATH: go-auth/controllers/auth.go
+
+  func Premium(c *gin.Context) {
+
+      cookie, err := c.Cookie("token")
+
+      if err != nil {
+          c.JSON(401, gin.H{"error": "unauthorized"})
+          return
+      }
+
+      claims, err := utils.ParseToken(cookie)
+
+      if err != nil {
+          c.JSON(401, gin.H{"error": "unauthorized"})
+          return
+      }
+
+      if claims.Role != "admin" {
+          c.JSON(401, gin.H{"error": "unauthorized"})
+          return
+      }
+
+      c.JSON(200, gin.H{"success": "premium page", "role": claims.Role})
+  }
+
+
+// PATH: go-auth/controllers/auth.go
+
+  func Logout(c *gin.Context) {
+      c.SetCookie("token", "", -1, "/", "localhost", false, true)
+      c.JSON(200, gin.H{"success": "user logged out"})
+  }
+
+
+
+ // PATH: go-auth/utils/GenerateHashPassword.go
+
+ package utils
+
+ import "golang.org/x/crypto/bcrypt"
+
+ func GenerateHashPassword(password string) (string, error) {
+     bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+     return string(bytes), err
+ }
+
+
+
+ // PATH: go-auth/utils/CompareHashPassword.go
+
+ package utils
+
+ import "golang.org/x/crypto/bcrypt"
+
+ func CompareHashPassword(password, hash string) bool {
+     err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+     return err == nil
+ }
+
+
+
+// PATH: go-auth/utils/ParseToken.go
+
+ package utils
+
+ import (
+     "go-auth/models"
+
+     "github.com/dgrijalva/jwt-go"
+ )
+
+ func ParseToken(tokenString string) (claims *models.Claims, err error) {
+     token, err := jwt.ParseWithClaims(tokenString, &models.Claims{}, func(token *jwt.Token) (interface{}, error) {
+         return []byte("my_secret_key"), nil
+     })
+
+     if err != nil {
+         return nil, err
+     }
+
+     claims, ok := token.Claims.(*models.Claims)
+
+     if !ok {
+         return nil, err
+     }
+
+     return claims, nil
+ }
+
+
+
+// PATH: go-auth/middlewares/isAuthorized.go
+
+package middlewares
+
+import (
+    "go-auth/utils"
+
+    "github.com/gin-gonic/gin"
+)
+
+func IsAuthorized() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        cookie, err := c.Cookie("token")
+
+        if err != nil {
+            c.JSON(401, gin.H{"error": "unauthorized"})
+            c.Abort()
+            return
+        }
+
+        claims, err := utils.ParseToken(cookie)
+
+        if err != nil {
+            c.JSON(401, gin.H{"error": "unauthorized"})
+            c.Abort()
+            return
+        }
+
+        c.Set("role", claims.Role)
+        c.Next()
+    }
+}
+
+
+func main() {
+    r := gin.Default()
+    r.POST("/login", gin.BasicAuth(gin.Accounts{
+        "admin": "secret",
+    }), func(c *gin.Context) {
+        token, _ := randomHex(20)
+        tokens = append(tokens, token)
+
+        c.JSON(http.StatusOK, gin.H{
+            "token": token,
+        })
+    })
+    r.GET("/resource", func(c *gin.Context) {
+        bearerToken := c.Request.Header.Get("Authorization")
+        reqToken := strings.Split(bearerToken, " ")[1]
+        for _, token := range tokens {
+            if token == reqToken {
+                c.JSON(http.StatusOK, gin.H{
+                    "data": "resource data",
+                })
+                return
+            }
+        }
+        c.JSON(http.StatusUnauthorized, gin.H{
+            "message": "unauthorized",
+        })
+    })
+    r.Run() // Listen and serve on 0.0.0.0:8080 (for Windows "localhost:8080")
+}
+
+
+var jwtKey = []byte("my_secret_key")
+var tokens []string
+
+type Claims struct {
+    Username string `json:"username"`
+    jwt.RegisteredClaims
+}
+
+
+
+ r.GET("/resource", func(c *gin.Context) {
+        bearerToken := c.Request.Header.Get("Authorization")
+        reqToken := strings.Split(bearerToken, " ")[1]
+        claims := &Claims{}
+        tkn, err := jwt.ParseWithClaims(reqToken, claims, func(token *jwt.Token) (interface{}, error) {
+            return jwtKey, nil
+        })
+        if err != nil {
+            if err == jwt.ErrSignatureInvalid {
+                c.JSON(http.StatusUnauthorized, gin.H{
+                    "message": "unauthorized",
+                })
+                return
+            }
+            c.JSON(http.StatusBadRequest, gin.H{
+                "message": "bad request",
+            })
+            return
+        }
+        if !tkn.Valid {
+            c.JSON(http.StatusUnauthorized, gin.H{
+                "message": "unauthorized",
+            })
+            return
+        }
+
+        c.JSON(http.StatusOK, gin.H{
+            "data": "resource data",
+        })
+    })
+
+
+func generateJWT() (string, error) {
+    expirationTime := time.Now().Add(5 * time.Minute)
+    claims := &Claims{
+        Username: "username",
+        RegisteredClaims: jwt.RegisteredClaims{
+            ExpiresAt: jwt.NewNumericDate(expirationTime),
+        },
+    }
+
+    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+    return token.SignedString(jwtKey)
+
+}
+
+
+cookie := new(http.Cookie)
+	cookie.Name = "token"
+	cookie.Value = tokenString
+	cookie.Expires = expirationTime.Time
+	c.SetCookie(cookie)
+
+
+package auth
+
+var allowList = map[string]bool{
+	"/register": true,
+	"/login":    true,
+}
+
+func TokenMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+	jwtSecretKey := viper.GetString("ONLINE_TICKET_GO_JWTKEY")
+
+	return func(c echo.Context) error {
+		if _, ok := allowList[c.Request().RequestURI]; ok {
+			return next(c)
+		}
+
+		cookie, err := c.Cookie("token")
+		if err != nil {
+			return c.String(http.StatusBadRequest, err.Error())
+		}
+
+		token := cookie.Value
+
+		claim := Claims{}
+		parsedTokenInfo, err := jwt.ParseWithClaims(token, &claim, func(token *jwt.Token) (interface{}, error) {
+			return []byte(jwtSecretKey), nil
+		})
+		if err != nil {
+			if errors.Is(err, jwt.ErrSignatureInvalid) {
+				return c.String(http.StatusUnauthorized, "Please login again")
+			}
+
+			return c.String(http.StatusUnauthorized, "Please login again")
+		}
+
+		if !parsedTokenInfo.Valid {
+			return c.String(http.StatusForbidden, "Invalid token")
+		}
+
+		c.Set("claim", claim)
+
+		return next(c)
+	}
+}
+
+func AdminMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		claim, _ := c.Get("claim").(Claims)
+
+		if claim.IsNotAdmin() {
+			return c.String(http.StatusForbidden, "You have no authority")
+		}
+
+		return next(c)
+	}
+}
+
+
+Open the project in your IDE and edit the .env file as below
+// replace values inside <<>> with your custom values
+# Database credentials
+DB_HOST="localhost"
+DB_DRIVER=mysql
+DB_USER="<<DB_USER>>"
+DB_PASSWORD="<<DB_PASSWORD>>"
+DB_NAME="jwt_go_rbac"
+DB_PORT="3306"
+
+# Default Admin User
+ADMIN_USERNAME="<<ADMIN_USERNAME>>"
+ADMIN_EMAIL="<<ADMIN_EMAIL>>"
+ADMIN_PASSWORD="<<ADMIN_PASSWORD>>"
+
+# Authentication credentials
+TOKEN_TTL="1800"
+JWT_PRIVATE_KEY="<<JWT_KEY>>"
+
+
+$ go get github.com/joho/godotenv
+
+
+
+package database
+
+import (
+	"fmt"
+	"log"
+	"os"
+
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
+)
+
+var Db *gorm.DB
+
+func InitDb() *gorm.DB {
+	Db = connectDB()
+	return Db
+}
+
+func connectDB() *gorm.DB {
+	var err error
+	host := os.Getenv("DB_HOST")
+	username := os.Getenv("DB_USER")
+	password := os.Getenv("DB_PASSWORD")
+	dbname := os.Getenv("DB_NAME")
+	port := os.Getenv("DB_PORT")
+
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local", username, password, host, port, dbname)
+	//log.Println("dsn : ", dsn)
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+
+	if err != nil {
+		log.Fatal("Error connecting to database :", err)
+		return nil
+	}
+	log.Println("`Successfully connected to the database")
+
+	return db
+}
+
+
+
+package main
+
+// load required packages
+import (
+	"bmacharia/jwt-go-rbac/database"
+	"fmt"
+	"log"
+
+	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
+)
+
+func main() {
+	// load environment file
+	loadEnv()
+	// load database configuration and connection
+	loadDatabase()
+	// start the server
+	serveApplication()
+}
+
+func loadEnv() {
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+	log.Println(".env file loaded successfully")
+}
+
+func loadDatabase() {
+	database.InitDb()
+}
+
+func serveApplication() {
+	router := gin.Default()
+
+	router.Run(":8000")
+	fmt.Println("Server running on port 8000")
+}
+
+
+// Validate user password
+func (user *User) ValidateUserPassword(password string) error {
+	return bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+}
+
+
+
+// Role model
+type Role struct {
+	gorm.Model
+	ID          uint   `gorm:"primary_key"`
+	Name        string `gorm:"size:50;not null;unique" json:"name"`
+	Description string `gorm:"size:255;not null" json:"description"`
+}
+
+
+
+
+//edit main.go file to add automigration script
+...
+// run database migrations and add seed data
+func loadDatabase() {
+    database.InitDb()
+    database.Db.AutoMigrate(&model.Role{})
+    database.Db.AutoMigrate(&model.User{})
+    seedData()
+}
+
+// load seed data into the database
+func seedData() {
+    var roles = []model.Role{{Name: "admin", Description: "Administrator role"}, {Name: "customer", Description: "Authenticated customer role"}, {Name: "anonymous", Description: "Unauthenticated customer role"}}
+    var user = []model.User{{Username: os.Getenv("ADMIN_USERNAME"), Email: os.Getenv("ADMIN_EMAIL"), Password: os.Getenv("ADMIN_PASSWORD"), RoleID: 1}}
+    database.Db.Save(&roles)
+    database.Db.Save(&user)
+}
+// run migration
+$ go run main.go
+
+
+
+package model
+
+type Register struct {
+	Username string `json:"username" binding:"required"`
+	Email    string `json:"email" binding:"required"`
+	Password string `json:"password" binding:"required"`
+}
+
+
+
+id, _ := strconv.Atoi(c.Param("id"))
+
+
+
+	"github.com/go-playground/validator/v10"
+
+
+	if err := context.ShouldBindJSON(&input); err != nil {
+		var errorMessage string
+		var validationErrors validator.ValidationErrors
+		if errors.As(err, &validationErrors) {
+			validationError := validationErrors[0]
+			if validationError.Tag() == "required" {
+				errorMessage = fmt.Sprintf("%s not provided", validationError.Field())
+			}
+		}
+		context.JSON(http.StatusBadRequest, gin.H{"error": errorMessage})
+		return
+	}
+
+
+
+// edit main.go
+func serveApplication() {
+    router := gin.Default()
+    authRoutes := router.Group("/auth/user")
+        // registration route
+    authRoutes.POST("/register", controller.Register)
+        // login route
+    authRoutes.POST("/login", controller.Login)
+
+    router.Run(":8000")
+    fmt.Println("Server running on port 8000")
+}
+
+
+// run the application
+$ go run main.go
+// register user
+$ curl -X POST http://localhost:8000/auth/user/register \
+     -H "Content-Type: application/json" \
+     -H "Accept: application/json" \
+     -d '{"username": "test","email":"test@bmacharia.com","password":"super^Secret!007"}'
+// test user login
+$ curl -X POST http://localhost:8000/auth/user/login \
+     -H "Content-Type: application/json" \
+     -H "Accept: application/json" \
+     -d '{"username": "test","password":"super^Secret!007"}' 
+
+
+
+jwt.go
+package util
+
+import (
+	"bmacharia/jwt-go-rbac/model"
+	"errors"
+	"fmt"
+	"os"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/golang-jwt/jwt/v5"
+
+	"github.com/gin-gonic/gin"
+)
+
+// retrieve JWT key from .env file
+var privateKey = []byte(os.Getenv("JWT_PRIVATE_KEY"))
+
+// generate JWT token
+func GenerateJWT(user model.User) (string, error) {
+	tokenTTL, _ := strconv.Atoi(os.Getenv("TOKEN_TTL"))
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"id":   user.ID,
+		"role": user.RoleID,
+		"iat":  time.Now().Unix(),
+		"eat":  time.Now().Add(time.Second * time.Duration(tokenTTL)).Unix(),
+	})
+	return token.SignedString(privateKey)
+}
+
+// validate JWT token
+func ValidateJWT(context *gin.Context) error {
+	token, err := getToken(context)
+	if err != nil {
+		return err
+	}
+	_, ok := token.Claims.(jwt.MapClaims)
+	if ok && token.Valid {
+		return nil
+	}
+	return errors.New("invalid token provided")
+}
+
+// validate Admin role
+func ValidateAdminRoleJWT(context *gin.Context) error {
+	token, err := getToken(context)
+	if err != nil {
+		return err
+	}
+	claims, ok := token.Claims.(jwt.MapClaims)
+	userRole := uint(claims["role"].(float64))
+	if ok && token.Valid && userRole == 1 {
+		return nil
+	}
+	return errors.New("invalid admin token provided")
+}
+
+// validate Customer role
+func ValidateCustomerRoleJWT(context *gin.Context) error {
+	token, err := getToken(context)
+	if err != nil {
+		return err
+	}
+	claims, ok := token.Claims.(jwt.MapClaims)
+	userRole := uint(claims["role"].(float64))
+	if ok && token.Valid && userRole == 2 || userRole == 1 {
+		return nil
+	}
+	return errors.New("invalid author token provided")
+}
+
+// fetch user details from the token
+func CurrentUser(context *gin.Context) model.User {
+	err := ValidateJWT(context)
+	if err != nil {
+		return model.User{}
+	}
+	token, _ := getToken(context)
+	claims, _ := token.Claims.(jwt.MapClaims)
+	userId := uint(claims["id"].(float64))
+
+	user, err := model.GetUserById(userId)
+	if err != nil {
+		return model.User{}
+	}
+	return user
+}
+
+// check token validity
+func getToken(context *gin.Context) (*jwt.Token, error) {
+	tokenString := getTokenFromRequest(context)
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+
+		return privateKey, nil
+	})
+	return token, err
+}
+
+// extract token from request Authorization header
+func getTokenFromRequest(context *gin.Context) string {
+	bearerToken := context.Request.Header.Get("Authorization")
+	splitToken := strings.Split(bearerToken, " ")
+	if len(splitToken) == 2 {
+		return splitToken[1]
+	}
+	return ""
+}
+
+
+
+wtAuth.go
+
+package util
+
+import (
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+)
+
+// check for valid admin token
+func JWTAuth() gin.HandlerFunc {
+	return func(context *gin.Context) {
+		err := ValidateJWT(context)
+		if err != nil {
+			context.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+			context.Abort()
+			return
+		}
+		error := ValidateAdminRoleJWT(context)
+		if error != nil {
+			context.JSON(http.StatusUnauthorized, gin.H{"error": "Only Administrator is allowed to perform this action"})
+			context.Abort()
+			return
+		}
+		context.Next()
+	}
+}
+
+// check for valid customer token
+func JWTAuthCustomer() gin.HandlerFunc {
+	return func(context *gin.Context) {
+		err := ValidateJWT(context)
+		if err != nil {
+			context.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+			context.Abort()
+			return
+		}
+		error := ValidateCustomerRoleJWT(context)
+		if error != nil {
+			context.JSON(http.StatusUnauthorized, gin.H{"error": "Only registered Customers are allowed to perform this action"})
+			context.Abort()
+			return
+		}
+		context.Next()
+	}
+}
+
+
+// edit user controller and append 
+func Login(context *gin.Context) {
+     jwt, err := util.GenerateJWT(user)
+     if err != nil {
+        context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
+
+    context.JSON(http.StatusOK, gin.H{"token": jwt, "username": input.Username, "message": "Successfully logged in"})
+}
+
+
+// edit main.go
+func serveApplication() {
+        adminRoutes := router.Group("/admin")
+    adminRoutes.Use(util.JWTAuth())
+    adminRoutes.GET("/users", controller.GetUsers)
+    adminRoutes.GET("/user/:id", controller.GetUser)
+    adminRoutes.PUT("/user/:id", controller.UpdateUser)
+    adminRoutes.POST("/user/role", controller.CreateRole)
+    adminRoutes.GET("/user/roles", controller.GetRoles)
+    adminRoutes.PUT("/user/role/:id", controller.UpdateRole)
+}
+
+
+Admin login
+// admin user login
+$ curl -X POST http://localhost:8000/auth/user/login \
+     -H "Content-Type: application/json" \
+     -H "Accept: application/json" \
+     -d '{"username": "test","password":"super^Secret!007"}' 
+Get All Users
+// use admin token from login response
+$ curl -X GET http://localhost:8000/admin/users \
+     -H "Content-Type: application/json" \
+     -H "Accept: application/json" \
+     -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlYXQiOjE2ODQ0NDc1ODQsImlhdCI6MTY4NDQ0NTc4NCwiaWQiOjEsInJvbGUiOjF9.CKQf2GggCP1cnGqfTp_2R77Q7GsQBX_dxf5PSLEbTx8" \
+     -d '{"username": "test","password":"super^Secret!007"}'
+Get User by ID
+$ curl -X GET http://localhost:8000/admin/user/1 \
+     -H "Content-Type: application/json" \
+     -H "Accept: application/json" \
+     -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlYXQiOjE2ODQ0NDc1ODQsImlhdCI6MTY4NDQ0NTc4NCwiaWQiOjEsInJvbGUiOjF9.CKQf2GggCP1cnGqfTp_2R77Q7GsQBX_dxf5PSLEbTx8"
+Update User
+$ curl -X PUT http://localhost:8000/admin/user/2 \
+     -H "Content-Type: application/json" \
+     -H "Accept: application/json" \
+     -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlYXQiOjE2ODQ0NDc1ODQsImlhdCI6MTY4NDQ0NTc4NCwiaWQiOjEsInJvbGUiOjF9.CKQf2GggCP1cnGqfTp_2R77Q7GsQBX_dxf5PSLEbTx8" \
+     -d '{"username": "test","email":"test@gmail.com","role_id":"2"}'
+Create Role
+$ curl -X POST http://localhost:8000/admin/user/role \
+     -H "Content-Type: application/json" \
+     -H "Accept: application/json" \
+     -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlYXQiOjE2ODQ0NDc1ODQsImlhdCI6MTY4NDQ0NTc4NCwiaWQiOjEsInJvbGUiOjF9.CKQf2GggCP1cnGqfTp_2R77Q7GsQBX_dxf5PSLEbTx8" \
+     -d '{"name": "testing","description":"Test user role"}'
+Get All Roles
+$ curl -X GET http://localhost:8000/admin/user/roles \
+     -H "Content-Type: application/json" \
+     -H "Accept: application/json" \
+     -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlYXQiOjE2ODQ0NDc1ODQsImlhdCI6MTY4NDQ0NTc4NCwiaWQiOjEsInJvbGUiOjF9.CKQf2GggCP1cnGqfTp_2R77Q7GsQBX_dxf5PSLEbTx8"
+Update Role
+$ curl -X PUT http://localhost:8000/admin/user/role/4 \
+     -H "Content-Type: application/json" \
+     -H "Accept: application/json" \
+     -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlYXQiOjE2ODQ0NDc1ODQsImlhdCI6MTY4NDQ0NTc4NCwiaWQiOjEsInJvbGUiOjF9.CKQf2GggCP1cnGqfTp_2R77Q7GsQBX_dxf5PSLEbTx8" \
+     -d '{"name":"accountant","description":"Accountant user role"}'
+Add Room
+$ curl -X POST http://localhost:8000/admin/room/add \
+     -H "Content-Type: application/json" \
+     -H "Accept: application/json" \
+     -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlYXQiOjE2ODQ0NDc1ODQsImlhdCI6MTY4NDQ0NTc4NCwiaWQiOjEsInJvbGUiOjF9.CKQf2GggCP1cnGqfTp_2R77Q7GsQBX_dxf5PSLEbTx8" \
+     -d '{"name": "Room 9","location":"Second Floor"}'
+List all Rooms
+$ curl -X GET http://localhost:8000/api/view/rooms \
+     -H "Content-Type: application/json" \
+     -H "Accept: application/json"
+Get Room by ID
+$ curl -X GET http://localhost:8000/api/view/room/3 \
+     -H "Content-Type: application/json" \
+     -H "Accept: application/json"
+Step 8: Test the room booking service
+
+Book a Room
+$ curl -X POST http://localhost:8000/api/room/book \
+     -H "Content-Type: application/json" \
+     -H "Accept: application/json" \
+     -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlYXQiOjE2ODUyMjk0MDEsImlhdCI6MTY4NTIyNzYwMSwiaWQiOjI0LCJyb2xlIjoyfQ.h8R51DA5N_xeCa8xR1HLeOo4JTmIGjUp3oMPJLuBv3g" \
+     -d '{"room_id": 3}'
+List all Bookings
+$ curl -X GET http://localhost:8000/admin/room/bookings \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlYXQiOjE2ODcyOTkyMTAsImlhdCI6MTY4NzI5NzQxMCwiaWQiOjEsInJvbGUiOjF9.3oztz8EgE-l3byKWzCI760FE-BmRY7B-BohnYydDElc" \
+     -H "Accept: application/json"
+List all User Bookings
+$ curl -X GET http://localhost:8000/api/rooms/booked \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlYXQiOjE2ODUyMjk0MDEsImlhdCI6MTY4NTIyNzYwMSwiaWQiOjI0LCJyb2xlIjoyfQ.h8R51DA5N_xeCa8xR1HLeOo4JTmIGjUp3oMPJLuBv3g" \
+     -H "Accept: application/json"
+
+
+
+package utils
+
+import (
+    "time"
+    "github.com/dgrijalva/jwt-go"
+)
+
+var secretKey = []byte("secretpassword")
+
+// GenerateToken generates a JWT token with the user ID as part of the claims
+func GenerateToken(userID uint) (string, error) {
+    claims := jwt.MapClaims{}
+    claims["user_id"] = userID
+    claims["exp"] = time.Now().Add(time.Hour * 1).Unix() // Token valid for 1 hour
+
+    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+    return token.SignedString(secretKey)
+}
+
+// VerifyToken verifies a token JWT validate 
+func VerifyToken(tokenString string) (jwt.MapClaims, error) {
+    // Parse the token
+    token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+        // Check the signing method
+        if _, ok := token.Method.(*jwt.SigningMethodHS256); !ok {
+            return nil, fmt.Errorf("Invalid signing method")
+        }
+
+        return secretKey, nil
+    })
+
+    // Check for errors
+    if err != nil {
+        return nil, err
+    }
+
+    // Validate the token
+    if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+        return claims, nil
+    }
+
+    return nil, fmt.Errorf("Invalid token")
+}
+
+
+package middleware
+
+import (
+    "net/http"
+    "strings"
+    "github.com/gin-gonic/gin"
+    "authentication-api/utils"
+)
+
+// AuthenticationMiddleware checks if the user has a valid JWT token
+func AuthenticationMiddleware() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        tokenString := c.GetHeader("Authorization")
+        if tokenString == "" {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authentication token"})
+            c.Abort()
+            return
+        }
+
+        // The token should be prefixed with "Bearer "
+        tokenParts := strings.Split(tokenString, " ")
+        if len(tokenParts) != 2 || tokenParts[0] != "Bearer" {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authentication token"})
+            c.Abort()
+            return
+        }
+
+        tokenString = tokenParts[1]
+
+        claims, err := utils.VerifyToken(tokenString)
+        if err != nil {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authentication token"})
+            c.Abort()
+            return
+        }
+
+        c.Set("user_id", claims["user_id"])
+        c.Next()
+    }
+}
+
+
+package handlers
+
+import (
+    "net/http"
+    "github.com/gin-gonic/gin"
+    "authentication-api/models"
+    "authentication-api/utils"
+)
+
+// Function for logging in
+func Login(c *gin.Context) {
+    var user models.User
+
+    // Check user credentials and generate a JWT token
+    if err := c.ShouldBindJSON(&user); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid data"})
+        return
+    }
+
+    // Check if credentials are valid (replace this logic with real authentication)
+    if user.Username == "user" && user.Password == "password" {
+        // Generate a JWT token
+        token, err := utils.GenerateToken(user.ID)
+        if err != nil {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "Error generating token"})
+            return
+        }
+
+        c.JSON(http.StatusOK, gin.H{"token": token})
+    } else {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+    }
+}
+
+// Function for registering a new user (for demonstration purposes)
+func Register(c *gin.Context) {
+    var user models.User
+
+    if err := c.ShouldBindJSON(&user); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid data"})
+        return
+    }
+
+    // Remember to securely hash passwords before storing them
+    user.ID = 1 // Just for demonstration purposes
+    c.JSON(http.StatusCreated, gin.H{"message": "User registered successfully"})
+}
+
+
+/pkg/database
+/init.go
+
+
+
+package auth
+
+import (
+	"errors"
+	"github.com/golang-jwt/jwt/v4"
+	"github.com/labstack/echo/v4"
+	"github.com/spf13/viper"
+	"net/http"
+)
+
+var allowList = map[string]bool{
+	"/register": true,
+	"/login":    true,
+}
+
+func TokenMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+	jwtSecretKey := viper.GetString("ONLINE_TICKET_GO_JWTKEY")
+
+	return func(c echo.Context) error {
+		if _, ok := allowList[c.Request().RequestURI]; ok {
+			return next(c)
+		}
+
+		cookie, err := c.Cookie("token")
+		if err != nil {
+			return c.String(http.StatusBadRequest, err.Error())
+		}
+
+		token := cookie.Value
+
+		claim := Claims{}
+		parsedTokenInfo, err := jwt.ParseWithClaims(token, &claim, func(token *jwt.Token) (interface{}, error) {
+			return []byte(jwtSecretKey), nil
+		})
+		if err != nil {
+			if errors.Is(err, jwt.ErrSignatureInvalid) {
+				return c.String(http.StatusUnauthorized, "Please login again")
+			}
+
+			return c.String(http.StatusUnauthorized, "Please login again")
+		}
+
+		if !parsedTokenInfo.Valid {
+			return c.String(http.StatusForbidden, "Invalid token")
+		}
+
+		c.Set("claim", claim)
+
+		return next(c)
+	}
+}
+
+func AdminMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		claim, _ := c.Get("claim").(Claims)
+
+		if claim.IsNotAdmin() {
+			return c.String(http.StatusForbidden, "You have no authority")
+		}
+
+		return next(c)
+	}
+}
+
+
+package auth
+
+import (
+	"github.com/golang-jwt/jwt/v4"
+)
+
+type UserType string
+
+const (
+	Admin          UserType = "admin"
+	IndividualUser UserType = "individual"
+	CorporateUser  UserType = "corporate"
+)
+
+type Claims struct {
+	Username string   `json:"username"`
+	UserType UserType `json:"user_type"`
+	UserID   uint
+	jwt.RegisteredClaims
+}
+
+func (c *Claims) IsIndividualUser() bool {
+	return c.UserType == IndividualUser
+}
+
+func (c *Claims) IsCorporatedUser() bool {
+	return c.UserType == CorporateUser
+}
+
+func (c *Claims) IsAdmin() bool {
+	return c.UserType == Admin
+}
+
+func (c *Claims) IsNotAdmin() bool {
+	return !c.IsAdmin()
+}
+
+func (c *Claims) IsUser() bool {
+	return c.UserType == IndividualUser || c.UserType == CorporateUser
+}
+
+func (c *Claims) IsUserOrAdmin() bool {
+	return c.IsAdmin() || c.IsUser()
+}
+
+func (c *Claims) IsUnknownTypeUser() bool {
+	return !c.IsUserOrAdmin()
+}
+
+
+	timeoutCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+
+
+var (
+	ErrNoCapacity   = errors.New("capacity is full")
+	ErrTripNotFound = errors.New("this trip does not exist")
+
+	ErrExceedAllowedTicketToPurchase = func(limit int) error {
+		return fmt.Errorf("exceed number of tickets allowed to be purchased(%d)", limit)
+	}
+
+	ErrExceedMaleTicketNumber = errors.New("exceed number of male ticket allowed to be purchased")
+)
+
+
+if err != nil {
+			if errors.Is(err, trip.ErrTripNotFound) {
+				return ErrTripNotFound
+			}
+			return err
+		}
+
+
+func (t *Ticket) CheckFieldsEmpty() bool {
+	return t.isGenderEmpty() || t.isFullNameEmpty() || t.isEmailEmpty() || t.isPhoneEmpty()
+}
+
+
+b
+
+func (t *Ticket) isTripIDEmpty() bool {
+	return t.TripID == 0
+}
+
+func (p *Passenger) isGenderEmpty() bool {
+	return p.Gender == ""
+}
+
+
+
+func (t *Ticket) CheckFieldsEmpty() bool {
+	return t.isGenderEmpty() || t.isFullNameEmpty() || t.isEmailEmpty() || t.isPhoneEmpty()
+}
+
+func (t *Ticket) isTripIDEmpty() bool {
+	return t.TripID == 0
+}
+
+func (p *Passenger) isGenderEmpty() bool {
+	return p.Gender == ""
+}
+
+
+
+func (t *Ticket) CheckFieldsEmpty() bool {
+	return t.isGenderEmpty() || t.isFullNameEmpty() || t.isEmailEmpty() || t.isPhoneEmpty()
+}
+
+func (t *Ticket) isTripIDEmpty() bool {
+	return t.TripID == 0
+}
+
+func (p *Passenger) isGenderEmpty() bool {
+	return p.Gender == ""
+}
+
+
+
+
+type Repository interface {
+	Create(ctx context.Context, trip *Trip) error
+	Delete(ctx context.Context, id int) error
+	FindByFilter(ctx context.Context, trip *Filter) ([]Trip, error)
+	FindByTripID(ctx context.Context, tripID int) (*Trip, error)
+	GetSoldTicketNumber(ctx context.Context, tripID int) (int, error)
+	UpdateAvailableSeat(ctx context.Context, tripID int, ticketNum int) error
+}
+
+type defaultRepository struct {
+	database *gorm.DB
+}
+
+func NewTripRepository(database *gorm.DB) Repository {
+	return &defaultRepository{database: database}
+}
+
+func (t *defaultRepository) Create(ctx context.Context, trip *Trip) error {
+	timeoutCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+
+
+
+type Repository interface {
+	Create(ctx context.Context, user *User) error
+	GetByUserName(ctx context.Context, username string) (*User, error)
+}
+
+type defaultRepository struct {
+	database *gorm.DB
+}
+
+func NewRepository(database *gorm.DB) Repository {
+	return &defaultRepository{
+		database: database,
+	}
+}
+
+func (r *defaultRepository) GetByUserName(ctx context.Context, username string) (*User, error) {
+	user := User{}
+
+
+func (u *User) IsUserTypeValid() bool {
+	switch u.UserType {
+	case auth.CorporateUser:
+		fallthrough
+	case auth.Admin:
+		fallthrough
+	case auth.IndividualUser:
+		return true
+	default:
+		return false
+	}
+}
+
+
+user, err := h.userService.Login(c.Request().Context(), credentials)
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrUsernameNotFound):
+			return c.String(http.StatusNotFound, WarnWhenUsernameNotFound)
+		case errors.Is(err, ErrUsernameOrPasswordInvalid):
+			return c.String(http.StatusUnauthorized, WarnNonValidCredentials)
+		default:
+			return c.String(http.StatusInternalServerError, WarnInternalServerError)
+		}
+	}
+
+
+
+func (h *handler) Logout(c echo.Context) error {
+	cookie := new(http.Cookie)
+	cookie.Name = "token"
+	cookie.Value = ""
+	cookie.MaxAge = 0
+	c.SetCookie(cookie)
+	return c.String(http.StatusOK, "You have successfully logout")
+}
+
+
+var mySigningKey = []byte(os.Getenv("SECRET_KEY"))
+
+
+func GetJWT() (string, error) {
+  token := jwt.New(jwt.SigningMethodHS256)
+
+  claims := token.Claims.(jwt.MapClaims)
+
+  claims["authorized"] = true
+  claims["client"] = "Krissanawat"
+  claims["aud"] = "billing.jwtgo.io"
+  claims["iss"] = "jwtgo.io"
+  claims["exp"] = time.Now().Add(time.Minute * 1).Unix()
+
+  tokenString, err := token.SignedString(mySigningKey)
+
+  if err != nil {
+    fmt.Errorf("Something Went Wrong: %s", err.Error())
+    return "", err
+  }
+
+  return tokenString, nil
+}
+
+
+
+
+
+func proxy(path, target string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		targetURL := target + r.URL.Path
+		req, err := http.NewRequest(r.Method, targetURL, r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadGateway)
+			return
+		}
+
+		req.Header = r.Header
+
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadGateway)
+			return
+		}
+		defer resp.Body.Close()
+
+		for key, values := range resp.Header {
+			for _, value := range values {
+				w.Header().Add(key, value)
+			}
+		}
+
+		w.WriteHeader(resp.StatusCode)
+
+		// Copy the response body to the client
+		_, err = io.Copy(w, resp.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadGateway)
+			return
+		}
+	}
+}
+
+
+
+newUser := models.User{
+		Name:     payload.Name,
+		Email:    strings.ToLower(payload.Email),
+		Password: payload.Password,
+	}
+
+	result := ac.DB.Create(&newUser)
+
+	if result.Error != nil && strings.Contains(result.Error.Error(), "duplicate key value violates unique") {
+		ctx.JSON(http.StatusConflict, gin.H{"status": "fail", "message": "Email already exist, please use another email address"})
+		return
+	} else if result.Error != nil {
+		ctx.JSON(http.StatusBadGateway, gin.H{"status": "error", "message": result.Error.Error()})
+		return
+	}
+
+
+
+func (user *User) HashPassword(password string) error {
+  bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+  if err != nil {
+    return err
+  }
+  user.Password = string(bytes)
+  return nil
+}
+func (user *User) CheckPassword(providedPassword string) error {
+  err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(providedPassword))
+  if err != nil {
+    return err
+  }
+  return nil
+}
+
+
+package auth
+import (
+  "errors"
+  "time"
+  "github.com/dgrijalva/jwt-go"
+)
+var jwtKey = []byte("supersecretkey")
+type JWTClaim struct {
+  Username string `json:"username"`
+  Email    string `json:"email"`
+  jwt.StandardClaims
+}
+func GenerateJWT(email string, username string) (tokenString string, err error) {
+  expirationTime := time.Now().Add(1 * time.Hour)
+  claims:= &JWTClaim{
+    Email: email,
+    Username: username,
+    StandardClaims: jwt.StandardClaims{
+      ExpiresAt: expirationTime.Unix(),
+    },
+  }
+  token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+  tokenString, err = token.SignedString(jwtKey)
+  return
+}
+func ValidateToken(signedToken string) (err error) {
+  token, err := jwt.ParseWithClaims(
+    signedToken,
+    &JWTClaim{},
+    func(token *jwt.Token) (interface{}, error) {
+      return []byte(jwtKey), nil
+    },
+  )
+  if err != nil {
+    return
+  }
+  claims, ok := token.Claims.(*JWTClaim)
+  if !ok {
+    err = errors.New("couldn't parse claims")
+    return
+  }
+  if claims.ExpiresAt < time.Now().Local().Unix() {
+    err = errors.New("token expired")
+    return
+  }
+  return
+}
+
+
+
+package middlewares
+import (
+  "jwt-authentication-golang/auth"
+  "github.com/gin-gonic/gin"
+)
+func Auth() gin.HandlerFunc{
+  return func(context *gin.Context) {
+    tokenString := context.GetHeader("Authorization")
+    if tokenString == "" {
+      context.JSON(401, gin.H{"error": "request does not contain an access token"})
+      context.Abort()
+      return
+    }
+    err:= auth.ValidateToken(tokenString)
+    if err != nil {
+      context.JSON(401, gin.H{"error": err.Error()})
+      context.Abort()
+      return
+    }
+    context.Next()
+  }
+}
+
+
+
+package middleware
+
+import (
+	"context"
+	"crypto/tls"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"time"
+
+	oidc "github.com/coreos/go-oidc"
+	"github.com/julienschmidt/httprouter"
+)
+
+type Res401Struct struct {
+	Status   string `json:"status" example:"FAILED"`
+	HTTPCode int    `json:"httpCode" example:"401"`
+	Message  string `json:"message" example:"authorisation failed"`
+}
+
+//claims component of jwt contains mainy fields , we need only roles of DemoServiceClient
+//"DemoServiceClient":{"DemoServiceClient":{"roles":["pets-admin","pet-details","pets-search"]}},
+type Claims struct {
+	ResourceAccess client `json:"resource_access,omitempty"`
+	JTI            string `json:"jti,omitempty"`
+}
+
+type client struct {
+	DemoServiceClient clientRoles `json:"DemoServiceClient,omitempty"`
+}
+
+type clientRoles struct {
+	Roles []string `json:"roles,omitempty"`
+}
+
+var RealmConfigURL string = "http://10.66.29.167:9999/auth/realms/DEMOREALM"
+var clientID string = "DemoServiceClient"
+
+func IsAuthorizedJWT(h httprouter.Handle, role string) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+
+		rawAccessToken := r.Header.Get("Authorization")
+
+		tr := &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+		client := &http.Client{
+			Timeout:   time.Duration(6000) * time.Second,
+			Transport: tr,
+		}
+		ctx := oidc.ClientContext(context.Background(), client)
+		provider, err := oidc.NewProvider(ctx, RealmConfigURL)
+		if err != nil {
+			authorisationFailed("authorisation failed while getting the provider: "+err.Error(), w, r)
+			return
+		}
+
+		oidcConfig := &oidc.Config{
+			ClientID: clientID,
+		}
+		verifier := provider.Verifier(oidcConfig)
+		idToken, err := verifier.Verify(ctx, rawAccessToken)
+		if err != nil {
+			authorisationFailed("authorisation failed while verifying the token: "+err.Error(), w, r)
+			return
+		}
+
+		var IDTokenClaims Claims // ID Token payload is just JSON.
+		if err := idToken.Claims(&IDTokenClaims); err != nil {
+			authorisationFailed("claims : "+err.Error(), w, r)
+			return
+		}
+		fmt.Println(IDTokenClaims)
+		//checking the roles
+		user_access_roles := IDTokenClaims.ResourceAccess.DemoServiceClient.Roles
+		for _, b := range user_access_roles {
+			if b == role {
+				h(w, r, ps)
+				return
+			}
+		}
+
+		authorisationFailed("user not allowed to access this api", w, r)
+	}
+}
+
+func authorisationFailed(message string, w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusUnauthorized)
+	data := Res401Struct{
+		Status:   "FAILED",
+		HTTPCode: http.StatusUnauthorized,
+		Message:  message,
+	}
+	res, _ := json.Marshal(data)
+	w.Write(res)
+}
+
+
+
+package middleware
+
+import (
+    "net/http"
+    "strings"
+    "github.com/gin-gonic/gin"
+    "authentication-api/utils"
+)
+
+// AuthenticationMiddleware checks if the user has a valid JWT token
+func AuthenticationMiddleware() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        tokenString := c.GetHeader("Authorization")
+        if tokenString == "" {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authentication token"})
+            c.Abort()
+            return
+        }
+
+        // The token should be prefixed with "Bearer "
+        tokenParts := strings.Split(tokenString, " ")
+        if len(tokenParts) != 2 || tokenParts[0] != "Bearer" {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authentication token"})
+            c.Abort()
+            return
+        }
+
+        tokenString = tokenParts[1]
+
+        claims, err := utils.VerifyToken(tokenString)
+        if err != nil {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authentication token"})
+            c.Abort()
+            return
+        }
+
+        c.Set("user_id", claims["user_id"])
+        c.Next()
+    }
+}
+
+
+package utils
+
+import (
+    "time"
+    "github.com/dgrijalva/jwt-go"
+)
+
+var secretKey = []byte("secretpassword")
+
+// GenerateToken generates a JWT token with the user ID as part of the claims
+func GenerateToken(userID uint) (string, error) {
+    claims := jwt.MapClaims{}
+    claims["user_id"] = userID
+    claims["exp"] = time.Now().Add(time.Hour * 1).Unix() // Token valid for 1 hour
+
+    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+    return token.SignedString(secretKey)
+}
+
+// VerifyToken verifies a token JWT validate 
+func VerifyToken(tokenString string) (jwt.MapClaims, error) {
+    // Parse the token
+    token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+        // Check the signing method
+        if _, ok := token.Method.(*jwt.SigningMethodHS256); !ok {
+            return nil, fmt.Errorf("Invalid signing method")
+        }
+
+        return secretKey, nil
+    })
+
+    // Check for errors
+    if err != nil {
+        return nil, err    }
+
+    // Validate the token
+    if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+        return claims, nil
+    }
+
+    return nil, fmt.Errorf("Invalid token")
+}
+
+
+
+kong
+
+version: '3.7'
+
+volumes:
+  kong_data: {}
+
+networks:
+  kong-net:
+    external: true
+
+services:
+  kong-migrations:
+    image: "kong:2.3.2-alpine"
+    command: kong migrations bootstrap
+    depends_on:
+      - db
+    environment:
+      KONG_DATABASE: postgres
+      KONG_PG_DATABASE: kong
+      KONG_PG_HOST: db
+      KONG_PG_USER: kong
+      KONG_PG_PASSWORD: kong
+    networks:
+      - kong-net
+    restart: on-failure
+    deploy:
+      restart_policy:
+        condition: on-failure
+
+  kong-migrations-up:
+    image: "kong:2.3.2-alpine"
+    command: kong migrations up && kong migrations finish
+    depends_on:
+      - db
+    environment:
+      KONG_DATABASE: postgres
+      KONG_PG_DATABASE: kong
+      KONG_PG_HOST: db
+      KONG_PG_USER: kong
+      KONG_PG_PASSWORD: kong
+    networks:
+      - kong-net
+    restart: on-failure
+    deploy:
+      restart_policy:
+        condition: on-failure
+
+  kong:
+    image: "kong:2.3.2-alpine"
+    user: "kong"
+    depends_on:
+      - db
+    environment:
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_LISTEN: '0.0.0.0:8001'
+      KONG_CASSANDRA_CONTACT_POINTS: db
+      KONG_DATABASE: postgres
+      KONG_PG_DATABASE: kong
+      KONG_PG_HOST: db
+      KONG_PG_USER: kong
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_PG_PASSWORD: kong
+    
+    networks:
+      - kong-net
+    ports:
+      - "8000:8000/tcp"
+      - "127.0.0.1:8001:8001/tcp"
+      - "8443:8443/tcp"
+      - "127.0.0.1:8444:8444/tcp"
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    restart: on-failure
+    deploy:
+      restart_policy:
+        condition: on-failure
+    
+  db:
+    image: postgres:9.5
+    environment:
+      POSTGRES_DB: kong
+      POSTGRES_USER: kong
+      POSTGRES_PASSWORD: kong
+    
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "kong"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+    restart: on-failure
+    deploy:
+      restart_policy:
+        condition: on-failure
+    stdin_open: true
+    tty: true
+    networks:
+      - kong-net
+    # volumes:
+    #   - kong_data:/var/lib/postgresql/data
+
+  konga-prepare:
+    container_name: konga-prepare
+    image: pantsel/konga:latest
+    command: "-c prepare -a postgres -u postgresql://kong:kong@db:5432/konga_db"
+    networks:
+      - kong-net
+    restart: on-failure
+    depends_on:
+      - db
+
+  konga:
+    container_name: konga
+    image: pantsel/konga:latest
+    restart: always
+    networks:
+      - kong-net
+    environment:
+      DB_ADAPTER: postgres
+      DB_HOST: db
+      DB_USER: kong
+      DB_PASSWORD: kong
+      TOKEN_SECRET: ahfdjgjgf79JKLFHJKh978953kgdfjkl
+      DB_DATABASE: konga_db
+      NODE_ENV: production
+    depends_on:
+      - db
+    ports:
+      - "1337:1337"
+
+
+
+FROM golang:1.22 as builder
+
+WORKDIR /go/src/
+COPY . .
+RUN GOOS=linux CGO_ENABLED=0 go build -o server main.go 
+
+FROM scratch
+WORKDIR /go/
+COPY --from=builder /go/src/server /go
+CMD ["/go/server"]
+
+
+
+version: "3.7"
+
+networks:
+  kong-net:
+    name: kong-net
+    driver: bridge
+   
+
+services:
+
+  servicea:
+    image: thiagopereiracontas/kong-service:latest
+    environment:
+      PORT: ":8081"
+      CONTENT: "<h1>Service A</h1>"
+    networks:
+      - kong-net
+    ports:
+      - 8081:8081
+
+  serviceb:
+    image: thiagopereiracontas/kong-service:latest
+    environment:
+      PORT: ":8082"
+      CONTENT: "<h1>Service b</h1>"
+    networks:
+      - kong-net
+    ports:
+      - 8082:8082
+
+  servicec:
+    image: thiagopereiracontas/kong-service:latest
+    environment:
+      PORT: ":8083"
+      CONTENT: "<h1>Service C</h1>"
+    networks:
+      - kong-net
+    ports:
+      - 8083:8083
+
+
+api-gateway-go/pkg/logging
+/logger.go
+
+
+package logging
+
+import (
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+)
+
+func NewLogger() (*zap.Logger, error) {
+	config := zap.NewProductionConfig()
+	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	logger, err := config.Build()
+	if err != nil {
+		return nil, err
+	}
+	return logger, nil
+}
+
+
+type Middleware struct {
+	logger  *zap.Logger
+	limiter *rate.Limiter
+	routes  map[string]*config.Route
+	db      *database.Database
+}
+
+
+
+type Handler struct {
+	routes map[string]*config.Route
+	logger *zap.Logger
+	db     *database.Database
+}
+
+type RouteMetrics struct {
+	CallCount     int           `json:"callCount"`
+	TotalResponse time.Duration `json:"totalResponse"`
+	ServiceURL    string        `json:"serviceURL"`
+	Path          string        `json:"path"`
+}
+
+func NewHandler(db *database.Database, logger *zap.Logger) *Handler {
+	routes, err := db.GetRoutes()
+	if err != nil {
+		logger.Error("Failed to load routes", zap.Error(err))
+	}
+
+	routeMap := make(map[string]*config.Route)
+	for _, route := range routes {
+		routeMap[route.Path] = route
+	}
+
+	return &Handler{routes: routeMap, logger: logger, db: db}
+}
+
+
+
+
+	r.Use(auth.IsAuthenticated())
+
+
+
+
+
+
+package auth
+
+import (
+	"errors"
+	"time"
+
+	"github.com/dgrijalva/jwt-go"
+)
+
+var jwtKey = []byte("supersecretkey")
+
+type JWTClaim struct {
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	jwt.StandardClaims
+}
+
+func GenerateJWT(email string, username string) (tokenString string, err error) {
+	expirationTime := time.Now().Add(1 * time.Hour)
+	claims:= &JWTClaim{
+		Email: email,
+		Username: username,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: expirationTime.Unix(),
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err = token.SignedString(jwtKey)
+	return
+}
+
+func ValidateToken(signedToken string) (err error) {
+	token, err := jwt.ParseWithClaims(
+		signedToken,
+		&JWTClaim{},
+		func(token *jwt.Token) (interface{}, error) {
+			return []byte(jwtKey), nil
+		},
+	)
+
+	if err != nil {
+		return
+	}
+
+	claims, ok := token.Claims.(*JWTClaim)
+	if !ok {
+		err = errors.New("couldn't parse claims")a
+		return
+	}
+
+	if claims.ExpiresAt < time.Now().Local().Unix() {
+		err = errors.New("token expired")
+		return
+	}
+	
+	return
+
+}
+
+
+func restricted(c *fiber.Ctx) error {
+	user := c.Locals("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	name := claims["name"].(string)
+	return c.SendString("Welcome " + name)
+}
+
+
+DATABASE_USER=user
+DATABASE_PASS=password
+DATABASE_HOST=127.0.0.1
+DATABASE_PORT=27017
+DATABASE_NAME=mydb
+JWT_SECRET_KEY=secret
+
+
+
+func init() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Panicln(err)
+	}
+}
+
+
+
+ackage util
+
+import "errors"
+
+var (
+	ErrInvalidEmail       = errors.New("invalid email")
+	ErrEmailAlreadyExists = errors.New("email already exists")
+	ErrEmptyPassword      = errors.New("password can't be empty")
+	ErrInvalidAuthToken   = errors.New("invalid auth-token")
+	ErrInvalidCredentials = errors.New("invalid credentials")
+	ErrUnauthorized       = errors.New("Unauthorized")
+)
+
+
+func NormalizeEmail(email string) string {
+	return strings.TrimSpace(strings.ToLower(email))
+}
+
+
+package security
+
+import (
+	"fmt"
+	"go-fiber-auth-api/util"
+	"os"
+	"time"
+
+	jwt "github.com/form3tech-oss/jwt-go"
+)
+
+var (
+	JwtSecretKey     = []byte(os.Getenv("JWT_SECRET_KEY"))
+	JwtSigningMethod = jwt.SigningMethodHS256.Name
+)
+
+func NewToken(userId string) (string, error) {
+	claims := jwt.StandardClaims{
+		Id:        userId,
+		Issuer:    userId,
+		IssuedAt:  time.Now().Unix(),
+		ExpiresAt: time.Now().Add(time.Minute * 30).Unix(),
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(JwtSecretKey)
+}
+
+func validateSignedMethod(token *jwt.Token) (interface{}, error) {
+	if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+		return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+	}
+	return JwtSecretKey, nil
+}
+
+func ParseToken(tokenString string) (*jwt.StandardClaims, error) {
+	claims := new(jwt.StandardClaims)
+	token, err := jwt.ParseWithClaims(tokenString, claims, validateSignedMethod)
+	if err != nil {
+		return nil, err
+	}
+	var ok bool
+	claims, ok = token.Claims.(*jwt.StandardClaims)
+	if !ok || !token.Valid {
+		return nil, util.ErrInvalidAuthToken
+	}
+	return claims, nil
+}
+
+
+/security
+/password.go
+
+
+package security
+
+import "golang.org/x/crypto/bcrypt"
+
+func EncryptPassword(password string) (string, error) {
+	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hashed), nil
+}
+
+func VerifyPassword(hashed, password string) error {
+	return bcrypt.CompareHashAndPassword([]byte(hashed), []byte(password))
+}
+
+
+security
+/token_test.go
+
+
+package security
+
+import (
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"gopkg.in/mgo.v2/bson"
+)
+
+func TestNewToken(t *testing.T) {
+	id := bson.NewObjectId()
+	token, err := NewToken(id.Hex())
+	assert.NoError(t, err)
+	assert.NotEmpty(t, token)
+}
+
+func TestParseToken(t *testing.T) {
+	id := bson.NewObjectId()
+	token, err := NewToken(id.Hex())
+	assert.NoError(t, err)
+	assert.NotEmpty(t, token)
+
+	payload, err := ParseToken(token)
+	assert.NoError(t, err)
+	assert.Equal(t, id.Hex(), payload.Id)
+	assert.Equal(t, id.Hex(), payload.Issuer)
+	assert.Equal(t, time.Now().Year(), time.Unix(payload.IssuedAt, 0).Year())
+	assert.Equal(t, time.Now().Month(), time.Unix(payload.IssuedAt, 0).Month())
+	assert.Equal(t, time.Now().Day(), time.Unix(payload.IssuedAt, 0).Day())
+}
+
+
+
+type UsersRepository interface {
+	Save(user *models.User) error
+	Update(user *models.User) error
+	GetById(id string) (user *models.User, err error)
+	GetByEmail(email string) (user *models.User, err error)
+	GetAll() (users []*models.User, err error)
+	Delete(id string) error
+}
+
+type usersRepository struct {
+	c *mgo.Collection
+}
+
+func NewUsersRepository(conn db.Connection) UsersRepository {
+	return &usersRepository{conn.DB().C(UsersCollection)}
+}
+
+
+type AuthController interface {
+	SignUp(ctx *fiber.Ctx) error
+	SignIn(ctx *fiber.Ctx) error
+	GetUser(ctx *fiber.Ctx) error
+	GetUsers(ctx *fiber.Ctx) error
+	PutUser(ctx *fiber.Ctx) error
+	DeleteUser(ctx *fiber.Ctx) error
+}
+
+type authController struct {
+	usersRepo repository.UsersRepository
+}
+
+func NewAuthController(usersRepo repository.UsersRepository) AuthController {
+	return &authController{usersRepo}
+}
+
+func (c *authController) SignUp(ctx *fiber.Ctx) error {
+
+
+
+    - authorization-service
+  |- cmd
+  |  |- main.go
+  |
+  |- configs
+  |  |- config.go
+  |
+  |- internal
+  |  |- auth
+  |     |- handler.go
+  |     |- model.go
+  |     |- repository.go
+  |     |- service.go
+  |
+  |- pkg
+     |- database
+     |  |- database.go
+     |
+     |- middleware
+     |  |- auth.go
+     |
+     |- utils
+        |- utils.go
+
+
+
+        package configs
+
+        import (
+            "os"
+        )
+        
+        type Config struct {
+            DBHost     string
+            DBPort     string
+            DBUser     string
+            DBPassword string
+            DBName     string
+            JWTSecret  string
+        }
+        
+        func New() *Config {
+            return &Config{
+                DBHost:     os.Getenv("DB_HOST"),
+                DBPort:     os.Getenv("DB_PORT"),
+                DBUser:     os.Getenv("DB_USER"),
+                DBPassword: os.Getenv("DB_PASSWORD"),
+                DBName:     os.Getenv("DB_NAME"),
+                JWTSecret:  os.Getenv("JWT_SECRET"),
+            }
+        }
+
+
+        package database
+
+        import (
+            "fmt"
+            "log"
+        
+            "github.com/jmoiron/sqlx"
+            _ "github.com/lib/pq"
+        
+            "authorization-service/configs"
+        )
+        
+        type Database struct {
+            *sqlx.DB
+        }
+        
+        func Connect() (*Database, error) {
+            config := configs.New()
+        
+            dsn := fmt.Sprintf(
+                "host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+                config.DBHost,
+                config.DBPort,
+                config.DBUser,
+                config.DBPassword,
+                config.DBName,
+            )
+        
+            db, err := sqlx.Connect("postgres", dsn)
+            if err != nil {
+                log.Fatalln("error connecting to database:", err)
+            }
+        
+            return &Database{db}, nil
+        }
+
+        internal/auth/service/service.go:
+
+
+
+        package service
+
+import (
+	"errors"
+
+	"github.com/dgrijalva/jwt-go"
+
+	"authorization-service/internal/auth"
+	"authorization-service/pkg/config"
+	"authorization-service/pkg/repository"
+)
+
+type JWTClaims struct {
+	jwt.StandardClaims
+	Username string `json:"username"`
+}
+
+type AuthService struct {
+	repo   auth.AuthRepository
+	config *config.Config
+}
+
+func NewAuthService(repo auth.AuthRepository, config *config.Config) *AuthService {
+	return &AuthService{repo, config}
+}
+
+func (s *AuthService) Authenticate(username, password string) (string, error) {
+	user, err := s.repo.GetUserByUsername(username)
+	if err != nil {
+		return "", err
+	}
+
+	if user == nil || user.Password != password {
+		return "", errors.New("invalid username or password")
+	}
+
+	claims := JWTClaims{
+		jwt.StandardClaims{},
+		user.Username,
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString([]byte(s.config.JWTSecret))
+	if err != nil {
+		return "", err
+	}
+	return tokenString, nil
+}
+
+func (s *AuthService) Register(username, password string) error {
+	user, err := s.repo.GetUserByUsername(username)
+	if err != nil {
+		return err
+	}
+
+	if user != nil {
+		return errors.New("username already taken")
+	}
+
+	user = &auth.User{
+		Username: username,
+		Password: password,
+	}
+
+	err = s.repo.SaveUser(user)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+package routes
+
+import (
+    "github.com/Siddheshk02/jwt-auth-api/controllers" // importing the routes package 
+    "github.com/gofiber/fiber/v2"
+)
+
+func Setup(app *fiber.App) {
+    api := app.Group("/user")
+
+    api.Get("/get-user", controllers.User)
+
+    api.Post("/register", controllers.Register)
+
+    api.Post("/login", controllers.Login)
+
+    api.Post("/logout", controllers.Logout)
+}
+
+
+
+package database
+
+import (
+    "fmt"
+    "log"
+
+    "github.com/Siddheshk02/jwt-auth-api/models" // this will be imported after you've created the User Model in the models.go file
+    "gorm.io/driver/postgres"
+    "gorm.io/gorm"
+)
+
+const (
+    host     = "localhost"
+    port     = 5432
+    user     = "postgres"
+    password = "<password>" //Enter your password for the DB
+    dbname   = "jwt-auth-api"
+)
+
+var dsn string = fmt.Sprintf("host=%s port=%d user=%s "+
+    "password=%s dbname=%s sslmode=disable TimeZone=Asia/Shanghai",
+    host, port, user, password, dbname)
+
+var DB *gorm.DB
+
+func DBconn() {
+    db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+    if err != nil {
+        log.Fatal(err)
+    }
+    DB = db
+
+    db.AutoMigrate(&models.User{}) // we are going to create a models.go file for the User Model.
+}
+
+
+app.Use(cors.New(cors.Config{
+    AllowCredentials: true, //Very important while using a HTTPonly Cookie, frontend can easily get and return back the cookie.
+}))
+
+
+const SecretKey = "secret"
+
+func Login(c *fiber.Ctx) error {
+    var data map[string]string
+
+    if err := c.BodyParser(&data); err != nil {
+        return err
+    }
+
+    var user models.User
+
+    database.DB.Where("email = ?", data["email"]).First(&user) //Check the email is present in the DB
+
+    if user.ID == 0 { //If the ID return is '0' then there is no such email present in the DB
+        c.Status(fiber.StatusNotFound)
+        return c.JSON(fiber.Map{
+            "message": "user not found",
+        })
+    }
+
+    if err := bcrypt.CompareHashAndPassword(user.Password, []byte(data["password"])); err != nil {
+        c.Status(fiber.StatusBadRequest)
+        return c.JSON(fiber.Map{
+            "message": "incorrect password",
+        })
+    } // If the email is present in the DB then compare the Passwords and if incorrect password then return error.
+
+    claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.StandardClaims{
+        Issuer:    strconv.Itoa(int(user.ID)), //issuer contains the ID of the user.
+        ExpiresAt: time.Now().Add(time.Hour * 24).Unix(), //Adds time to the token i.e. 24 hours.
+    })
+
+    token, err := claims.SignedString([]byte(SecretKey))
+
+    if err != nil {
+        c.Status(fiber.StatusInternalServerError)
+        return c.JSON(fiber.Map{
+            "message": "could not login",
+        })
+    }
+
+    cookie := fiber.Cookie{
+        Name:     "jwt",
+        Value:    token,
+        Expires:  time.Now().Add(time.Hour * 24),
+        HTTPOnly: true,
+    } //Creates the cookie to be passed.
+
+    c.Cookie(&cookie)
+
+    return c.JSON(fiber.Map{
+        "message": "success",
+    })
+}
+
+
+func User(c *fiber.Ctx) error {
+    cookie := c.Cookies("jwt")
+
+    token, err := jwt.ParseWithClaims(cookie, &jwt.StandardClaims{}, func(token *jwt.Token) (interface{}, error) {
+        return []byte(SecretKey), nil //using the SecretKey which was generated in th Login function
+    })
+
+    if err != nil {
+        c.Status(fiber.StatusUnauthorized)
+        return c.JSON(fiber.Map{
+            "message": "unauthenticated",
+        })
+    }
+
+    claims := token.Claims.(*jwt.StandardClaims)
+
+    var user models.User
+
+    database.DB.Where("id = ?", claims.Issuer).First(&user)
+
+    return c.JSON(user)
+
+}
+
+
+func Logout(c *fiber.Ctx) error {
+    cookie := fiber.Cookie{
+        Name:     "jwt",
+        Value:    "",
+        Expires:  time.Now().Add(-time.Hour), //Sets the expiry time an hour ago in the past.
+        HTTPOnly: true,
+    }
+
+    c.Cookie(&cookie)
+
+    return c.JSON(fiber.Map{
+        "message": "success",
+    })
+
+}
+
+
+package driver
+
+import (
+    "database/sql"
+
+    _ "github.com/jackc/pgx/v5/stdlib"
+)
+
+type DB struct {
+    SQL *sql.DB
+}
+
+var dbConn = &DB{}
+
+func ConnectSQL(dsn string)(*DB, error){
+    db, err := sql.Open("pgx", dsn)
+
+    if err := db.Ping(); err != nil {
+        panic(err)
+    }
+
+    dbConn.SQL = db
+
+    return dbConn, err
+}
+
+
+package main
+
+import (
+    "fmt"
+    "log"
+    "net/http"
+
+    "github.com/orololuwa/crispy-octo-guacamole/driver"
+)
+const portNumber = ":8080"
+
+func main(){
+    db, err := run()
+    if (err != nil){
+        log.Fatal(err)
+    }
+    defer db.SQL.Close()
+
+    fmt.Println(fmt.Sprintf("Staring application on port %s", portNumber))
+
+
+    srv := &http.Server{
+        Addr: portNumber,
+        Handler: nil,
+    }
+
+    err = srv.ListenAndServe()
+    if err != nil {
+        log.Fatal(err)
+    }
+}
+
+func run()(*driver.DB, error){
+    dbHost := "localhost"
+    dbPort := "5432"
+    dbName := "your_db_name"
+    dbUser := "your_user"
+    dbPassword := ""
+    dbSSL := "disable"
+
+    // Connecto to DB
+    log.Println("Connecting to dabase")
+    connectionString := fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s sslmode=%s", dbHost, dbPort, dbName, dbUser, dbPassword, dbSSL)
+
+    db, err := driver.ConnectSQL(connectionString)
+    if err != nil {
+        log.Fatal("Cannot conect to database: Dying!", err)
+    }
+    log.Println("Connected to database")
+
+    return db, nil
+}
+
+
+package repository
+
+import (
+    "context"
+    "database/sql"
+)
+
+type dbRepo struct {
+    DB *sql.DB
+}
+
+func NewDBRepo(conn *sql.DB) DBRepo {
+    return &dbRepo{
+        DB: conn,
+    }
+}
+
+func (m *dbRepo) Transaction(ctx context.Context, operation func(context.Context, *sql.Tx) error) error {
+    tx, err := m.DB.BeginTx(ctx, nil)
+    if err != nil {
+        return err
+    }
+
+    defer func() error{
+        if err != nil {
+            tx.Rollback()
+            return err
+        }
+
+        if err := tx.Commit(); err != nil {
+            return err
+        }
+
+        return nil
+    }()
+
+    if err := operation(ctx, tx); err != nil {
+        return err
+    }
+
+    return nil
+}
+
+
+package repository
+
+import (
+    "context"
+    "database/sql"
+
+    "github.com/orololuwa/crispy-octo-guacamole/models"
+)
+
+type UserRepo interface {
+-   CreateAUser(user models.User) (int, error)
+-   GetAUser(id int) (models.User, error)
+-   GetAllUser() ([]models.User, error)
+-   UpdateAUsersName(id int, firstName, lastName string)(error)
+-   DeleteUserByID(id int) error
++   CreateAUser(ctx context.Context, tx *sql.Tx, user models.User) (int, error)
++   GetAUser(ctx context.Context, tx *sql.Tx, id int) (models.User, error)
++   GetAllUser(ctx context.Context, tx *sql.Tx) ([]models.User, error)
++   UpdateAUsersName(ctx context.Context, tx *sql.Tx, id int, firstName, lastName string)(error)
++   DeleteUserByID(ctx context.Context, tx *sql.Tx, id int) error
+}
+
+type DBRepo interface {
+    Transaction(ctx context.Context, operation func(context.Context, *sql.Tx) error) error 
+}
+
+
+func (m *user) CreateAUser(user models.User) (int, error){
+    -   ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+    +func (m *user) CreateAUser(ctx context.Context, tx *sql.Tx, user models.User) (int, error){
+    +   ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+        defer cancel()
+    
+        var newId int
+    
+        query := `
+                INSERT into users 
+                    (first_name, last_name, email, password, created_at, updated_at)
+                values 
+                    ($1, $2, $3, $4, $5, $6)
+                returning id`
+    
+    -   err := m.DB.QueryRowContext(ctx, query, 
+    +   var err error;
+    +   if tx != nil {
+    +       err = tx.QueryRowContext(ctx, query, 
+    +           user.FirstName, 
+    +           user.LastName, 
+    +           user.Email, 
+    +           user.Password,
+    +           time.Now(),
+    +           time.Now(),
+    +       ).Scan(&newId)
+    +   }else{
+            err = m.DB.QueryRowContext(ctx, query, 
+                user.FirstName, 
+                user.LastName, 
+                user.Email, 
+                user.Password,
+                time.Now(),
+                time.Now(),
+            ).Scan(&newId)
+    +   }
+
+
+    package repository
+
+import (
+    "context"
+    "database/sql"
+    "time"
+
+    "github.com/orololuwa/crispy-octo-guacamole/models"
+)
+
+type user struct {
+    DB *sql.DB
+}
+
+func NewUserRepo(conn *sql.DB) UserRepo {
+    return &user{
+        DB: conn,
+    }
+}
+
+func (m *user) CreateAUser(ctx context.Context, tx *sql.Tx, user models.User) (int, error){
+    ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+    defer cancel()
+
+    var newId int
+
+    query := `
+            INSERT into users 
+                (first_name, last_name, email, password, created_at, updated_at)
+            values 
+                ($1, $2, $3, $4, $5, $6)
+            returning id`
+
+    var err error;
+    if tx != nil {
+        err = tx.QueryRowContext(ctx, query, 
+            user.FirstName, 
+            user.LastName, 
+            user.Email, 
+            user.Password,
+            time.Now(),
+            time.Now(),
+        ).Scan(&newId)
+    }else{
+        err = m.DB.QueryRowContext(ctx, query, 
+            user.FirstName, 
+            user.LastName, 
+            user.Email, 
+            user.Password,
+            time.Now(),
+            time.Now(),
+        ).Scan(&newId)
+    }
+
+    if err != nil {
+        return 0, err
+    }
+
+    return newId, nil
+}
+
+func (m *user) GetAUser(ctx context.Context, tx *sql.Tx, id int) (models.User, error){
+    ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+    defer cancel()
+
+    var user models.User
+
+    query := `
+            SELECT (id, first_name, last_name, email, password, created_at, updated_at)
+            from users
+            WHERE
+            id=$1
+    `
+
+    var err error
+    if tx != nil {
+        err = tx.QueryRowContext(ctx, query, id).Scan(
+            &user.ID,
+            &user.FirstName,
+            &user.LastName,
+            &user.Email,
+            &user.Password,
+            &user.CreatedAt,
+            &user.UpdatedAt,
+        )
+    }else{
+        err = m.DB.QueryRowContext(ctx, query, id).Scan(
+            &user.ID,
+            &user.FirstName,
+            &user.LastName,
+            &user.Email,
+            &user.Password,
+            &user.CreatedAt,
+            &user.UpdatedAt,
+        )
+    }
+
+    if err != nil {
+        return user, err
+    }
+
+    return user, nil
+}
+
+func (m *user) GetAllUser(ctx context.Context, tx *sql.Tx) ([]models.User, error){
+    ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+    defer cancel()
+
+    var users = make([]models.User, 0)
+
+    query := `
+        SELECT (id, first_name, last_name, email, password, created_at, updated_at)
+        from users
+    `
+
+    var rows *sql.Rows
+    var err error
+
+    if tx != nil {
+        rows, err = tx.QueryContext(ctx, query)
+    }else{
+        rows, err = m.DB.QueryContext(ctx, query)
+    }
+    if err != nil {
+        return users, err
+    }
+
+    for rows.Next(){
+        var user models.User
+        err := rows.Scan(
+            &user.ID,
+            &user.FirstName,
+            &user.LastName,
+            &user.Email,
+            &user.Password,
+            &user.CreatedAt,
+            &user.UpdatedAt,
+        )
+        if err != nil {
+            return users, err
+        }
+        users = append(users, user)
+    }
+
+    if err = rows.Err(); err != nil {
+        return users, err
+    }
+
+    return users, nil
+}
+
+func (m *user) UpdateAUsersName(ctx context.Context, tx *sql.Tx, id int, firstName, lastName string)(error){
+    ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+    defer cancel()
+
+    query := `
+        UPDATE 
+            users set (first_name, last_name) = ($1, $2)
+        WHERE
+            id = $3
+    `
+
+    var err error
+    if tx != nil{
+        _, err = tx.ExecContext(ctx, query, firstName, lastName, id)
+    }else{
+        _, err = m.DB.ExecContext(ctx, query, firstName, lastName, id)
+    }
+
+    if err != nil{
+        return  err
+    }
+
+    return nil
+}
+
+func (m *user) DeleteUserByID(ctx context.Context, tx *sql.Tx, id int) error {
+    ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+    defer cancel()
+
+    query := "DELETE FROM users WHERE id = $1"
+
+    var err error 
+
+    if tx != nil {
+        _, err = tx.ExecContext(ctx, query, id)
+    }else{
+        _, err = m.DB.ExecContext(ctx, query, id)
+    }
+
+    if err != nil {
+        return err
+    }
+
+    return nil
+}
+
+
+user := models.User{
+    FirstName: body.FirstName,
+    LastName: body.LastName,
+    Email: body.Email,
+    Password: body.Password,
+}
+
+-       id, err := userRepo.CreateAUser(user)
++       ctx := context.Background()
++       var id int
+
++       err = dbRepo.Transaction(ctx, func(ctx context.Context, tx *sql.Tx) error {
++           id, err = userRepo.CreateAUser(ctx, tx, user)
++           if err != nil {
++               return err
++           }
++
++           userRepo.UpdateAUsersName(ctx, tx, id, body.FirstName, "test")
++           if err != nil {
++               return err
++           }
++
++           return nil
++       })
++       
