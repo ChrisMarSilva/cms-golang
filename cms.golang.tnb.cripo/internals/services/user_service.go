@@ -20,6 +20,57 @@ func NewUserService(userRepo UserRepository) *UserService {
 	return &UserService{userRepo: userRepo}
 }
 
+/*
+
+
+  func Home(c *gin.Context) {
+
+
+   cookie, err := c.Cookie("token")
+      if err != nil {
+          c.JSON(401, gin.H{"error": "unauthorized"})
+          return
+      }
+
+      claims, err := utils.ParseToken(cookie)
+      if err != nil {
+          c.JSON(401, gin.H{"error": "unauthorized"})
+          return
+      }
+
+      if claims.Role != "user" && claims.Role != "admin" {
+          c.JSON(401, gin.H{"error": "unauthorized"})
+          return
+      }
+
+      c.JSON(200, gin.H{"success": "home page", "role": claims.Role})
+
+
+  }
+	    func Premium(c *gin.Context) {
+      cookie, err := c.Cookie("token")
+      if err != nil {
+          c.JSON(401, gin.H{"error": "unauthorized"})
+          return
+      }
+
+      claims, err := utils.ParseToken(cookie)
+     if err != nil {
+          c.JSON(401, gin.H{"error": "unauthorized"})
+          return
+      }
+
+      if claims.Role != "admin" {
+          c.JSON(401, gin.H{"error": "unauthorized"})
+          return
+      }
+
+      c.JSON(200, gin.H{"success": "premium page", "role": claims.Role})
+  }
+
+
+*/
+
 func (h UserService) Register(c *fiber.Ctx, payload UserRegisterRequest) (UserRegisterResponse, error) {
 	// Validate user input (username, email, password)
 	// Hash the password
@@ -54,6 +105,18 @@ func (h UserService) Register(c *fiber.Ctx, payload UserRegisterRequest) (UserRe
 		Email: user.Email,
 	}
 
+	models.DB.Where("email = ?", user.Email).First(&existingUser)
+	if existingUser.ID != 0 {
+		c.JSON(400, gin.H{"error": "user already exists"})
+		return
+	}
+
+	var errHash error
+	user.Password, errHash = utils.GenerateHashPassword(user.Password)
+	if errHash != nil {
+		c.JSON(500, gin.H{"error": "could not generate password hash"})
+		return
+	}
 	// result := initializers.DB.Create(&newUser)
 
 	// if result.Error != nil && strings.Contains(result.Error.Error(), "duplicate key value violates unique") {
@@ -137,6 +200,13 @@ func (h UserService) Login(c *fiber.Ctx, payload UserLoginRequest) (string, erro
 		Domain:   "localhost",
 	})
 
+	errHash := utils.CompareHashPassword(user.Password, existingUser.Password)
+	if !errHash {
+		c.JSON(400, gin.H{"error": "invalid password"})
+		return
+	}
+	c.SetCookie("token", tokenString, int(expirationTime.Unix()), "/", "localhost", false, true)
+
 	return tokenStr, err
 }
 
@@ -151,6 +221,8 @@ func (h UserService) Logout(c *fiber.Ctx) error {
 	if err := sess.Save(); err != nil {
 		return err // c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": err.Error()})
 	}
+
+	c.SetCookie("token", "", -1, "/", "localhost", false, true)
 
 	c.Cookie(&fiber.Cookie{
 		Name:    "token",

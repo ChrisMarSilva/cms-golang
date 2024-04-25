@@ -16,6 +16,55 @@ func NewAuthMiddleware(secret string) fiber.Handler {
 	})
 }
 
+var jwtKey = []byte("my_secret_key")
+var tokens []string
+
+type Claims struct {
+    Username string `json:"username"`
+    jwt.RegisteredClaims
+}
+
+
+
+r.GET("/resource", func(c *gin.Context) {
+	bearerToken := c.Request.Header.Get("Authorization")
+	reqToken := strings.Split(bearerToken, " ")[1]
+	for _, token := range tokens {
+		if token == reqToken {
+			c.JSON(http.StatusOK, gin.H{
+				"data": "resource data",
+			})
+			return
+		}
+	}
+	c.JSON(http.StatusUnauthorized, gin.H{
+		"message": "unauthorized",
+	})
+})
+
+func IsAuthorized() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		cookie, err := c.Cookie("token")
+
+		if err != nil {
+			c.JSON(401, gin.H{"error": "unauthorized"})
+			c.Abort()
+			return
+		}
+
+		claims, err := utils.ParseToken(cookie)
+
+		if err != nil {
+			c.JSON(401, gin.H{"error": "unauthorized"})
+			c.Abort()
+			return
+		}
+
+		c.Set("role", claims.Role)
+		c.Next()
+	}
+}
+
 func AdminMiddleware(c *fiber.Ctx) error {
 	// userRole := getUserRoleFromContext(c)
 

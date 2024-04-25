@@ -26,7 +26,6 @@ package main
 // go get -u github.com/golang-jwt/jwt/v5
 // go get -u golang.org/x/crypto/bcrypt
 
-
 // go get -u github.com/golang-migrate/migrate/v4
 // go get -u github.com/golang-migrate/migrate/v4/database
 // go get -u github.com/stretchr/testify/require
@@ -71,6 +70,14 @@ func main() {
 }
 
 /*
+
+
+    models.InitDB(config)
+    routes.AuthRoutes(r)
+    r.Run(":8080")
+
+
+
  http://localhost:1323/swagger/index.html,
 
 
