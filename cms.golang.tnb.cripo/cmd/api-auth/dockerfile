@@ -1,31 +1,29 @@
-FROM golang:1.22 as builder
+# FROM golang:1.22 as builder
+# WORKDIR /go/src/
+# COPY . .
+# RUN GOOS=linux CGO_ENABLED=0 go build -o server main.go 
 
-WORKDIR /go/src/
-COPY . .
-RUN GOOS=linux CGO_ENABLED=0 go build -o server main.go 
-
-FROM scratch
-WORKDIR /go/
-COPY --from=builder /go/src/server /go
-CMD ["/go/server"]
-
+# FROM scratch
+# WORKDIR /go/
+# COPY --from=builder /go/src/server /go
+# CMD ["/go/server"]
 
 
-FROM golang:latest
-ENV PROJECT_DIR=/app GO111MODULE=on CGO_ENABLED=0
-WORKDIR /app
-RUN mkdir "/build"
-COPY . .
-RUN go get github.com/githubnemo/CompileDaemon
-RUN go install github.com/githubnemo/CompileDaemon
-ENTRYPOINT CompileDaemon -build="go build -o /build/app -buildvcs=false" -command="/build/app"
+# FROM golang:latest
+# ENV PROJECT_DIR=/app GO111MODULE=on CGO_ENABLED=0
+# WORKDIR /app
+# RUN mkdir "/build"
+# COPY . .
+# RUN go get github.com/githubnemo/CompileDaemon
+# RUN go install github.com/githubnemo/CompileDaemon
+# ENTRYPOINT CompileDaemon -build="go build -o /build/app -buildvcs=false" -command="/build/app"
 
 
-FROM golang:1.21-rc-alpine3.17
-ENV PROJECT_DIR=/app GO111MODULE=on CGO_ENABLED=0
-RUN mkdir /app
-COPY .. /app
-WORKDIR /app
-RUN go get github.com/githubnemo/CompileDaemon
-RUN go install github.com/githubnemo/CompileDaemon
-ENTRYPOINT CompileDaemon -build="go build -o api" -command="./api"
+# FROM golang:1.21-rc-alpine3.17
+# ENV PROJECT_DIR=/app GO111MODULE=on CGO_ENABLED=0
+# RUN mkdir /app
+# COPY .. /app
+# WORKDIR /app
+# RUN go get github.com/githubnemo/CompileDaemon
+# RUN go install github.com/githubnemo/CompileDaemon
+# ENTRYPOINT CompileDaemon -build="go build -o api" -command="./api"
