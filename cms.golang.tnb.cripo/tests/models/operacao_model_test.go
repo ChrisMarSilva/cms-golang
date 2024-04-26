@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/chrismarsilva/cms.golang.tnb.cripo/internals/models"
+	"github.com/chrismarsilva/cms.golang.tnb.cripo.api.auth/internals/models"
 	"github.com/shopspring/decimal"
 )
 

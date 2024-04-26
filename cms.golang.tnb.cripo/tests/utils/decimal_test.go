@@ -4,7 +4,7 @@ import (
 	"log"
 	"testing"
 
-	"github.com/chrismarsilva/cms.golang.tnb.cripo/internals/utils"
+	"github.com/chrismarsilva/cms.golang.tnb.cripo.api.auth/internals/utils"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 )
