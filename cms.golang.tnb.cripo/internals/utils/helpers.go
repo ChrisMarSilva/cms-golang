@@ -7,6 +7,16 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+id, _ := strconv.Atoi(c.Param("id"))
+
+
+
+func NormalizeEmail(email string) string {
+	return strings.TrimSpace(strings.ToLower(email))
+}
+
+
+
 var jwtKey = []byte("my_secret_key")
 
 func HashPassword(password string) (string, error) {

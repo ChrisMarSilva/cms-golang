@@ -159,3 +159,464 @@ func DeserializeUser(c *fiber.Ctx) error {
 
 	return c.Next()
 }
+
+
+
+
+
+func TokenMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+	jwtSecretKey := viper.GetString("ONLINE_TICKET_GO_JWTKEY")
+
+	return func(c echo.Context) error {
+		if _, ok := allowList[c.Request().RequestURI]; ok {
+			return next(c)
+		}
+
+		cookie, err := c.Cookie("token")
+		if err != nil {
+			return c.String(http.StatusBadRequest, err.Error())
+		}
+
+		token := cookie.Value
+
+		claim := Claims{}
+		parsedTokenInfo, err := jwt.ParseWithClaims(token, &claim, func(token *jwt.Token) (interface{}, error) {
+			return []byte(jwtSecretKey), nil
+		})
+		if err != nil {
+			if errors.Is(err, jwt.ErrSignatureInvalid) {
+				return c.String(http.StatusUnauthorized, "Please login again")
+			}
+
+			return c.String(http.StatusUnauthorized, "Please login again")
+		}
+
+		if !parsedTokenInfo.Valid {
+			return c.String(http.StatusForbidden, "Invalid token")
+		}
+
+		c.Set("claim", claim)
+
+		return next(c)
+	}
+}
+
+func AdminMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		claim, _ := c.Get("claim").(Claims)
+
+		if claim.IsNotAdmin() {
+			return c.String(http.StatusForbidden, "You have no authority")
+		}
+
+		return next(c)
+	}
+}
+
+
+
+// check for valid admin token
+func JWTAuth() gin.HandlerFunc {
+	return func(context *gin.Context) {
+		err := ValidateJWT(context)
+		if err != nil {
+			context.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+			context.Abort()
+			return
+		}
+		error := ValidateAdminRoleJWT(context)
+		if error != nil {
+			context.JSON(http.StatusUnauthorized, gin.H{"error": "Only Administrator is allowed to perform this action"})
+			context.Abort()
+			return
+		}
+		context.Next()
+	}
+}
+
+// check for valid customer token
+func JWTAuthCustomer() gin.HandlerFunc {
+	return func(context *gin.Context) {
+		err := ValidateJWT(context)
+		if err != nil {
+			context.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+			context.Abort()
+			return
+		}
+		error := ValidateCustomerRoleJWT(context)
+		if error != nil {
+			context.JSON(http.StatusUnauthorized, gin.H{"error": "Only registered Customers are allowed to perform this action"})
+			context.Abort()
+			return
+		}
+		context.Next()
+	}
+}
+
+
+// edit user controller and append 
+func Login(context *gin.Context) {
+     jwt, err := util.GenerateJWT(user)
+     if err != nil {
+        context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
+
+    context.JSON(http.StatusOK, gin.H{"token": jwt, "username": input.Username, "message": "Successfully logged in"})
+}
+
+
+
+
+package middleware
+
+import (
+    "net/http"
+    "strings"
+    "github.com/gin-gonic/gin"
+    "authentication-api/utils"
+)
+
+// AuthenticationMiddleware checks if the user has a valid JWT token
+func AuthenticationMiddleware() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        tokenString := c.GetHeader("Authorization")
+        if tokenString == "" {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authentication token"})
+            c.Abort()
+            return
+        }
+
+        // The token should be prefixed with "Bearer "
+        tokenParts := strings.Split(tokenString, " ")
+        if len(tokenParts) != 2 || tokenParts[0] != "Bearer" {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authentication token"})
+            c.Abort()
+            return
+        }
+
+        tokenString = tokenParts[1]
+
+        claims, err := utils.VerifyToken(tokenString)
+        if err != nil {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authentication token"})
+            c.Abort()
+            return
+        }
+
+        c.Set("user_id", claims["user_id"])
+        c.Next()
+    }
+}
+
+
+
+
+func TokenMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+	jwtSecretKey := viper.GetString("ONLINE_TICKET_GO_JWTKEY")
+
+	return func(c echo.Context) error {
+		if _, ok := allowList[c.Request().RequestURI]; ok {
+			return next(c)
+		}
+
+		cookie, err := c.Cookie("token")
+		if err != nil {
+			return c.String(http.StatusBadRequest, err.Error())
+		}
+
+		token := cookie.Value
+
+		claim := Claims{}
+		parsedTokenInfo, err := jwt.ParseWithClaims(token, &claim, func(token *jwt.Token) (interface{}, error) {
+			return []byte(jwtSecretKey), nil
+		})
+		if err != nil {
+			if errors.Is(err, jwt.ErrSignatureInvalid) {
+				return c.String(http.StatusUnauthorized, "Please login again")
+			}
+
+			return c.String(http.StatusUnauthorized, "Please login again")
+		}
+
+		if !parsedTokenInfo.Valid {
+			return c.String(http.StatusForbidden, "Invalid token")
+		}
+
+		c.Set("claim", claim)
+
+		return next(c)
+	}
+}
+
+func AdminMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		claim, _ := c.Get("claim").(Claims)
+
+		if claim.IsNotAdmin() {
+			return c.String(http.StatusForbidden, "You have no authority")
+		}
+
+		return next(c)
+	}
+}
+
+
+func proxy(path, target string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		targetURL := target + r.URL.Path
+		req, err := http.NewRequest(r.Method, targetURL, r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadGateway)
+			return
+		}
+
+		req.Header = r.Header
+
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadGateway)
+			return
+		}
+		defer resp.Body.Close()
+
+		for key, values := range resp.Header {
+			for _, value := range values {
+				w.Header().Add(key, value)
+			}
+		}
+
+		w.WriteHeader(resp.StatusCode)
+
+		// Copy the response body to the client
+		_, err = io.Copy(w, resp.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadGateway)
+			return
+		}
+	}
+}
+
+
+func Auth() gin.HandlerFunc{
+	return func(context *gin.Context) {
+	  tokenString := context.GetHeader("Authorization")
+	  if tokenString == "" {
+		context.JSON(401, gin.H{"error": "request does not contain an access token"})
+		context.Abort()
+		return
+	  }
+	  err:= auth.ValidateToken(tokenString)
+	  if err != nil {
+		context.JSON(401, gin.H{"error": err.Error()})
+		context.Abort()
+		return
+	  }
+	  context.Next()
+	}
+  }
+
+
+  
+
+func IsAuthorizedJWT(h httprouter.Handle, role string) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+
+		rawAccessToken := r.Header.Get("Authorization")
+
+		tr := &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+		client := &http.Client{
+			Timeout:   time.Duration(6000) * time.Second,
+			Transport: tr,
+		}
+		ctx := oidc.ClientContext(context.Background(), client)
+		provider, err := oidc.NewProvider(ctx, RealmConfigURL)
+		if err != nil {
+			authorisationFailed("authorisation failed while getting the provider: "+err.Error(), w, r)
+			return
+		}
+
+		oidcConfig := &oidc.Config{
+			ClientID: clientID,
+		}
+		verifier := provider.Verifier(oidcConfig)
+		idToken, err := verifier.Verify(ctx, rawAccessToken)
+		if err != nil {
+			authorisationFailed("authorisation failed while verifying the token: "+err.Error(), w, r)
+			return
+		}
+
+		var IDTokenClaims Claims // ID Token payload is just JSON.
+		if err := idToken.Claims(&IDTokenClaims); err != nil {
+			authorisationFailed("claims : "+err.Error(), w, r)
+			return
+		}
+		fmt.Println(IDTokenClaims)
+		//checking the roles
+		user_access_roles := IDTokenClaims.ResourceAccess.DemoServiceClient.Roles
+		for _, b := range user_access_roles {
+			if b == role {
+				h(w, r, ps)
+				return
+			}
+		}
+
+		authorisationFailed("user not allowed to access this api", w, r)
+	}
+}
+
+func authorisationFailed(message string, w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusUnauthorized)
+	data := Res401Struct{
+		Status:   "FAILED",
+		HTTPCode: http.StatusUnauthorized,
+		Message:  message,
+	}
+	res, _ := json.Marshal(data)
+	w.Write(res)
+}
+
+
+
+func AuthenticationMiddleware() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        tokenString := c.GetHeader("Authorization")
+        if tokenString == "" {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authentication token"})
+            c.Abort()
+            return
+        }
+
+        // The token should be prefixed with "Bearer "
+        tokenParts := strings.Split(tokenString, " ")
+        if len(tokenParts) != 2 || tokenParts[0] != "Bearer" {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authentication token"})
+            c.Abort()
+            return
+        }
+
+        tokenString = tokenParts[1]
+
+        claims, err := utils.VerifyToken(tokenString)
+        if err != nil {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authentication token"})
+            c.Abort()
+            return
+        }
+
+        c.Set("user_id", claims["user_id"])
+        c.Next()
+    }
+}
+
+type Middleware struct {
+	logger  *zap.Logger
+	limiter *rate.Limiter
+	routes  map[string]*config.Route
+	db      *database.Database
+}
+
+type RouteMetrics struct {
+	CallCount     int           `json:"callCount"`
+	TotalResponse time.Duration `json:"totalResponse"`
+	ServiceURL    string        `json:"serviceURL"`
+	Path          string        `json:"path"`
+}
+
+
+// Token Based Authentication
+func TokenAuthMiddleware(next http.Handler) http.Handler {
+	validToken := DEFAULT_TOKEN
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token := r.Header.Get("Authorization")
+		if token == "" {
+			w.WriteHeader(http.StatusUnauthorized)
+			fmt.Fprintf(w, "Unauthoried. Token missing")
+			return
+		}
+		if token != validToken {
+			w.WriteHeader(http.StatusUnauthorized)
+			fmt.Fprintf(w, "Unauthorized. Invalid Token")
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+
+// API KEY Authentication
+func ApiKeyAuthMiddleware(next http.Handler) http.Handler {
+	validApiKey := DEFAULT_API_KEY
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		apiKey := r.Header.Get("X-API-Key")
+		if apiKey == "" {
+			w.WriteHeader(http.StatusUnauthorized)
+			fmt.Fprintf(w, "Unauthoried. API Key missing")
+			return
+		}
+		if apiKey != validApiKey {
+			w.WriteHeader(http.StatusUnauthorized)
+			fmt.Fprintf(w, "Unauthorized. Invalid API Key")
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+
+// JWT Authentication
+func JwtAuthMiddleWare(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(w, r)
+	})
+}
+
+
+func AuthorizationMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request)  {
+		next.ServeHTTP(w, r)
+	})
+}
+
+
+package middleware
+
+import (
+	"bufio"
+	"errors"
+	"net"
+	"net/http"
+)
+
+type LoggingMiddleware struct {
+	logger logger
+}
+
+func NewLoggingMiddleware(l logger) *LoggingMiddleware {
+	return &LoggingMiddleware{
+		logger: l,
+	}
+}
+
+type logger interface {
+	Infof(format string, args ...interface{})
+}
+
+// Logging middleware to log http requests
+func (lm *LoggingMiddleware) Logging(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		wi := &responseWriterInterceptor{
+			statusCode:     http.StatusOK,
+			ResponseWriter: w,
+		}
+		//lm.logger.Infof("%s %s", r.Method, r.RequestURI)
+		next.ServeHTTP(wi, r)
+
+		lm.logger.Infof("%s %s %d", r.Method, r.RequestURI, wi.statusCode)
+	})
+}

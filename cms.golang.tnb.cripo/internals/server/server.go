@@ -47,6 +47,10 @@ func (s *Server) Initialize() {
 	// 	AllowCredentials: true,
 	// }))
 
+	app.Use(cors.New(cors.Config{
+		AllowCredentials: true, //Very important while using a HTTPonly Cookie, frontend can easily get and return back the cookie.
+	}))
+
 	s.app.Use(healthcheck.New())
 
 	s.app.Use(recover.New())
@@ -63,6 +67,8 @@ func (s *Server) Initialize() {
 	// 	Path:     "swagger",
 	// 	Title:    "TamoEmCripto API Auth",
 	// }))
+
+	// r.Use(auth.IsAuthenticated())
 
 	s.app.Get("/swagger/*", fiberSwagger.WrapHandler)
 
@@ -116,3 +122,9 @@ func (s *Server) Initialize() {
 	log.Info("Server running at port: 3001")
 	log.Fatal(s.app.Listen(":3001"))
 }
+
+
+logger := log.NewGraylogLogger(conn)
+//logger := logrus.New()
+loggingMiddleware := middleware.NewLoggingMiddleware(logger)
+r.Use(loggingMiddleware.Logging)

@@ -14,6 +14,12 @@ const (
 	GuestRole UsersRole = "guest"
 )
 
+type Register struct {
+	Username string `json:"username" binding:"required"`
+	Email    string `json:"email" binding:"required"`
+	Password string `json:"password" binding:"required"`
+}
+
 type UserModel struct {
 	ID uuid.UUID `json:"id" db:"id"`
 	//Username   string    `json:"username" db:"username"`
@@ -37,6 +43,34 @@ func NewUser(ID uuid.UUID, nome string, email string) *UserModel {
 		ID:    ID,
 		Nome:  nome,
 		Email: email,
+	}
+}
+
+func (i *UserModel) Validate() bool {
+	return e.isGenderEmpty() ||
+		e.isFullNameEmpty() ||
+		e.isEmailEmpty() ||
+		e.isPhoneEmpty()
+}
+
+func (t *Ticket) isTripIDEmpty() bool {
+	return t.TripID == 0
+}
+
+func (p *Passenger) isGenderEmpty() bool {
+	return p.Gender == ""
+}
+
+func (u *User) IsUserTypeValid() bool {
+	switch u.UserType {
+	case auth.CorporateUser:
+		fallthrough
+	case auth.Admin:
+		fallthrough
+	case auth.IndividualUser:
+		return true
+	default:
+		return false
 	}
 }
 

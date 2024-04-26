@@ -1,5 +1,7 @@
 package routers
 
+import "net/http"
+
 func AuthRoutes() {
 	// r.POST("/login", controllers.Login)
 	// r.POST("/signup", controllers.Signup)

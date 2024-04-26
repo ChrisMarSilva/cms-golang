@@ -231,3 +231,80 @@ func (repo ClientRepository) UpdSaldo(ctx context.Context, tx pgx.Tx, id int, va
 //
 // 	return nil
 // }
+
+/*
+
+type Repository struct {
+	Conn      *pgxpool.Pool
+	ChPessoas chan rinha.Pessoa
+}
+
+var Repo *Repository
+
+func NewRepository(Conn *pgxpool.Pool, Cache *redis.Client) *Repository {
+	if Repo == nil {
+		Repo = &Repository{Conn: Conn, Cache: Cache, ChPessoas: make(chan rinha.Pessoa)}
+	}
+	return Repo
+}
+
+func (r *Repository) Create(ctx context.Context, pessoa rinha.Pessoa) error {
+	r.ChPessoas <- pessoa
+	return nil
+}
+
+func (r *Repository) Insert(pessoas []rinha.Pessoa) error {
+	if len(pessoas) == 0 {
+		return nil
+	}
+
+	_, err := r.Conn.CopyFrom(
+		context.Background(),
+		pgx.Identifier{"pessoas"},
+		[]string{"id", "apelido", "nome", "nascimento", "stack", "search_index"},
+		pgx.CopyFromSlice(len(pessoas), func(i int) ([]any, error) {
+			p := pessoas[i]
+			index := fmt.Sprintf("%s %s %s", strings.ToLower(p.Apelido), strings.ToLower(p.Nome), strings.ToLower(strings.Join(p.Stack, " ")))
+			return []any{p.ID, p.Apelido, p.Nome, p.Nascimento.Time, p.Stack, index}, nil
+		}),
+	)
+
+	if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.ConstraintName == "pessoas_apelido_key" {
+		slog.Error("algum apelido ja existe")
+		return pgErr
+	}
+
+	return err
+}
+
+func (r *Repository) FindOne(ctx context.Context, id uuid.UUID) (rinha.Pessoa, error) {
+	var pessoa rinha.Pessoa
+	var nascimento time.Time
+	err = r.Conn.QueryRow(ctx, `SELECT id, apelido, nome, nascimento, stack FROM pessoas WHERE id = $1 LIMIT 1`, id).Scan(&pessoa.ID, &pessoa.Apelido, &pessoa.Nome, &nascimento, &pessoa.Stack)
+	pessoa.Nascimento = rinha.Date{Time: nascimento}
+	if err == pgx.ErrNoRows {
+		return pessoa, nil
+	}
+	return pessoa, err
+}
+
+func (r *Repository) FindByTermo(ctx context.Context, t string) ([]rinha.Pessoa, error) {
+	pessoas := []rinha.Pessoa{}
+	rows, err := r.Conn.Query(ctx, ` SELECT id, apelido, nome, nascimento, stack FROM pessoas WHERE search_index ILIKE '%' || $1 || '%' LIMIT 50 `, strings.ToLower(t))
+	if err != nil {
+		return pessoas, err
+	}
+	defer rows.Close()x
+	for rows.Next() {
+		var pessoa rinha.Pessoa
+		var nascimento time.Time
+		err := rows.Scan(&pessoa.ID, &pessoa.Apelido, &pessoa.Nome, &nascimento, &pessoa.Stack)
+		if err != nil {
+			slog.Error(err.Error())
+		}
+		pessoas = append(pessoas, pessoa)
+	}
+	return pessoas, err
+}
+
+*/

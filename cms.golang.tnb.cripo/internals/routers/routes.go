@@ -26,6 +26,14 @@ func ConfigRoutes(app *fiber.App) *fiber.App {
 	//Handle
 	userHandler := NewUserHandler(*userServ)
 
+
+
+	
+	dbRepo := repository.NewDBRepo(db.SQL)
+	userRepo := repository.NewUserRepo(db.SQL)
+	router := chi.NewRouter()
+
+	
 	//routes
 
 	app.Use(AuthMiddleware)
@@ -70,4 +78,24 @@ func restricted(c *fiber.Ctx) error {
 	name := claims["nome"].(string)
 	email := claims["email"].(string)
 	return c.SendString("Welcome " + name + " " + email + " " + id)
+}
+
+
+
+package routes
+
+import (
+    "github.com/Siddheshk02/jwt-auth-api/controllers" // importing the routes package 
+    "github.com/gofiber/fiber/v2"
+)
+
+func Setup(app *fiber.App) {
+    api := app.Group("/user")
+    api.Get("/get-user", controllers.User)
+
+    api.Post("/register", controllers.Register)
+
+    api.Post("/login", controllers.Login)
+
+    api.Post("/logout", controllers.Logout)
 }
