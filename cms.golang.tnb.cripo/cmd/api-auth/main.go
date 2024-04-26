@@ -3,6 +3,7 @@ package main
 import (
 	"time"
 
+	"github.com/chrismarsilva/cms.golang.tnb.cripo.api.auth/internals/server"
 	"github.com/gofiber/fiber/v2/middleware/session"
 	"github.com/gofiber/storage/sqlite3"
 )
@@ -26,7 +27,7 @@ func init() {
 }
 
 func main() {
-	app := NewServer()
+	app := server.NewServer()
 	app.Initialize()
 }
 

@@ -12,8 +12,7 @@ package main
 // )
 
 // func init() {
-// 	//filename = "../../docs/99. cms - export foxbit - Histórico Chris.xlsx"
-// 	filename = "./docs/99. cms - export foxbit - Histórico Chris.xlsx"
+// 	filename = "./docs/foxbit.xlsx" # "../../docs/foxbit.xlsx"
 // 	sheet = "Planilha1" // Planilha1 // Query result
 // }
 
