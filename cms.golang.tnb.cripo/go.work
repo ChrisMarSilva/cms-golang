@@ -1,3 +1,6 @@
 go 1.22.2
 
-use ./cmd/api-auth
+use (
+	./cmd/api-auth
+	./cmd/wrk-cripto
+)
