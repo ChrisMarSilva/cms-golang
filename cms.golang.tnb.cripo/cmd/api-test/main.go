@@ -11,7 +11,26 @@ import (
 
 func main() {
 	// loadConfig()
-	loadDatabase()
+	// loadDatabase()
+	loadConRepository()
+}
+
+func loadConRepository() {
+	db, err := NewDatabase()
+	if err != nil {
+		log.Fatalf("Erro ao conectar ao banco de dados: %s", err.Error())
+	}
+	defer db.Close()
+
+	userRepo := NewUserRepository(db)
+
+	ctx := context.Background()
+	user, err := userRepo.GetByEmail(ctx, nil, "pessoal.01@gmail.com")
+	if err != nil {
+		log.Fatalf("Erro ao buscar usuário: %s", err.Error())
+	}
+
+	log.Println("ok - Nome:", user.Nome)
 }
 
 func loadDatabase() {
