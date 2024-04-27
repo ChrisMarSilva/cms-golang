@@ -2,12 +2,16 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"log"
 	"time"
+
+	"github.com/google/uuid"
 )
 
-// func init() {
-// }
+func init() {
+	log.Println("")
+}
 
 func main() {
 	// loadConfig()
@@ -25,12 +29,37 @@ func loadConRepository() {
 	userRepo := NewUserRepository(db)
 
 	ctx := context.Background()
+
 	user, err := userRepo.GetByEmail(ctx, nil, "pessoal.01@gmail.com")
 	if err != nil {
 		log.Fatalf("Erro ao buscar usuário: %s", err.Error())
 	}
+	log.Println("ok - GetByEmail - Nome:", user.Nome, "- Email:", user.Email)
 
-	log.Println("ok - Nome:", user.Nome)
+	dbRepo := NewDBRepo(db)
+
+	err = dbRepo.Transaction(ctx, func(ctx context.Context, tx *sql.Tx) error {
+		id := uuid.New()
+		newUser := NewUserEntity(id, "Pessoa "+id.String(), "pessoal"+id.String()+"@gmail.com", true, time.Now())
+
+		err := userRepo.Create(ctx, tx, newUser)
+		if err != nil {
+			return err
+		}
+		log.Println("ok - Create - Nome:", newUser.Nome, "- Email:", newUser.Email)
+
+		userCreated, err := userRepo.GetByEmail(ctx, tx, newUser.Email)
+		if err != nil {
+			log.Fatalf("Erro ao buscar usuário: %s", err.Error())
+		}
+		log.Println("ok - GetByEmail - Nome:", userCreated.Nome, "- Email:", userCreated.Email)
+
+		return nil
+	})
+
+	if err != nil {
+		log.Fatalf("Erro ao inserir usuário: %s", err.Error())
+	}
 }
 
 func loadDatabase() {

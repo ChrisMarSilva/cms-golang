@@ -20,7 +20,7 @@ type UserRepository interface {
 }
 
 type defaultRepository struct {
-	db *Database
+	db *Database //  Db *sql.DB
 }
 
 func NewUserRepository(db *Database) *defaultRepository {
@@ -56,16 +56,19 @@ func (repo defaultRepository) GetByEmail(ctx context.Context, tx *sql.Tx, email 
 	timeoutCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 
+	var row *sql.Row
 	query := `SELECT * FROM users WHERE email = ?`
 
-	var row *sql.Row
 	if tx != nil {
+		log.Info("tx")
 		row = tx.QueryRowContext(timeoutCtx, query, email)
 	} else {
+		log.Info("db")
 		row = repo.db.QueryRowContext(timeoutCtx, query, email)
 	}
 
 	user := &UserEntity{}
+
 	err := row.Scan(&user.ID, &user.Nome, &user.Email, &user.Password, &user.IsActive, &user.CreatedAt)
 	if err != nil {
 		log.Error("Erro no Scan:", err.Error())
@@ -120,8 +123,10 @@ func (repo defaultRepository) Create(ctx context.Context, tx *sql.Tx, user *User
 	query := `INSERT INTO users (id, nome, email, password, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?)`
 
 	if tx != nil {
+		log.Info("tx")
 		stmt, err = tx.Prepare(query)
 	} else {
+		log.Info("db")
 		stmt, err = repo.db.Prepare(query)
 	}
 

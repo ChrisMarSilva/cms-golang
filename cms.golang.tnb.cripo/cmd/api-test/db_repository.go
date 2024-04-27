@@ -10,17 +10,17 @@ type DBRepo interface {
 }
 
 type dbRepo struct { // dbRepo // defaultRepository
-	Db *sql.DB
+	db *Database //  Db *sql.DB
 }
 
-func NewDBRepo(db *sql.DB) *dbRepo {
+func NewDBRepo(db *Database) *dbRepo {
 	return &dbRepo{
-		Db: db,
+		db: db,
 	}
 }
 
 func (repo *dbRepo) Transaction(ctx context.Context, operation func(context.Context, *sql.Tx) error) error {
-	tx, err := repo.Db.BeginTx(ctx, nil)
+	tx, err := repo.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
