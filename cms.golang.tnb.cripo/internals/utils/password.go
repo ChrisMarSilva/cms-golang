@@ -1,59 +1,56 @@
-e utils
+package utils
 
- import "golang.org/x/crypto/bcrypt"
+// e utils
 
- func (user *User) ValidateUserPassword(password string) error {
-	return bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
-}
+//  import "golang.org/x/crypto/bcrypt"
 
- func CompareHashPassword(password, hash string) bool {
-     err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-     return err == nil
- }
+//  func (user *User) ValidateUserPassword(password string) error {
+// 	return bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+// }
 
- 
- func GenerateHashPassword(password string) (string, error) {
-    bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
-    return string(bytes), err
-}
+//  func CompareHashPassword(password, hash string) bool {
+//      err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+//      return err == nil
+//  }
 
+//  func GenerateHashPassword(password string) (string, error) {
+//     bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+//     return string(bytes), err
+// }
 
-func CompareHashPassword(password, hash string) bool {
-    err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-    return err == nil
-}
+// func CompareHashPassword(password, hash string) bool {
+//     err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+//     return err == nil
+// }
 
+// func (user *User) HashPassword(password string) error {
+//     bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+//     if err != nil {
+//       return err
+//     }
+//     user.Password = string(bytes)
+//     return nil
+//   }
+//   func (user *User) CheckPassword(providedPassword string) error {
+//     err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(providedPassword))
+//     if err != nil {
+//       return err
+//     }
+//     return nil
+//   }
 
+//   package security
 
-func (user *User) HashPassword(password string) error {
-    bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
-    if err != nil {
-      return err
-    }
-    user.Password = string(bytes)
-    return nil
-  }
-  func (user *User) CheckPassword(providedPassword string) error {
-    err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(providedPassword))
-    if err != nil {
-      return err
-    }
-    return nil
-  }
-  
+// import "golang.org/x/crypto/bcrypt"
 
-  package security
+// func EncryptPassword(password string) (string, error) {
+// 	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+// 	if err != nil {
+// 		return "", err
+// 	}
+// 	return string(hashed), nil
+// }
 
-import "golang.org/x/crypto/bcrypt"
-
-func EncryptPassword(password string) (string, error) {
-	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return "", err
-	}
-	return string(hashed), nil
-}
-
-func VerifyPassword(hashed, password string) error {
-	return bcrypt.CompareHashAndPassword([]byte(hashed), []byte(password))
-}
+// func VerifyPassword(hashed, password string) error {
+// 	return bcrypt.CompareHashAndPassword([]byte(hashed), []byte(password))
+// }
