@@ -1,5 +1,0 @@
-
-// go work init
-// go work sync
-// go work use ./cmd/api-auth
-// go work use ./cmd/wrk-cripto

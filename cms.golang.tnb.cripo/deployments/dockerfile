@@ -1,3 +1,35 @@
+FROM golang:1.22-alpine as builder
+WORKDIR /app
+COPY . ./
+RUN go build -o /test-app main.go
+RUN > /app/.env
+
+FROM scratch
+COPY --from=builder /test-app /test-app
+COPY --from=builder /app/.env .env
+EXPOSE 3000
+ENTRYPOINT [ "./test-app" ]
+
+
+
+
+
+FROM golang:1.22.0 AS build-stage
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -o /api ./cmd/main.go
+
+FROM build-stage AS run-test-stage
+RUN go test -v ./...
+
+FROM scratch AS build-release-stage
+WORKDIR /
+COPY --from=build-stage /api /api
+EXPOSE 8080
+ENTRYPOINT ["/api"]
+
 # FROM golang:1.22 as builder
 # WORKDIR /go/src/
 # COPY . .

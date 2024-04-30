@@ -2,27 +2,20 @@ package database
 
 import (
 	"database/sql"
+	"log"
 
 	_ "github.com/mattn/go-sqlite3"
-	//_ "github.com/jackc/pgx/v5"
-	//_ "github.com/jackc/pgx/v5/pgxpool"
-	//_ "github.com/jackc/pgx/v5/stdlib"
 )
+
+type IDatabase interface {
+	CloseDb()
+}
 
 type Database struct {
 	*sql.DB
 }
 
-// var Db *sql.DB // *gorm.DB
-// var dbConn = &Database{}
-// var Connection *pgxpool.Pool
-
-// func InitDb() *gorm.DB {
-// 	Db = connectDB()
-// 	return Db
-// }
-
-func Connect() (*Database, error) {
+func NewDatabase() (*Database, error) {
 	// config := configs.New()
 
 	//dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s", cfg.Host, cfg.User, cfg.Password, cfg.DBName, cfg.Port, cfg.SSLMode)
@@ -69,9 +62,13 @@ func Connect() (*Database, error) {
 	return &Database{db}, nil
 }
 
-// func Close() {
-// 	if Connection == nil {
-// 		return
-// 	}
-// 	Connection.Close()
-// }
+func (this Database) CloseDb() {
+	if this.DB == nil {
+		return
+	}
+
+	err := this.DB.Close()
+	if err != nil {
+		log.Println("database close failure: %v", err)
+	}
+}

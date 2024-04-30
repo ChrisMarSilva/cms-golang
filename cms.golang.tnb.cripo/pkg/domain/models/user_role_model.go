@@ -1,4 +1,4 @@
-package entities
+package models
 
 import (
 	"github.com/google/uuid"
@@ -12,14 +12,14 @@ const (
 	GuestRole UsersRoleType = "guest"
 )
 
-type UserRoleEntity struct {
+type UserRoleModel struct {
 	ID        uuid.UUID `db:"id"`
 	Nome      string    `db:"nome"`
 	Descricao string    `db:"descricao"`
 }
 
-func NewUserRoleEntity(ID uuid.UUID, nome, descricao string) *UserRoleEntity {
-	return &UserRoleEntity{
+func NewUserRoleModel(ID uuid.UUID, nome, descricao string) *UserRoleModel {
+	return &UserRoleModel{
 		ID:        ID,
 		Nome:      nome,
 		Descricao: descricao,

@@ -3,24 +3,26 @@ package repositories
 import (
 	"context"
 	"database/sql"
+
+	data "github.com/chrismarsilva/cms.golang.tnb.cripo.database"
 )
 
-type DBRepo interface {
+type IDbRepository interface {
 	Transaction(ctx context.Context, operation func(context.Context, *sql.Tx) error) error
 }
 
-type defaultRepository struct { // dbRepo
-	Db *sql.DB
+type DbRepository struct {
+	Db *data.Database
 }
 
-func NewDBRepo(db *sql.DB) *defaultRepository {
-	return &defaultRepository{
+func NewDbRepository(db *data.Database) *DbRepository {
+	return &DbRepository{
 		Db: db,
 	}
 }
 
-func (repo *defaultRepository) Transaction(ctx context.Context, operation func(context.Context, *sql.Tx) error) error {
-	tx, err := repo.Db.BeginTx(ctx, nil)
+func (this *DbRepository) Transaction(ctx context.Context, operation func(context.Context, *sql.Tx) error) error {
+	tx, err := this.Db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}

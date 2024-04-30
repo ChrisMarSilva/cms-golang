@@ -3,34 +3,35 @@ package repositories
 import (
 	"context"
 	"database/sql"
+	"log"
 	"time"
 
-	"github.com/chrismarsilva/cms.golang.tnb.cripo.api.auth/internals/entities"
-	"github.com/gofiber/fiber/v2/log"
+	data "github.com/chrismarsilva/cms.golang.tnb.cripo.database"
+	"github.com/chrismarsilva/cms.golang.tnb.cripo.domain/models"
 	"github.com/google/uuid"
 )
 
-type UserRepository interface {
-	GetById(ctx context.Context, tx *sql.Tx, id uuid.UUID) (*entities.UserEntity, error)
-	GetByEmail(ctx context.Context, tx *sql.Tx, email string) (*entities.UserEntity, error)
-	GetAll(ctx context.Context, tx *sql.Tx) (*[]entities.UserEntity, error)
+type IUserRepository interface {
+	GetById(ctx context.Context, tx *sql.Tx, id uuid.UUID) (*models.UserModel, error)
+	GetByEmail(ctx context.Context, tx *sql.Tx, email string) (*models.UserModel, error)
+	GetAll(ctx context.Context, tx *sql.Tx) (*[]models.UserModel, error)
 
-	Create(ctx context.Context, tx *sql.Tx, user *entities.UserEntity) error
-	Update(ctx context.Context, tx *sql.Tx, user *entities.UserEntity) error
+	Create(ctx context.Context, tx *sql.Tx, user *models.UserModel) error
+	Update(ctx context.Context, tx *sql.Tx, user *models.UserModel) error
 	Delete(ctx context.Context, tx *sql.Tx, id uuid.UUID)
 }
 
-type defaultRepository struct {
-	db *sql.DB
+type UserRepository struct {
+	db *data.Database
 }
 
-func NewUserRepository(db *sql.DB) *defaultRepository {
-	return &defaultRepository{
+func NewUserRepository(db *data.Database) *UserRepository {
+	return &UserRepository{
 		db: db,
 	}
 }
 
-func (repo defaultRepository) GetById(ctx context.Context, tx *sql.Tx, id uuid.UUID) (*entities.UserEntity, error) {
+func (this UserRepository) GetById(ctx context.Context, tx *sql.Tx, id uuid.UUID) (*models.UserModel, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 
@@ -40,17 +41,17 @@ func (repo defaultRepository) GetById(ctx context.Context, tx *sql.Tx, id uuid.U
 	if tx != nil {
 		row = tx.QueryRowContext(timeoutCtx, query, id)
 	} else {
-		row = repo.db.QueryRowContext(timeoutCtx, query, id)
+		row = this.db.QueryRowContext(timeoutCtx, query, id)
 	}
 
-	user := &entities.UserEntity{} // var user models.User
+	user := &models.UserModel{} // var user models.User
 	err := row.Scan(&user.ID, &user.Nome, &user.Email, &user.Password, &user.IsActive, &user.CreatedAt)
 	if err != nil {
 		// if err == sql.ErrNoRows {
 		// 	log.Error("Erro no ErrNoRows:", err.Error())
 		// 	return nil, fmt.Errorf("No user found with Email '%s'", email)
 		// }
-		log.Error("Erro no Scan:", err.Error())
+		log.Println("Erro no Scan:", err.Error())
 		return nil, err
 	}
 
@@ -58,7 +59,7 @@ func (repo defaultRepository) GetById(ctx context.Context, tx *sql.Tx, id uuid.U
 	return user, nil
 }
 
-func (repo defaultRepository) GetByEmail(ctx context.Context, tx *sql.Tx, email string) (*entities.UserEntity, error) {
+func (this UserRepository) GetByEmail(ctx context.Context, tx *sql.Tx, email string) (*models.UserModel, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 
@@ -68,17 +69,17 @@ func (repo defaultRepository) GetByEmail(ctx context.Context, tx *sql.Tx, email 
 	if tx != nil {
 		row = tx.QueryRowContext(timeoutCtx, query, email)
 	} else {
-		row = repo.db.QueryRowContext(timeoutCtx, query, email)
+		row = this.db.QueryRowContext(timeoutCtx, query, email)
 	}
 
-	user := &entities.UserEntity{}
+	user := &models.UserModel{}
 	err := row.Scan(&user.ID, &user.Nome, &user.Email, &user.Password, &user.IsActive, &user.CreatedAt)
 	if err != nil {
 		// if err == sql.ErrNoRows {
 		// 	log.Error("Erro no ErrNoRows:", err.Error())
 		// 	return nil, fmt.Errorf("No user found with Email '%s'", email)
 		// }
-		log.Error("Erro no Scan:", err.Error())
+		log.Println("Erro no Scan:", err.Error())
 		return nil, err
 	}
 
@@ -86,7 +87,8 @@ func (repo defaultRepository) GetByEmail(ctx context.Context, tx *sql.Tx, email 
 	return user, nil
 }
 
-func (repo defaultRepository) GetAll(ctx context.Context, tx *sql.Tx) (*[]entities.UserEntity, error) {
+
+func (this UserRepository) GetAll(ctx context.Context, tx *sql.Tx) (map[int]models.UserModel, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 
@@ -97,26 +99,26 @@ func (repo defaultRepository) GetAll(ctx context.Context, tx *sql.Tx) (*[]entiti
 	if tx != nil {
 		rows, err = tx.QueryContext(timeoutCtx, query)
 	} else {
-		rows, err = repo.db.QueryContext(timeoutCtx, query)
+		rows, err = this.db.QueryContext(timeoutCtx, query)
 	}
 	if err != nil {
 		return nil, err
 	}
 
-	//var users = make([]entities.UserEntity, 0)
-	users := make(map[int]entities.UserEntity)
+	//var users = make([]models.UserModel, 0)
+	users := make(map[int]models.UserModel)
 
 	for rows.Next() {
-		var user entities.UserEntity
+		var user models.UserModel
 
 		err := rows.Scan(&user.ID, &user.Nome, &user.Email, &user.Password, &user.IsActive, &user.CreatedAt)
 		if err != nil {
-			log.Error("Erro no Scan:", err.Error())
+			log.Println("Erro no Scan:", err.Error())
 			return nil, err
 		}
 
 		//users = append(users, user)
-		users[len(users)] = *user
+		users[len(users)] = user
 	}
 
 	if err = rows.Err(); err != nil {
@@ -127,7 +129,7 @@ func (repo defaultRepository) GetAll(ctx context.Context, tx *sql.Tx) (*[]entiti
 	return users, nil
 }
 
-func (repo defaultRepository) Create(ctx context.Context, tx *sql.Tx, user *entities.UserEntity) error {
+func (this UserRepository) Create(ctx context.Context, tx *sql.Tx, user *models.UserModel) error {
 	timeoutCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 
@@ -138,7 +140,7 @@ func (repo defaultRepository) Create(ctx context.Context, tx *sql.Tx, user *enti
 	if tx != nil {
 		stmt, err = tx.Prepare(query)
 	} else {
-		stmt, err = repo.db.Prepare(query)
+		stmt, err = this.db.Prepare(query)
 	}
 
 	if err != nil {
@@ -154,7 +156,7 @@ func (repo defaultRepository) Create(ctx context.Context, tx *sql.Tx, user *enti
 	return nil
 }
 
-func (repo defaultRepository) Update(ctx context.Context, tx *sql.Tx, user *entities.UserEntity) error {
+func (this UserRepository) Update(ctx context.Context, tx *sql.Tx, user *models.UserModel) error {
 	timeoutCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 
@@ -165,7 +167,7 @@ func (repo defaultRepository) Update(ctx context.Context, tx *sql.Tx, user *enti
 	if tx != nil {
 		stmt, err = tx.Prepare(query)
 	} else {
-		stmt, err = repo.db.Prepare(query)
+		stmt, err = this.db.Prepare(query)
 	}
 
 	if err != nil {
@@ -181,7 +183,7 @@ func (repo defaultRepository) Update(ctx context.Context, tx *sql.Tx, user *enti
 	return nil
 }
 
-func (repo defaultRepository) Delete(ctx context.Context, tx *sql.Tx, id uuid.UUID) error {
+func (this UserRepository) Delete(ctx context.Context, tx *sql.Tx, id uuid.UUID) error {
 	timeoutCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 
@@ -192,7 +194,7 @@ func (repo defaultRepository) Delete(ctx context.Context, tx *sql.Tx, id uuid.UU
 	if tx != nil {
 		stmt, err = tx.Prepare(query)
 	} else {
-		stmt, err = repo.db.Prepare(query)
+		stmt, err = this.db.Prepare(query)
 	}
 
 	if err != nil {

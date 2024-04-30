@@ -4,6 +4,4 @@
 // go get -u github.com/mattn/go-sqlite3
 // go mod tidy
 
-// go work use .
-
 // go run .

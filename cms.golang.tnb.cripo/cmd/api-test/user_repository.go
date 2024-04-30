@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 	"database/sql"
+	"log"
 	"time"
 
-	"github.com/gofiber/fiber/v2/log"
 	"github.com/google/uuid"
 )
 
@@ -45,7 +45,7 @@ func (repo defaultRepository) GetById(ctx context.Context, tx *sql.Tx, id uuid.U
 	user := &UserEntity{}
 	err := row.Scan(&user.ID, &user.Nome, &user.Email, &user.Password, &user.IsActive, &user.CreatedAt)
 	if err != nil {
-		log.Error("Erro no Scan:", err.Error())
+		log.Println("Erro no Scan:", err.Error())
 		return nil, err
 	}
 
@@ -60,10 +60,8 @@ func (repo defaultRepository) GetByEmail(ctx context.Context, tx *sql.Tx, email 
 	query := `SELECT * FROM users WHERE email = ?`
 
 	if tx != nil {
-		log.Info("tx")
 		row = tx.QueryRowContext(timeoutCtx, query, email)
 	} else {
-		log.Info("db")
 		row = repo.db.QueryRowContext(timeoutCtx, query, email)
 	}
 
@@ -71,7 +69,7 @@ func (repo defaultRepository) GetByEmail(ctx context.Context, tx *sql.Tx, email 
 
 	err := row.Scan(&user.ID, &user.Nome, &user.Email, &user.Password, &user.IsActive, &user.CreatedAt)
 	if err != nil {
-		log.Error("Erro no Scan:", err.Error())
+		log.Println("Erro no Scan:", err.Error())
 		return nil, err
 	}
 
@@ -101,7 +99,7 @@ func (repo defaultRepository) GetAll(ctx context.Context, tx *sql.Tx) (map[int]U
 		var user UserEntity
 		err := rows.Scan(&user.ID, &user.Nome, &user.Email, &user.Password, &user.IsActive, &user.CreatedAt)
 		if err != nil {
-			log.Error("Erro no Scan:", err.Error())
+			log.Println("Erro no Scan:", err.Error())
 			return nil, err
 		}
 		users[len(users)] = user //users = append(users, user)
@@ -123,10 +121,8 @@ func (repo defaultRepository) Create(ctx context.Context, tx *sql.Tx, user *User
 	query := `INSERT INTO users (id, nome, email, password, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?)`
 
 	if tx != nil {
-		log.Info("tx")
 		stmt, err = tx.Prepare(query)
 	} else {
-		log.Info("db")
 		stmt, err = repo.db.Prepare(query)
 	}
 

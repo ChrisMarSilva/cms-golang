@@ -1,4 +1,4 @@
-package entities
+package models
 
 import (
 	"time"
@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type UserEntity struct {
+type UserModel struct {
 	ID uuid.UUID `db:"id"`
 	//Role     UsersRole`
 	//Username   string    `db:"username"`
@@ -23,8 +23,8 @@ type UserEntity struct {
 	//DeletedAt time.Time `jsdb:"deleted_at"`
 }
 
-func NewUserEntity(ID uuid.UUID, nome, email string, isActive bool, createdAt time.Time) *UserEntity {
-	return &UserEntity{
+func NewUserModel(ID uuid.UUID, nome, email string, isActive bool, createdAt time.Time) *UserModel {
+	return &UserModel{
 		ID:        ID,
 		Nome:      nome,
 		Email:     email,
@@ -33,24 +33,24 @@ func NewUserEntity(ID uuid.UUID, nome, email string, isActive bool, createdAt ti
 	}
 }
 
-func (u UserEntity) Validate() bool {
-	return u.isIDEmpty() || u.isNomeEmpty() || u.isEmailEmpty()
+func (this UserModel) Validate() bool {
+	return this.isIDEmpty() || this.isNomeEmpty() || this.isEmailEmpty()
 }
 
-func (u UserEntity) isIDEmpty() bool {
-	return u.ID == uuid.Nil
+func (this UserModel) isIDEmpty() bool {
+	return this.ID == uuid.Nil
 }
 
-func (u UserEntity) isNomeEmpty() bool {
-	return u.Nome == ""
+func (this UserModel) isNomeEmpty() bool {
+	return this.Nome == ""
 }
 
-func (u UserEntity) isEmailEmpty() bool {
-	return u.Email == ""
+func (this UserModel) isEmailEmpty() bool {
+	return this.Email == ""
 }
 
-// func (u *User) IsUserTypeValid() bool {
-// 	switch u.UserType {
+// func (this *User) IsUserTypeValid() bool {
+// 	switch this.UserType {
 // 	case auth.CorporateUser:
 // 		fallthrough
 // 	case auth.Admin:

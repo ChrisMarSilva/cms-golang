@@ -14,9 +14,6 @@
 // go get -u github.com/gofiber/fiber/v2/middleware/timeout
 // go get -u github.com/gofiber/fiber/v2/middleware/requestid
 // go get -u github.com/gofiber/fiber/v2/log
-// go get -u github.com/gofiber/storage/sqlite3
-// go get -u github.com/mattn/go-sqlite3
-// go get -u github.com/google/uuid
 // go get -u github.com/goccy/go-json
 // go get -u go.uber.org/zap
 // go get -u github.com/gofiber/contrib/fiberzap/v2
@@ -29,6 +26,7 @@
 
 // go get -u github.com/golang-migrate/migrate/v4
 // go get -u github.com/golang-migrate/migrate/v4/database
+
 // go get -u github.com/stretchr/testify/require
 // go get -u github.com/stretchr/testify/suite
 // go get -u github.com/stretchr/testify/assert

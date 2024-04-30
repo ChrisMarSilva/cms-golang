@@ -4,4 +4,7 @@ use (
 	./cmd/api-auth
 	./cmd/api-test
 	./cmd/wrk-cripto
+	./cmd/wrk-migrate
+	./pkg/database
+	./pkg/domain
 )

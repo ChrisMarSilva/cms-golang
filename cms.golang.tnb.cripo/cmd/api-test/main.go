@@ -16,10 +16,15 @@ func init() {
 func main() {
 	// loadConfig()
 	// loadDatabase()
-	loadConRepository()
+	// loadRepository()
+	loadService()
 }
 
-func loadConRepository() {
+func loadService() {
+
+}
+
+func loadRepository() {
 	db, err := NewDatabase()
 	if err != nil {
 		log.Fatalf("Erro ao conectar ao banco de dados: %s", err.Error())
