@@ -1,7 +1,5 @@
 package utils
 
-// e utils
-
 //  import "golang.org/x/crypto/bcrypt"
 
 //  func (user *User) ValidateUserPassword(password string) error {
@@ -39,10 +37,6 @@ package utils
 //     return nil
 //   }
 
-//   package security
-
-// import "golang.org/x/crypto/bcrypt"
-
 // func EncryptPassword(password string) (string, error) {
 // 	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 // 	if err != nil {
@@ -57,13 +51,6 @@ package utils
 
 /*
 
-
-	services/auth/password.go
-	package auth
-
-	import (
-		"golang.org/x/crypto/bcrypt"
-	)
 
 	func HashPassword(password string) (string, error) {
 		hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)

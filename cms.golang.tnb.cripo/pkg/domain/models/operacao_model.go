@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chrismarsilva/cms.golang.tnb.cripo.utils"
+	utils "github.com/chrismarsilva/cms.golang.tnb.cripo.utils"
 	"github.com/shopspring/decimal"
 )
 
-type Operacion struct {
+type Operacao struct {
 	DataHora        time.Time       // DateTime
 	Tipo            string          // Type
 	Cripto          string          // OriginCoin // DestinationCoin
@@ -26,8 +26,8 @@ type Operacion struct {
 	PercValorizacao decimal.Decimal
 }
 
-func NewOperacion(lineOne, lineTwo []string) *Operacion {
-	op := new(Operacion)
+func NewOperacao(lineOne, lineTwo []string) *Operacao {
+	op := new(Operacao)
 
 	dataHora := op.GetDataHora(lineOne)
 	//log.Println("dataHora", dataHora)
@@ -64,7 +64,7 @@ func NewOperacion(lineOne, lineTwo []string) *Operacion {
 
 	//log.Println("qtd", qtd, "totVlrPreco", totVlrPreco, "totVlr", totVlr, "vlrCusto", vlrCusto)
 
-	return &Operacion{
+	return &Operacao{
 		DataHora:        dataHora,
 		Tipo:            tipo,
 		Cripto:          cripto,
@@ -80,7 +80,7 @@ func NewOperacion(lineOne, lineTwo []string) *Operacion {
 	}
 }
 
-func (Operacion) GetDataHora(line []string) time.Time {
+func (Operacao) GetDataHora(line []string) time.Time {
 	dataHoraStr := strings.TrimSpace(line[1])
 
 	dataHora, err := utils.ParseTime(dataHoraStr)
@@ -91,7 +91,7 @@ func (Operacion) GetDataHora(line []string) time.Time {
 	return dataHora
 }
 
-func (Operacion) GetTipo(line []string, qtd decimal.Decimal) string {
+func (Operacao) GetTipo(line []string, qtd decimal.Decimal) string {
 	tipo := "C"
 	if qtd.LessThan(decimal.NewFromFloat(0)) {
 		tipo = "V"
@@ -100,14 +100,14 @@ func (Operacion) GetTipo(line []string, qtd decimal.Decimal) string {
 	return tipo
 }
 
-func (Operacion) GetCripto(lineOne, lineTwo []string) string {
+func (Operacao) GetCripto(lineOne, lineTwo []string) string {
 	criptoDe := strings.TrimSpace(lineOne[3])
 	criptoPara := strings.TrimSpace(lineTwo[3])
 
 	return fmt.Sprintf("%s/%s", criptoDe, criptoPara)
 }
 
-func (Operacion) GetQtd(line []string) decimal.Decimal {
+func (Operacao) GetQtd(line []string) decimal.Decimal {
 	qtdStr := strings.TrimSpace(line[4])
 	qtdTaxaStr := strings.TrimSpace(line[5])
 
@@ -124,7 +124,7 @@ func (Operacion) GetQtd(line []string) decimal.Decimal {
 	return qtd.Sub(qtdTaxa)
 }
 
-func (Operacion) GetVlrTaxa(lineOne, lineTwo []string, tipo string, vlrPreco decimal.Decimal) decimal.Decimal {
+func (Operacao) GetVlrTaxa(lineOne, lineTwo []string, tipo string, vlrPreco decimal.Decimal) decimal.Decimal {
 	if tipo == "C" {
 		qtdTaxaStr := strings.TrimSpace(lineTwo[5])
 
@@ -147,7 +147,7 @@ func (Operacion) GetVlrTaxa(lineOne, lineTwo []string, tipo string, vlrPreco dec
 	}
 }
 
-func (Operacion) GetVlrPreco(lineTwo []string) decimal.Decimal {
+func (Operacao) GetVlrPreco(lineTwo []string) decimal.Decimal {
 	vlrPrecoStr := ""
 	if len(lineTwo) > 7 {
 		vlrPrecoStr = strings.ReplaceAll(strings.TrimSpace(lineTwo[7]), "\n", "")
@@ -166,7 +166,7 @@ func (Operacion) GetVlrPreco(lineTwo []string) decimal.Decimal {
 	return vlrPreco
 }
 
-func (Operacion) GetTotVlrPreco(qtd, vlrPreco decimal.Decimal) decimal.Decimal {
+func (Operacao) GetTotVlrPreco(qtd, vlrPreco decimal.Decimal) decimal.Decimal {
 	totVlrPreco := decimal.NewFromFloat(0)
 
 	if qtd.GreaterThan(decimal.NewFromFloat(0)) && vlrPreco.GreaterThan(decimal.NewFromFloat(0)) {
@@ -176,7 +176,7 @@ func (Operacion) GetTotVlrPreco(qtd, vlrPreco decimal.Decimal) decimal.Decimal {
 	return totVlrPreco
 }
 
-func (Operacion) GetTotVlr(tipo string, totVlrPreco, vlrTaxa decimal.Decimal) decimal.Decimal {
+func (Operacao) GetTotVlr(tipo string, totVlrPreco, vlrTaxa decimal.Decimal) decimal.Decimal {
 	totVlr := decimal.NewFromFloat(0)
 
 	if tipo == "C" {
@@ -188,7 +188,7 @@ func (Operacion) GetTotVlr(tipo string, totVlrPreco, vlrTaxa decimal.Decimal) de
 	return totVlr
 }
 
-func (Operacion) GetVlrCusto(qtd, totVlr decimal.Decimal) decimal.Decimal {
+func (Operacao) GetVlrCusto(qtd, totVlr decimal.Decimal) decimal.Decimal {
 	vlrCusto := decimal.NewFromFloat(0)
 
 	if qtd.GreaterThan(decimal.NewFromFloat(0)) && totVlr.GreaterThan(decimal.NewFromFloat(0)) {
@@ -198,7 +198,7 @@ func (Operacion) GetVlrCusto(qtd, totVlr decimal.Decimal) decimal.Decimal {
 	return vlrCusto
 }
 
-func (op *Operacion) CalcVlrPrecoMedio(qtdAtual, vlrPrecoMedioAtual decimal.Decimal) (decimal.Decimal, decimal.Decimal) {
+func (op *Operacao) CalcVlrPrecoMedio(qtdAtual, vlrPrecoMedioAtual decimal.Decimal) (decimal.Decimal, decimal.Decimal) {
 	op.VlrPrecoMedio = decimal.NewFromFloat(0)
 
 	if op.Tipo == "C" {
@@ -218,7 +218,7 @@ func (op *Operacion) CalcVlrPrecoMedio(qtdAtual, vlrPrecoMedioAtual decimal.Deci
 	return qtdAtual, vlrPrecoMedioAtual
 }
 
-func (op Operacion) CalcVlrValorizacao() decimal.Decimal {
+func (op Operacao) CalcVlrValorizacao() decimal.Decimal {
 	vlrValorizacao := decimal.NewFromFloat(0)
 
 	if op.Tipo == "V" && op.Qtd.GreaterThan(decimal.NewFromFloat(0)) && op.VlrPrecoMedio.GreaterThan(decimal.NewFromFloat(0)) {
@@ -228,7 +228,7 @@ func (op Operacion) CalcVlrValorizacao() decimal.Decimal {
 	return vlrValorizacao
 }
 
-func (op Operacion) CalcPercValorizacao() decimal.Decimal {
+func (op Operacao) CalcPercValorizacao() decimal.Decimal {
 	vlrZero := decimal.NewFromFloat(0)
 	percValorizacao := decimal.NewFromFloat(0)
 
@@ -241,7 +241,7 @@ func (op Operacion) CalcPercValorizacao() decimal.Decimal {
 	return percValorizacao
 }
 
-func (op Operacion) String() string {
+func (op Operacao) String() string {
 	texto := fmt.Sprintf(
 		"%s-%s; %s; Qtd:%s; Prç:%s; TotPrç:%s; Tx:%s; Tot:%s; Cst: %s; PrçMed: %s; ",
 		op.DataHora.Format("02/01/2006 15:04:05"),

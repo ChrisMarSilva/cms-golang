@@ -45,7 +45,7 @@ func (op *OperacionService) ProcessFile() error {
 	}
 
 	totLines := len(rows)
-	operacoes := make(map[int]models.Operacion)
+	operacoes := make(map[int]models.Operacao)
 
 	for idx := 0; idx < totLines; idx++ {
 		lineOne := rows[idx]
@@ -60,7 +60,7 @@ func (op *OperacionService) ProcessFile() error {
 			if idx+1 < totLines {
 				idx++
 				lineTwo := rows[idx]
-				operacoes[len(operacoes)] = *models.NewOperacion(lineOne, lineTwo)
+				operacoes[len(operacoes)] = *models.NewOperacao(lineOne, lineTwo)
 			}
 		} else {
 			log.Println(idx, "\tTYPE NOT DEFINED\t", lineOne)

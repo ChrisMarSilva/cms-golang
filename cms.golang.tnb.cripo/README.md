@@ -6,4 +6,4 @@
 // go work use ./pkg/database
 // go work use ./pkg/domain
 // go work use ./pkg/logging
-// go work use ./pkg/repository
+// go work use ./pkg/utils

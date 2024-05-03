@@ -7,4 +7,5 @@ use (
 	./cmd/wrk-migrate
 	./pkg/database
 	./pkg/domain
+	./pkg/utils
 )

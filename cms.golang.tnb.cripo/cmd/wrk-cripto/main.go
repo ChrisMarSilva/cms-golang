@@ -17,11 +17,11 @@ func init() {
 }
 
 func main() {
-	op := services.NewOperacionService(filename, sheet)
+	operacionService := services.NewOperacionService(filename, sheet)
 
-	err := op.ProcessFile()
+	err := operacionService.ProcessFile()
 	if err != nil {
-		log.Println("op.Process():", err)
+		log.Println("operacionService.Process():", err)
 		return
 	}
 }
