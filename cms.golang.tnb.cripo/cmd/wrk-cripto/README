@@ -1,9 +1,5 @@
 
-// go mod init github.com/chrismarsilva/cms.golang.tnb.cripo
-// go get -u github.com/xuri/excelize/v2
-// go get -u github.com/mattn/go-sqlite3
-// go get -u github.com/shopspring/decimal
-// go get -u github.com/stretchr/testify/assert
+// go mod init github.com/chrismarsilva/cms.golang.tnb.cripo.wrk.cripto
 // go mod tidy
 
 // go run .

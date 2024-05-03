@@ -1,26 +1,27 @@
 package main
 
-// import (
-// 	"log"
+import (
+	"log"
 
-// 	"github.com/chrismarsilva/cms.golang.tnb.cripo/internals/services"
-// )
+	"github.com/chrismarsilva/cms.golang.tnb.cripo.domain/services"
+)
 
-// var (
-// 	filename string
-// 	sheet    string
-// )
+var (
+	filename string
+	sheet    string
+)
 
-// func init() {
-// 	filename = "./docs/foxbit.xlsx" # "../../docs/foxbit.xlsx"
-// 	sheet = "Planilha1" // Planilha1 // Query result
-// }
+func init() {
+	filename = "./../../docs/foxbit.xlsx"
+	sheet = "Planilha1" // "Planilha1" // "Query result"
+}
 
-// func main() {
-// 	op := services.NewOperacionService(filename, sheet)
-// 	err := op.ProcessFile()
-// 	if err != nil {
-// 		log.Println("op.Process():", err)
-// 		return
-// 	}
-// }
+func main() {
+	op := services.NewOperacionService(filename, sheet)
+
+	err := op.ProcessFile()
+	if err != nil {
+		log.Println("op.Process():", err)
+		return
+	}
+}
