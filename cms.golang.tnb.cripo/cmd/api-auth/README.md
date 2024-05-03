@@ -1,6 +1,5 @@
 
 // go mod init github.com/chrismarsilva/cms.golang.tnb.cripo.api.auth
-
 // go get -u github.com/gofiber/fiber/v2
 // go get -u github.com/gofiber/fiber/v2/middleware/adaptor
 // go get -u github.com/gofiber/fiber/v2/middleware/compress
@@ -17,19 +16,13 @@
 // go get -u github.com/goccy/go-json
 // go get -u go.uber.org/zap
 // go get -u github.com/gofiber/contrib/fiberzap/v2
-// go get -u github.com/gofiber/contrib/swagger
-// go get -u github.com/swaggo/fiber-swagger
+// go get -u github.com/gofiber/storage/sqlite3
+
 // go get -u github.com/gofiber/contrib/jwt
 // go get -u github.com/golang-jwt/jwt/v5
 // go get -u golang.org/x/crypto/bcrypt
 // go get -u github.com/joho/godotenv
 
-// go get -u github.com/golang-migrate/migrate/v4
-// go get -u github.com/golang-migrate/migrate/v4/database
-
-// go get -u github.com/stretchr/testify/require
-// go get -u github.com/stretchr/testify/suite
-// go get -u github.com/stretchr/testify/assert
 // go mod tidy
 // go run .
 

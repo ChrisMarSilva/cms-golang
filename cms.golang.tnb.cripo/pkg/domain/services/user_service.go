@@ -270,6 +270,16 @@ package services
 // 	return c.String(http.StatusOK, "You have successfully logout")
 // }
 
+// /*
+// if err != nil {
+// 			if errors.Is(err, trip.ErrTripNotFound) {
+// 				return ErrTripNotFound
+// 			}
+// 			return err
+// 		}
+
+// */
+
 // func (h UserService) Refresh(c *fiber.Ctx) (jwt.MapClaims, error) {
 // 	sess, err := store.Get(c)
 // 	if err != nil {

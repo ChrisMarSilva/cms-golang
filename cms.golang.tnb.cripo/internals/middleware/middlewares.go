@@ -1,13 +1,26 @@
 package utils
 
 // import (
+// 	"context"
+// 	"crypto/tls"
+// 	"encoding/json"
+// 	"errors"
 // 	"fmt"
+// 	"io"
+// 	"net/http"
+// 	"os"
+// 	"strconv"
 // 	"strings"
+// 	"time"
 
+// 	"github.com/gin-gonic/gin"
 // 	jwtware "github.com/gofiber/contrib/jwt"
 // 	"github.com/gofiber/fiber/v2"
-// 	"github.com/golang-jwt/jwt/v5"
+// 	"github.com/golang-jwt/jwt"
 // 	"github.com/google/uuid"
+// 	"github.com/labstack/echo"
+// 	"github.com/spf13/viper"
+// 	"gorm.io/gorm"
 // )
 
 // func NewAuthMiddleware(secret string) fiber.Handler {
@@ -16,71 +29,26 @@ package utils
 // 	})
 // }
 
-// var jwtKey = []byte("my_secret_key")
-// var tokens []string
-
-// type Claims struct {
-//     Username string `json:"username"`
-//     jwt.RegisteredClaims
-// }
-
-// r.GET("/resource", func(c *gin.Context) {
-// 	bearerToken := c.Request.Header.Get("Authorization")
-// 	reqToken := strings.Split(bearerToken, " ")[1]
-// 	for _, token := range tokens {
-// 		if token == reqToken {
-// 			c.JSON(http.StatusOK, gin.H{
-// 				"data": "resource data",
-// 			})
-// 			return
-// 		}
-// 	}
-// 	c.JSON(http.StatusUnauthorized, gin.H{
-// 		"message": "unauthorized",
-// 	})
-// })
-
-// func IsAuthorized() gin.HandlerFunc {
-// 	return func(c *gin.Context) {
-// 		cookie, err := c.Cookie("token")
-
-// 		if err != nil {
-// 			c.JSON(401, gin.H{"error": "unauthorized"})
-// 			c.Abort()
-// 			return
-// 		}
-
-// 		claims, err := utils.ParseToken(cookie)
-
-// 		if err != nil {
-// 			c.JSON(401, gin.H{"error": "unauthorized"})
-// 			c.Abort()
-// 			return
-// 		}
-
-// 		c.Set("role", claims.Role)
-// 		c.Next()
-// 	}
-// }
-
 // func AdminMiddleware(c *fiber.Ctx) error {
 // 	// userRole := getUserRoleFromContext(c)
-
 // 	// if userRole != AdminRole {
 // 	// 	return c.Status(fiber.StatusForbidden).SendString("Permission Denied")
 // 	// }
+// 	return func(c *fiber.Ctx) error {
+// 		claim, _ := c.Get("claim").(Claims)
 
-// 	return c.Next()
+// 		if claim.IsNotAdmin() {
+// 			return c.String(http.StatusForbidden, "You have no authority")
+// 		}
+
+// 		return c.Next()
+// 	}
 // }
 
 // func AuthMiddleware(c *fiber.Ctx) error {
-// 	// Check for authentication credentials
-// 	// If credentials are valid, proceed to the next middleware or route
-// 	// If credentials are invalid, return an unauthorized response
 // 	tokenString := c.Get("Authorization")
 
 // 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-// 		// Verify the token signing method and return the secret key
 // 		return []byte(SecretKey), nil
 // 	})
 
@@ -88,9 +56,7 @@ package utils
 // 		return c.Status(fiber.StatusUnauthorized).SendString("Invalid Token")
 // 	}
 
-// 	// Extract user information from the token and store it in the context
 // 	c.Locals("user", getUserFromToken(token))
-
 // 	return c.Next()
 // }
 
@@ -107,10 +73,8 @@ package utils
 // }
 
 // func getUserRoleFromContext(c *fiber.Ctx) string {
-// 	// Extract the user information from the context
-// 	// user := c.Locals("user").(User)
-
-// 	return "admin" // user.Role
+// 	user := c.Locals("user").(UserModel)
+// 	return user.Role
 // }
 
 // func DeserializeUser(c *fiber.Ctx) error {
@@ -195,19 +159,27 @@ package utils
 // 	}
 // }
 
-// func AdminMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
-// 	return func(c echo.Context) error {
-// 		claim, _ := c.Get("claim").(Claims)
-
-// 		if claim.IsNotAdmin() {
-// 			return c.String(http.StatusForbidden, "You have no authority")
+// func IsAuthorized() gin.HandlerFunc {
+// 	return func(c *gin.Context) {
+// 		cookie, err := c.Cookie("token")
+// 		if err != nil {
+// 			c.JSON(401, gin.H{"error": "unauthorized"})
+// 			c.Abort()
+// 			return
 // 		}
 
-// 		return next(c)
+// 		claims, err := utils.ParseToken(cookie)
+// 		if err != nil {
+// 			c.JSON(401, gin.H{"error": "unauthorized"})
+// 			c.Abort()
+// 			return
+// 		}
+
+// 		c.Set("role", claims.Role)
+// 		c.Next()
 // 	}
 // }
 
-// // check for valid admin token
 // func JWTAuth() gin.HandlerFunc {
 // 	return func(context *gin.Context) {
 // 		err := ValidateJWT(context)
@@ -226,7 +198,6 @@ package utils
 // 	}
 // }
 
-// // check for valid customer token
 // func JWTAuthCustomer() gin.HandlerFunc {
 // 	return func(context *gin.Context) {
 // 		err := ValidateJWT(context)
@@ -245,56 +216,81 @@ package utils
 // 	}
 // }
 
-// // edit user controller and append
 // func Login(context *gin.Context) {
-//      jwt, err := util.GenerateJWT(user)
-//      if err != nil {
-//         context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-//         return
-//     }
+// 	jwt, err := util.GenerateJWT(user)
+// 	if err != nil {
+// 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+// 		return
+// 	}
 
-//     context.JSON(http.StatusOK, gin.H{"token": jwt, "username": input.Username, "message": "Successfully logged in"})
+// 	context.JSON(http.StatusOK, gin.H{"token": jwt, "username": input.Username, "message": "Successfully logged in"})
 // }
 
-// package middleware
+// func proxy(path, target string) http.HandlerFunc {
+// 	return func(w http.ResponseWriter, r *http.Request) {
+// 		targetURL := target + r.URL.Path
+// 		req, err := http.NewRequest(r.Method, targetURL, r.Body)
+// 		if err != nil {
+// 			http.Error(w, err.Error(), http.StatusBadGateway)
+// 			return
+// 		}
 
-// import (
-//     "net/http"
-//     "strings"
-//     "github.com/gin-gonic/gin"
-//     "authentication-api/utils"
-// )
+// 		req.Header = r.Header
 
-// // AuthenticationMiddleware checks if the user has a valid JWT token
+// 		client := &http.Client{}
+// 		resp, err := client.Do(req)
+// 		if err != nil {
+// 			http.Error(w, err.Error(), http.StatusBadGateway)
+// 			return
+// 		}
+// 		defer resp.Body.Close()
+
+// 		for key, values := range resp.Header {
+// 			for _, value := range values {
+// 				w.Header().Add(key, value)
+// 			}
+// 		}
+
+// 		w.WriteHeader(resp.StatusCode)
+
+// 		// Copy the response body to the client
+// 		_, err = io.Copy(w, resp.Body)
+// 		if err != nil {
+// 			http.Error(w, err.Error(), http.StatusBadGateway)
+// 			return
+// 		}
+// 	}
+// }
+
 // func AuthenticationMiddleware() gin.HandlerFunc {
-//     return func(c *gin.Context) {
-//         tokenString := c.GetHeader("Authorization")
-//         if tokenString == "" {
-//             c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authentication token"})
-//             c.Abort()
-//             return
-//         }
+// 	return func(c *gin.Context) {
+// 		tokenString := c.GetHeader("Authorization")
+// 		if tokenString == "" {
+// 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authentication token"})
+// 			c.Abort()
+// 			return
+// 		}
 
-//         // The token should be prefixed with "Bearer "
-//         tokenParts := strings.Split(tokenString, " ")
-//         if len(tokenParts) != 2 || tokenParts[0] != "Bearer" {
-//             c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authentication token"})
-//             c.Abort()
-//             return
-//         }
+// 		// The token should be prefixed with "Bearer "
+// 		tokenParts := strings.Split(tokenString, " ")
+// 		if len(tokenParts) != 2 || tokenParts[0] != "Bearer" {
+// 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authentication token"})
+// 			c.Abort()
+// 			return
+// 		}
 
-//         tokenString = tokenParts[1]
+// 		tokenString = tokenParts[1]
 
-//         claims, err := utils.VerifyToken(tokenString)
-//         if err != nil {
-//             c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authentication token"})
-//             c.Abort()
-//             return
-//         }
+// 		claims, err := utils.VerifyToken(tokenString)
+// 		if err != nil {
+// 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authentication token"})
+// 			c.Abort()
+// 			return
+// 		}
 
-//         c.Set("user_id", claims["user_id"])
-//         c.Next()
-//     }
+// 		c.Set("user_id", claims["user_id"])
+// 		c.Next()
+// 	}
 // }
 
 // func TokenMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
@@ -334,71 +330,23 @@ package utils
 // 	}
 // }
 
-// func AdminMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
-// 	return func(c echo.Context) error {
-// 		claim, _ := c.Get("claim").(Claims)
-
-// 		if claim.IsNotAdmin() {
-// 			return c.String(http.StatusForbidden, "You have no authority")
-// 		}
-
-// 		return next(c)
-// 	}
-// }
-
-// func proxy(path, target string) http.HandlerFunc {
-// 	return func(w http.ResponseWriter, r *http.Request) {
-// 		targetURL := target + r.URL.Path
-// 		req, err := http.NewRequest(r.Method, targetURL, r.Body)
-// 		if err != nil {
-// 			http.Error(w, err.Error(), http.StatusBadGateway)
-// 			return
-// 		}
-
-// 		req.Header = r.Header
-
-// 		client := &http.Client{}
-// 		resp, err := client.Do(req)
-// 		if err != nil {
-// 			http.Error(w, err.Error(), http.StatusBadGateway)
-// 			return
-// 		}
-// 		defer resp.Body.Close()
-
-// 		for key, values := range resp.Header {
-// 			for _, value := range values {
-// 				w.Header().Add(key, value)
-// 			}
-// 		}
-
-// 		w.WriteHeader(resp.StatusCode)
-
-// 		// Copy the response body to the client
-// 		_, err = io.Copy(w, resp.Body)
-// 		if err != nil {
-// 			http.Error(w, err.Error(), http.StatusBadGateway)
-// 			return
-// 		}
-// 	}
-// }
-
-// func Auth() gin.HandlerFunc{
+// func Auth() gin.HandlerFunc {
 // 	return func(context *gin.Context) {
-// 	  tokenString := context.GetHeader("Authorization")
-// 	  if tokenString == "" {
-// 		context.JSON(401, gin.H{"error": "request does not contain an access token"})
-// 		context.Abort()
-// 		return
-// 	  }
-// 	  err:= auth.ValidateToken(tokenString)
-// 	  if err != nil {
-// 		context.JSON(401, gin.H{"error": err.Error()})
-// 		context.Abort()
-// 		return
-// 	  }
-// 	  context.Next()
+// 		tokenString := context.GetHeader("Authorization")
+// 		if tokenString == "" {
+// 			context.JSON(401, gin.H{"error": "request does not contain an access token"})
+// 			context.Abort()
+// 			return
+// 		}
+// 		err := auth.ValidateToken(tokenString)
+// 		if err != nil {
+// 			context.JSON(401, gin.H{"error": err.Error()})
+// 			context.Abort()
+// 			return
+// 		}
+// 		context.Next()
 // 	}
-//   }
+// }
 
 // func IsAuthorizedJWT(h httprouter.Handle, role string) httprouter.Handle {
 // 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -461,51 +409,36 @@ package utils
 // }
 
 // func AuthenticationMiddleware() gin.HandlerFunc {
-//     return func(c *gin.Context) {
-//         tokenString := c.GetHeader("Authorization")
-//         if tokenString == "" {
-//             c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authentication token"})
-//             c.Abort()
-//             return
-//         }
+// 	return func(c *gin.Context) {
+// 		tokenString := c.GetHeader("Authorization")
+// 		if tokenString == "" {
+// 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authentication token"})
+// 			c.Abort()
+// 			return
+// 		}
 
-//         // The token should be prefixed with "Bearer "
-//         tokenParts := strings.Split(tokenString, " ")
-//         if len(tokenParts) != 2 || tokenParts[0] != "Bearer" {
-//             c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authentication token"})
-//             c.Abort()
-//             return
-//         }
+// 		// The token should be prefixed with "Bearer "
+// 		tokenParts := strings.Split(tokenString, " ")
+// 		if len(tokenParts) != 2 || tokenParts[0] != "Bearer" {
+// 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authentication token"})
+// 			c.Abort()
+// 			return
+// 		}
 
-//         tokenString = tokenParts[1]
+// 		tokenString = tokenParts[1]
 
-//         claims, err := utils.VerifyToken(tokenString)
-//         if err != nil {
-//             c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authentication token"})
-//             c.Abort()
-//             return
-//         }
+// 		claims, err := utils.VerifyToken(tokenString)
+// 		if err != nil {
+// 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authentication token"})
+// 			c.Abort()
+// 			return
+// 		}
 
-//         c.Set("user_id", claims["user_id"])
-//         c.Next()
-//     }
+// 		c.Set("user_id", claims["user_id"])
+// 		c.Next()
+// 	}
 // }
 
-// type Middleware struct {
-// 	logger  *zap.Logger
-// 	limiter *rate.Limiter
-// 	routes  map[string]*config.Route
-// 	db      *database.Database
-// }
-
-// type RouteMetrics struct {
-// 	CallCount     int           `json:"callCount"`
-// 	TotalResponse time.Duration `json:"totalResponse"`
-// 	ServiceURL    string        `json:"serviceURL"`
-// 	Path          string        `json:"path"`
-// }
-
-// // Token Based Authentication
 // func TokenAuthMiddleware(next http.Handler) http.Handler {
 // 	validToken := DEFAULT_TOKEN
 // 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -551,19 +484,10 @@ package utils
 // }
 
 // func AuthorizationMiddleware(next http.Handler) http.Handler {
-// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request)  {
+// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 // 		next.ServeHTTP(w, r)
 // 	})
 // }
-
-// package middleware
-
-// import (
-// 	"bufio"
-// 	"errors"
-// 	"net"
-// 	"net/http"
-// )
 
 // type LoggingMiddleware struct {
 // 	logger logger
@@ -594,114 +518,71 @@ package utils
 // 	})
 // }
 
-/*
+// func ValidToken(t *jwt.Token, id string) bool {
+// 	n, err := strconv.Atoi(id)
+// 	if err != nil {
+// 		return false
+// 	}
 
+// 	claims := t.Claims.(jwt.MapClaims)
+// 	uid := int(claims["user_id"].(float64))
 
-	app.Use(middleware.Authenticated())
-	app.Use(middleware.AuthUserContext(db))
+// 	return uid == n
+// }
 
-app.Get("/currentuser", func(c *fiber.Ctx) error {
-		ctxUser := c.Locals("user")
-		return c.JSON(ctxUser)
-	})
+// func Authenticated() fiber.Handler {
+// 	key := os.Getenv("JWT_SECRET")
+// 	if key == "" {
+// 		panic("No JWT_SECRET environment variable found")
+// 	}
+// 	return jwtware.New(jwtware.Config{
+// 		ContextKey:   "jwt",
+// 		SigningKey:   jwtware.SigningKey{Key: []byte(key)},
+// 		ErrorHandler: jwtError,
+// 	})
+// }
 
+// func AuthUserContext(db *gorm.DB) fiber.Handler {
+// 	return func(c *fiber.Ctx) error {
+// 		user := new(models.User)
+// 		token := c.Locals("jwt").(*jwt.Token)
+// 		claims := token.Claims.(jwt.MapClaims)
+// 		email := claims["email"].(string)
 
+// 		err := db.Where("email = ?", email).First(&user).Error
+// 		if err != nil {
+// 			return c.Status(404).SendString("user not found")
+// 		}
+// 		c.Locals("user", user)
+// 		return c.Next()
+// 	}
+// }
 
-package utils
-
-import (
-	"strconv"
-
-	"github.com/golang-jwt/jwt/v5"
-	"golang.org/x/crypto/bcrypt"
-)
-
-func CheckPasswordHash(password, hash string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	return err == nil
-}
-
-func ValidToken(t *jwt.Token, id string) bool {
-	n, err := strconv.Atoi(id)
-	if err != nil {
-		return false
-	}
-
-	claims := t.Claims.(jwt.MapClaims)
-	uid := int(claims["user_id"].(float64))
-
-	return uid == n
-}
-
-
-
-func NewUser(opts *NewUserInput) *User {
-	hashedPw, err := hashPassword(opts.Password)
-	if err != nil {
-		panic(err)
-	}
-	return &User{
-		ID:       uuid.New(),
-		Email:    opts.Email,
-		Password: hashedPw,
-	}
-}
-
-
-
-func hashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
-	return string(bytes), err
-}
-
-
-package middleware
-
-import (
-	"os"
-	"rest-api/models"
-
-	jwtware "github.com/gofiber/contrib/jwt"
-	"github.com/gofiber/fiber/v2"
-	"github.com/golang-jwt/jwt/v5"
-	"gorm.io/gorm"
-)
-
-func Authenticated() fiber.Handler {
-	key := os.Getenv("JWT_SECRET")
-	if key == "" {
-		panic("No JWT_SECRET environment variable found")
-	}
-	return jwtware.New(jwtware.Config{
-		ContextKey:   "jwt",
-		SigningKey:   jwtware.SigningKey{Key: []byte(key)},
-		ErrorHandler: jwtError,
-	})
-}
-
-func AuthUserContext(db *gorm.DB) fiber.Handler {
-	return func(c *fiber.Ctx) error {
-		user := new(models.User)
-		token := c.Locals("jwt").(*jwt.Token)
-		claims := token.Claims.(jwt.MapClaims)
-		email := claims["email"].(string)
-
-		err := db.Where("email = ?", email).First(&user).Error
-		if err != nil {
-			return c.Status(404).SendString("user not found")
-		}
-		c.Locals("user", user)
-		return c.Next()
-	}
-}
-
-func jwtError(c *fiber.Ctx, err error) error {
-	if err.Error() == "Missing or malformed JWT" {
-		return c.Status(fiber.StatusBadRequest).
-			JSON(fiber.Map{"status": "error", "message": "Missing or malformed JWT", "data": nil})
-	}
-	return c.Status(fiber.StatusUnauthorized).
-		JSON(fiber.Map{"status": "error", "message": "Invalid or expired JWT", "data": nil})
-}
-
-*/
+// r.GET("/resource", func(c *gin.Context) {
+// 	bearerToken := c.Request.Header.Get("Authorization")
+// 	reqToken := strings.Split(bearerToken, " ")[1]
+// 	for _, token := range tokens {
+// 		if token == reqToken {
+// 			c.JSON(http.StatusOK, gin.H{
+// 				"data": "resource data",
+// 			})
+// 			return
+// 		}
+// 	}
+// 	claims := &Claims{}
+// 	tkn, err := jwt.ParseWithClaims(reqToken, claims, func(token *jwt.Token) (interface{}, error) {
+// 		return jwtKey, nil
+// 	})
+// 	if err != nil {
+// 		if err == jwt.ErrSignatureInvalid {
+// 			c.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized",})
+// 			return
+// 		}
+// 		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request",})
+// 		return
+// 	}
+// 	if !tkn.Valid {
+// 		c.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+// 		return
+// 	}
+// })

@@ -16,6 +16,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/requestid"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	utils "github.com/chrismarsilva/cms.golang.tnb.cripo.utils"
 )
 
 type Server struct {
@@ -43,8 +44,8 @@ func (s *Server) Initialize() {
 
 	s.app.Use(cors.New(cors.Config{
 		// 	AllowOrigins:     "http://localhost:3000",
-		// 	AllowHeaders:     "Origin, Content-Type, Accept",
-		// 	AllowMethods:     "GET, POST",
+		AllowHeaders:     "Origin, Content-Type, Accept",
+		AllowMethods:     "GET, POST",
 		AllowCredentials: true, //Very important while using a HTTPonly Cookie, frontend can easily get and return back the cookie.
 	}))
 

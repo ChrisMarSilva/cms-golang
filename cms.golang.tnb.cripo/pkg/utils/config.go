@@ -1,75 +1,64 @@
 package utils
 
-// import (
-// 	"os"
-// 	"strconv"
+import (
+	"os"
+	"strconv"
 
-// 	"github.com/joho/godotenv"
-// )
+	"github.com/joho/godotenv"
+)
 
-// type Config struct {
-// 	UriPort string
+type Config struct {
+	UriPort string
 
-// 	DbDriver string
-// 	DbUri    string
-// 	// DBHost     string `mapstructure:"POSTGRES_HOST"`
-// 	// DBPort     string `mapstructure:"POSTGRES_PORT"`
-// 	// DBUser     string `mapstructure:"POSTGRES_USER"`
-// 	// DBPassword string `mapstructure:"POSTGRES_PASSWORD"`
-// 	// DBName     string `mapstructure:"POSTGRES_DB"`
-// 	// SSLMode    string `mapstructure:"POSTGRES_DB"`
+	DbDriver string
+	DbUri    string
+	// DBHost     string `mapstructure:"POSTGRES_HOST"`
+	// DBPort     string `mapstructure:"POSTGRES_PORT"`
+	// DBUser     string `mapstructure:"POSTGRES_USER"`
+	// DBPassword string `mapstructure:"POSTGRES_PASSWORD"`
+	// DBName     string `mapstructure:"POSTGRES_DB"`
+	// SSLMode    string `mapstructure:"POSTGRES_DB"`
 
-// 	JwtSecretKey string
-// 	// JwtExpiresIn time.Duration `mapstructure:"JWT_EXPIRED_IN"`
-// 	// JwtMaxAge    int           `mapstructure:"JWT_MAXAGE"`
-// }
+	JwtSecretKey string
+	// JwtExpiresIn time.Duration `mapstructure:"JWT_EXPIRED_IN"`
+	// JwtMaxAge    int           `mapstructure:"JWT_MAXAGE"`
+}
 
-// func NewConfig(path string) (*Config, error) {
-// 	err := godotenv.Load(path)
-// 	if err != nil {
-// 		return &Config{}, err
-// 	}
+func NewConfig(path string) (*Config, error) {
+	err := godotenv.Load(path)
+	if err != nil {
+		return &Config{}, err
+	}
 
-// 	//fmt.Sprintf("%s:%s", getEnv("DB_HOST", "127.0.0.1"), getEnv("DB_PORT", "3306")),
+	var cfg Config
+	//getEnv("PUBLIC_HOST", "http://localhost"),
+	// fmt.Sprintf("%s:%s", getEnv("DB_HOST", "127.0.0.1"), getEnv("DB_PORT", "3306")),
+	cfg.UriPort = ":" + getEnv("PORT", "8080")                                       // os.Getenv("PORT")
+	cfg.DbDriver = getEnv("DATABASE_DRIVER", "sqlite3")                              // os.Getenv("DATABASE_DRIVER")
+	cfg.DbUri = getEnv("DATABASE_URI", "./banco.db")                                 // os.Getenv("DATABASE_URI")
+	cfg.JwtSecretKey = getEnv("JWT_SECRET", "cms_tamo_em_cripo_api_auth_secret_key") // os.Getenv("JWT_SECRET_KEY")
+	// JWTExpirationInSeconds: getEnvAsInt("JWT_EXPIRATION_IN_SECONDS", 3600 * 24 * 7),
 
-// 	var cfg Config
-// 	cfg.UriPort = ":" + os.Getenv("PORT")
-// 	cfg.DbDriver = os.Getenv("DATABASE_DRIVER")
-// 	cfg.DbUri = os.Getenv("DATABASE_URI")
-// 	cfg.JwtSecretKey = os.Getenv("JWT_SECRET_KEY")
+	return &cfg, nil
+}
 
-// 	// return Config{
-// 	// 	PublicHost:             getEnv("PUBLIC_HOST", "http://localhost"),
-// 	// 	Port:                   getEnv("PORT", "8080"),
-// 	// 	DBUser:                 getEnv("DB_USER", "root"),
-// 	// 	DBPassword:             getEnv("DB_PASSWORD", "mypassword"),
-// 	// 	DBAddress:              fmt.Sprintf("%s:%s", getEnv("DB_HOST", "127.0.0.1"), getEnv("DB_PORT", "3306")),
-// 	// 	DBName:                 getEnv("DB_NAME", "ecom"),
-// 	// 	JWTSecret:              getEnv("JWT_SECRET", "not-so-secret-now-is-it?"),
-// 	// 	JWTExpirationInSeconds: getEnvAsInt("JWT_EXPIRATION_IN_SECONDS", 3600 * 24 * 7),
-// 	// }
+func getEnv(key, fallback string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
+	}
 
-// 	return &cfg, nil
-// }
+	return fallback
+}
 
-// // Gets the env by key or fallbacks
-// func getEnv(key, fallback string) string {
-// 	if value, ok := os.LookupEnv(key); ok {
-// 		return value
-// 	}
+func getEnvAsInt(key string, fallback int64) int64 {
+	if value, ok := os.LookupEnv(key); ok {
+		i, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return fallback
+		}
 
-// 	return fallback
-// }
+		return i
+	}
 
-// func getEnvAsInt(key string, fallback int64) int64 {
-// 	if value, ok := os.LookupEnv(key); ok {
-// 		i, err := strconv.ParseInt(value, 10, 64)
-// 		if err != nil {
-// 			return fallback
-// 		}
-
-// 		return i
-// 	}
-
-// 	return fallback
-// }
+	return fallback
+}

@@ -1,35 +1,36 @@
 package main
 
-// import (
-// 	"time"
+import (
+	"log"
+	"time"
 
-// 	"github.com/chrismarsilva/cms.golang.tnb.cripo.api.auth/internals/server"
-// 	"github.com/gofiber/fiber/v2/middleware/session"
-// 	"github.com/gofiber/storage/sqlite3"
-// )
+	"github.com/chrismarsilva/cms.golang.tnb.cripo.api.auth/internals/server"
+	"github.com/gofiber/fiber/v2/middleware/session"
+	"github.com/gofiber/storage/sqlite3"
+)
 
-// var (
-// 	storage = sqlite3.New(sqlite3.Config{Database: "./banco.db"})
+var (
+	storage = sqlite3.New(sqlite3.Config{Database: "./banco.db"})
 
-// 	store = session.New(session.Config{
-// 		Expiration: 24 * time.Hour,
-// 		KeyLookup:  "cookie:session_id",
-// 		Storage:    storage,
-// 	})
-// )
+	store = session.New(session.Config{
+		Expiration: 24 * time.Hour,
+		KeyLookup:  "cookie:session_id",
+		Storage:    storage,
+	})
+)
 
-// func init() {
-// 	// config, err := initializers.LoadConfig(".")
-// 	// if err != nil {
-// 	// 	log.Fatalln("Failed to load environment variables! \n", err.Error())
-// 	// }
-// 	// initializers.ConnectDB(&config)
-// }
+func init() {
+	config, err := initializers.LoadConfig(".")
+	if err != nil {
+		log.Fatalln("Failed to load environment variables! \n", err.Error())
+	}
+	initializers.ConnectDB(&config)
+}
 
-// func main() {
-// 	app := server.NewServer()
-// 	app.Initialize()
-// }
+func main() {
+	app := server.NewServer()
+	app.Initialize()
+}
 
 /*
 

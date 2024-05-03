@@ -1,36 +1,24 @@
 package utils
 
-// import (
-// 	"errors"
-// 	"fmt"
-// )
+import (
+	"errors"
+	"fmt"
+)
 
-// var (
-// 	ErrNoCapacity   = errors.New("capacity is full")
-// 	ErrTripNotFound = errors.New("this trip does not exist")
+var (
+		ErrInvalidEmail       = errors.New("invalid email")
+		ErrEmailAlreadyExists = errors.New("email already exists")
+		ErrEmptyPassword      = errors.New("password can't be empty")
+		ErrInvalidAuthToken   = errors.New("invalid auth-token")
+		ErrInvalidCredentials = errors.New("invalid credentials")
+		ErrUnauthorized       = errors.New("Unauthorized")
 
-// 	ErrExceedAllowedTicketToPurchase = func(limit int) error {
-// 		return fmt.Errorf("exceed number of tickets allowed to be purchased(%d)", limit)
-// 	}
+	ErrNoCapacity   = errors.New("capacity is full")
+	ErrTripNotFound = errors.New("this trip does not exist")
 
-// 	ErrExceedMaleTicketNumber = errors.New("exceed number of male ticket allowed to be purchased")
-// )
+	ErrExceedAllowedTicketToPurchase = func(limit int) error {
+		return fmt.Errorf("exceed number of tickets allowed to be purchased(%d)", limit)
+	}
 
-// var (
-// 	ErrInvalidEmail       = errors.New("invalid email")
-// 	ErrEmailAlreadyExists = errors.New("email already exists")
-// 	ErrEmptyPassword      = errors.New("password can't be empty")
-// 	ErrInvalidAuthToken   = errors.New("invalid auth-token")
-// 	ErrInvalidCredentials = errors.New("invalid credentials")
-// 	ErrUnauthorized       = errors.New("Unauthorized")
-// )
-
-// /*
-// if err != nil {
-// 			if errors.Is(err, trip.ErrTripNotFound) {
-// 				return ErrTripNotFound
-// 			}
-// 			return err
-// 		}
-
-// */
+	ErrExceedMaleTicketNumber = errors.New("exceed number of male ticket allowed to be purchased")
+)

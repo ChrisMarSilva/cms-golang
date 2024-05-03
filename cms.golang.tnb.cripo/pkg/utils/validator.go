@@ -1,126 +1,53 @@
 package utils
 
-/*
-
-go get github.com/go-playground/validator/v10
-
-"github.com/go-playground/validator/v10"
-
-
-
-var Validate = validator.New()
-validate := validator.New(validator.WithRequiredStructEnabled())
-
-if err := utils.Validate.Struct(product); err != nil {
-		errors := err.(validator.ValidationErrors)
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid payload: %v", errors))
-		return
-	}
-
-
-package main
-
 import (
-	"fmt"
-
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 )
 
-// User contains user information
-type User struct {
-	FirstName      string     `validate:"required"`
-	LastName       string     `validate:"required"`
-	Age            uint8      `validate:"gte=0,lte=130"`
-	Email          string     `validate:"required,email"`
-	Gender         string     `validate:"oneof=male female prefer_not_to"`
-	FavouriteColor string     `validate:"iscolor"`                // alias for 'hexcolor|rgb|rgba|hsl|hsla'
-	Addresses      []*Address `validate:"required,dive,required"` // a person can have a home and cottage...
-}
+func NewValidator() *validator.Validate {
+	validate := validator.New(validator.WithRequiredStructEnabled())
 
-// Address houses a users address information
-type Address struct {
-	Street string `validate:"required"`
-	City   string `validate:"required"`
-	Planet string `validate:"required"`
-	Phone  string `validate:"required"`
-}
-
-// use a single instance of Validate, it caches struct info
-var validate *validator.Validate
-
-func main() {
-
-	validate = validator.New(validator.WithRequiredStructEnabled())
-
-	validateStruct()
-	validateVariable()
-}
-
-func validateStruct() {
-
-	address := &Address{
-		Street: "Eavesdown Docks",
-		Planet: "Persphone",
-		Phone:  "none",
-	}
-
-	user := &User{
-		FirstName:      "Badger",
-		LastName:       "Smith",
-		Age:            135,
-		Gender:         "male",
-		Email:          "Badger.Smith@gmail.com",
-		FavouriteColor: "#000-",
-		Addresses:      []*Address{address},
-	}
-
-	// returns nil or ValidationErrors ( []FieldError )
-	err := validate.Struct(user)
-	if err != nil {
-
-		// this check is only needed when your code could produce
-		// an invalid value for validation such as interface with nil
-		// value most including myself do not usually have code like this.
-		if _, ok := err.(*validator.InvalidValidationError); ok {
-			fmt.Println(err)
-			return
+	_ = validate.RegisterValidation("uuid", func(fl validator.FieldLevel) bool {
+		field := fl.Field().String()
+		if _, err := uuid.Parse(field); err != nil {
+			return true
 		}
+		return false
+	})
 
-		for _, err := range err.(validator.ValidationErrors) {
+	// err := validate.Struct(user)
+	// if err != nil {
+	// 	if _, ok := err.(*validator.InvalidValidationError); ok {
+	// 		fmt.Println(err)
+	// 		return
+	// 	}
 
-			fmt.Println(err.Namespace())
-			fmt.Println(err.Field())
-			fmt.Println(err.StructNamespace())
-			fmt.Println(err.StructField())
-			fmt.Println(err.Tag())
-			fmt.Println(err.ActualTag())
-			fmt.Println(err.Kind())
-			fmt.Println(err.Type())
-			fmt.Println(err.Value())
-			fmt.Println(err.Param())
-			fmt.Println()
-		}
+	// 	for _, err := range err.(validator.ValidationErrors) {
 
-		// from here you can create your own error messages in whatever language you wish
-		return
-	}
+	// 		fmt.Println(err.Namespace())
+	// 		fmt.Println(err.Field())
+	// 		fmt.Println(err.StructNamespace())
+	// 		fmt.Println(err.StructField())
+	// 		fmt.Println(err.Tag())
+	// 		fmt.Println(err.ActualTag())
+	// 		fmt.Println(err.Kind())
+	// 		fmt.Println(err.Type())
+	// 		fmt.Println(err.Value())
+	// 		fmt.Println(err.Param())
+	// 		fmt.Println()
+	// 	}
+	// 	return
+	// }
 
-	// save user to database
+	return validate
 }
 
-func validateVariable() {
-
-	myEmail := "joeybloggs.gmail.com"
-
-	errs := validate.Var(myEmail, "required,email")
-
-	if errs != nil {
-		fmt.Println(errs) // output: Key: "" Error:Field validation for "" failed on the "email" tag
-		return
+func ValidatorErrors(err error) map[string]string {
+	fields := map[string]string{}
+	for _, err := range err.(validator.ValidationErrors) {
+		fields[err.Field()] = err.Error()
 	}
 
-	// email ok, move on
+	return fields
 }
-
-
-*/

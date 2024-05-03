@@ -1,4 +1,4 @@
-package package handlers
+package handlers
 
 // import (
 // 	"database/sql"
@@ -9,6 +9,11 @@ package package handlers
 // 	"github.com/gofiber/fiber/v2"
 // 	"github.com/gofiber/fiber/v2/log"
 // )
+
+// app.Get("/currentuser", func(c *fiber.Ctx) error {
+// 	ctxUser := c.Locals("user")
+// 	return c.JSON(ctxUser)
+// })
 
 // type Handler struct {
 // 	routes map[string]*config.Route

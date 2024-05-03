@@ -1,18 +1,22 @@
 package models
 
 import (
+	"database/sql/driver"
+	"encoding/json"
+	"errors"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 )
 
 type UserModel struct {
-	ID uuid.UUID `db:"id"`
+	ID uuid.UUID `db:"id" validate:"required,uuid"`
 	//Role     UsersRole`
 	//Username   string    `db:"username"`
-	Nome     string `db:"nome"`
-	Email    string `db:"email"`
-	Password string `db:"password"`
+	Nome     string `db:"nome" validate:"required,lte=255"`
+	Email    string `db:"email" validate:"required,email"`
+	Password string `db:"password" validate:"required,password"`
 	//Avatar Photo     string    `db:"avatar"`
 	//IsAdmin    bool      `db:"is_admin"`
 	//IsBlocked  bool      `db:"is_blocked"`
@@ -24,8 +28,13 @@ type UserModel struct {
 }
 
 func NewUserModel(ID uuid.UUID, nome, email string, isActive bool, createdAt time.Time) *UserModel {
+	// hashedPw, err := hashPassword(email)
+	// if err != nil {
+	// 	panic(err)
+	// }
+
 	return &UserModel{
-		ID:        ID,
+		ID:        ID, // uuid.New()
 		Nome:      nome,
 		Email:     email,
 		IsActive:  isActive,
@@ -47,6 +56,23 @@ func (this UserModel) isNomeEmpty() bool {
 
 func (this UserModel) isEmailEmpty() bool {
 	return this.Email == ""
+}
+
+func (this UserModel) Value() (driver.Value, error) {
+	return json.Marshal(this)
+}
+
+func (this UserModel) Scan(value interface{}) error {
+	j, ok := value.([]byte)
+	if !ok {
+		return errors.New("type assertion to []byte failed")
+	}
+
+	return json.Unmarshal(j, &this)
+}
+
+func (this UserModel) NormalizeEmail() string {
+	return strings.TrimSpace(strings.ToLower(this.Email))
 }
 
 // func (this *User) IsUserTypeValid() bool {
