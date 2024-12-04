@@ -1,0 +1,96 @@
+networks:
+  monitoring:
+    driver: bridge
+
+services:
+  goapp:
+    container_name: goapp
+    hostname: goapp
+    build: .
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    restart: on-failure
+    # volumes:
+    #   - .:/go/src/api
+    environment:
+      - GO_ENVIRONMENT=production
+    ports:
+      - "8080:8080"
+    links:
+      - prometheus
+    depends_on:
+      - prometheus
+    networks:
+      - monitoring
+
+  prometheus:
+    container_name: prometheus
+    hostname: prometheus
+    image: prom/prometheus:latest
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - monitoring
+
+  grafana:
+    container_name: grafana
+    hostname: grafana
+    image: grafana/grafana:latest
+    restart: unless-stopped
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    links:
+      - prometheus
+    depends_on:
+      - prometheus
+    networks:
+      - monitoring
+
+  # db:
+  #   image: postgres:16.3
+  #   container_name: postgres-db
+  #   environment:
+  #     POSTGRES_DB: socialnetwork
+  #     POSTGRES_USER: admin
+  #     POSTGRES_PASSWORD: adminpassword
+  #   networks:
+  #     - backend
+  #   volumes:
+  #     - db-data:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+
+  # redis:
+  #   image: redis:6.2-alpine
+  #   restart: unless-stopped
+  #   container_name: redis
+  #   ports:
+  #     - "6379:6379"
+  #   command: redis-server --save 60 1 --loglevel warning
+
+  # redis-commander:
+  #   container_name: redis-commander
+  #   hostname: redis-commander
+  #   image: rediscommander/redis-commander:latest
+  #   environment:
+  #   - REDIS_HOST=redis
+  #   ports:
+  #     - "127.0.0.1:8081:8081"
+  #   depends_on:
+  #     - redis
+  #   restart:
+  #     unless-stopped
