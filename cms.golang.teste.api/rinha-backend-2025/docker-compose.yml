@@ -1,0 +1,55 @@
+version: "3.8"
+
+services:
+
+  app:
+    build: .
+    env_file: .env
+    #ports: ["${PORT}:8080"]
+    ports:
+      - "${PORT}:8080"
+    depends_on: [db, redis, postgres-exporter, node-exporter, prometheus, grafana]
+    deploy: {resources: {limits: {cpus: "0.75", memory: "175M"}}}
+
+  db:
+    image: postgres:15-alpine
+    env_file: .env
+    volumes: [pgdata:/var/lib/postgresql/data]
+    # volumes:
+    #   - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    env_file: .env
+    ports:
+      - "6379:6379"
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter
+    env_file: .env
+    ports: ["9187:9187"]
+    depends_on: [db]
+
+  node-exporter:
+    image: prom/node-exporter
+    ports: ["9100:9100"]
+
+  prometheus:
+    image: prom/prometheus:v2.55.0
+    volumes: ["./prometheus.yml:/etc/prometheus/prometheus.yml:ro"]
+    ports: ["9090:9090"]
+    depends_on: [app, db, postgres-exporter, node-exporter]
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provision:/etc/grafana/provisioning
+    ports: ["3000:3000"]
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+
+volumes:
+  pgdata: {}

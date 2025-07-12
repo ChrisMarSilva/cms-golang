@@ -31,6 +31,7 @@ func ConfigRoutes(router *gin.Engine) *gin.Engine {
 			// situacoes.DELETE("/:id", situacaoRepo.DeleteUser)
 		}
 	}
+	
 	return router
 }
 

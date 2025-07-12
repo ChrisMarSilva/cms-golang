@@ -32,7 +32,7 @@ func NewConfig() *Config {
 	production := os.Getenv("GO_ENVIRONMENT") == "production"
 	if !production {
 		//log.Println("loading .env file")
-		if err := godotenv.Load("./../../.env"); err != nil {
+		if err := godotenv.Load("./../../vv"); err != nil {
 			if err := godotenv.Load("./../.env"); err != nil {
 				if err := godotenv.Load("./.env"); err != nil {
 					if err := godotenv.Load(".env"); err != nil {
