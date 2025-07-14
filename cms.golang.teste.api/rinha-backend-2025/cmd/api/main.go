@@ -17,6 +17,7 @@ import (
 // go get -u github.com/joho/godotenv
 // go get -u github.com/jackc/pgx/v5
 // go get -u github.com/jackc/pgx/v5/pgxpool
+// go get -u go.uber.org/zap
 // go mod tidy
 
 // go run ./cmd/api/main.go

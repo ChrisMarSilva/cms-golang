@@ -1,0 +1,38 @@
+{
+  "uid": "batch_metrics",
+  "title": "Batch Processing Metrics",
+  "panels": [
+    {
+      "type": "timeSeries",
+      "title": "Jobs Queue Length",
+      "targets": [
+        {
+          "expr": "jobs_queue_length",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Jobs Ingress Rate",
+      "targets": [
+        {
+          "expr": "rate(jobs_ingress_total[1m])",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Fallback Events",
+      "targets": [
+        {
+          "expr": "rate(jobs_fallback_total[1m])",
+          "refId": "C"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 36,
+  "version": 1
+}
