@@ -1,25 +1,18 @@
 ## Build
-FROM golang:1.21-alpine3.18 as builder
-#FROM golang:1.22.0 AS builder
-RUN apk update 
+FROM golang:1.24.5-alpine AS builder
 WORKDIR /src
-#WORKDIR /app
-#RUN go clean --modcache
-#RUN apt-get autoremove && apt-get autoclean && apt-get update --fix-missing && apt-get upgrade -y && apt-get install curl build-essential -y
 COPY go.mod go.sum ./
 RUN go mod download && go mod tidy && go mod verify
 COPY . . 
-RUN go build -o rinha ./cmd/
-#RUN GO111MODULE=on CGO_ENABLED=0 GO_GC=off GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o main ${MAIN_PATH}
+#RUN GO111MODULE=on CGO_ENABLED=0 GO_GC=off GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o app ${MAIN_PATH}
+RUN CGO_ENABLED=0 GO_GC=off GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -a -installsuffix cgo -o app ./cmd/api/main.go
 
 ## Deploy
 FROM scratch AS final
-#FROM alpine:3.18 as final
-#WORKDIR /app
-COPY --from=builder /src/rinha .
-#COPY --from=builder /app/main .
-RUN mkdir /pprof
-EXPOSE 3000
-CMD ["./rinha"]
-#CMD [ "app" ]
-#CMD ["./main"]
+#RUN apk --no-cache add ca-certificates
+WORKDIR /app
+COPY --from=builder /src/app .
+#RUN adduser -D -s /bin/sh appuser
+#USER appuser
+EXPOSE 8080
+CMD ["./app"]

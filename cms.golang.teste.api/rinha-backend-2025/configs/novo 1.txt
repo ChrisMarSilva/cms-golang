@@ -1,7 +1,0 @@
-import "github.com/bytedance/sonic"
-
-var data YourSchema
-// Marshal
-output, err := sonic.Marshal(&data)
-// Unmarshal
-err := sonic.Unmarshal(output, &data)
