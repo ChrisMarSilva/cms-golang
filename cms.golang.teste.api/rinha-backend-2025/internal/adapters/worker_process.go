@@ -34,11 +34,12 @@ func NewProcessPaymentWorker(redisClient *redis.Client, healthCheck *HealthCheck
 
 func (w *ProcessPaymentWorker) Start(ctx context.Context) {
 	httpClient := &http.Client{
-		Timeout: 5 * time.Second,
+		Timeout: 3 * time.Second,
 		Transport: &http.Transport{
-			MaxIdleConns:        512,
-			MaxIdleConnsPerHost: 128,
-			MaxConnsPerHost:     512,
+			MaxIdleConns:        1000,
+			DisableCompression:  true,
+			MaxIdleConnsPerHost: 100,
+			MaxConnsPerHost:     10000,
 			IdleConnTimeout:     120 * time.Second,
 			DisableKeepAlives:   false,
 			DialContext: (&net.Dialer{

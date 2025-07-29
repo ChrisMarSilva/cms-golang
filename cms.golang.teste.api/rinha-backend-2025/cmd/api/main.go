@@ -20,7 +20,13 @@ import (
 // go get -u github.com/redis/go-redis/v9
 // go get -u github.com/jackc/pgx/v5/pgxpool
 // go get -u github.com/stretchr/testify
+// go get -u github.com/prometheus/client_golang/prometheus
+// go get -u github.com/prometheus/client_golang/prometheus/promauto
+// go get -u github.com/prometheus/client_golang/prometheus/promhttp
 // go mod tidy
+
+// docker-compose down
+// docker-compose up -d --build
 
 // Worker.Start                - RPopLPush("payments:queue" , "payments:processing:%d ) // Retorna e remove o último
 // Worker.Start.Ok.StorePayment - HSet(     "payments"                                 ) // Add hash

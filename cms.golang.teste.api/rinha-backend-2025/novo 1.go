@@ -1,4 +1,165 @@
 
+
+
+,
+func PaymentsHandler(w http.ResponseWriter, r *http.Request) {
+	if err := database.Rdb.LPush(database.RedisCtx, "payments_pending", data).Err(); err != nil {
+
+
+func PaymentsSummaryHandler(w http.ResponseWriter, r *http.Request) {
+paymentsData, err := database.Rdb.HGetAll(database.RedisCtx, "payments").Result()
+	resp := summarizePayments(paymentsData, from, to, useFilter)
+
+		if payment.Processor == "DEFAULT" && payment.Status == "PROCESSED_DEFAULT" {
+		} else if payment.Processor == "FALLBACK" && payment.Status == "PROCESSED_FALLBACK" {
+
+			TotalAmount:   core.RoundedFloat(defaultSum),
+type RoundedFloat float64
+	TotalAmount   RoundedFloat `json:"totalAmount"`
+
+
+func (r RoundedFloat) MarshalJSON() ([]byte, error) {
+	rounded := math.Round(float64(r)*10) / 10
+	return json.Marshal(rounded)
+}
+
+
+	mux.HandleFunc("/purge-payments", PurgePaymentsHandler)
+func PurgePaymentsHandler(w http.ResponseWriter, r *http.Request) {
+	err := database.Rdb.Del(database.RedisCtx, "payments").Err()
+
+
+
+
+	instanceID := os.Getenv("INSTANCE_ID")
+			acquired, err := database.Rdb.SetNX(database.RedisCtx, "rinha-leader-lock", instanceID, 10*time.Second).Result()
+
+
+processorURLs := []string{
+		os.Getenv("PROCESSOR_DEFAULT_URL"),
+		os.Getenv("PROCESSOR_FALLBACK_URL"),
+	}
+
+	redisKeys := []string{"health:default", "health:fallback"}
+
+for i, url := range processorURLs {
+if err := database.Rdb.Set(redisCtx, redisKeys[i], data, 0).Err(); err != nil {
+
+
+func RetrieveHealthStates(ctx context.Context) (*core.HealthManager, error) {
+
+	defaultKey := "health:default"
+	fallbackKey := "health:fallback"
+	defaultVal, err := database.Rdb.Get(ctx, defaultKey).Result()
+	fallbackVal, err := database.Rdb.Get(ctx, fallbackKey).Result()
+
+
+func StartWorker() {
+				res, err := database.Rdb.RPopLPush(context.Background(), "payments_pending", processingQueue).Result()
+
+if err := processPayment(context.Background(), payment); err != nil {
+database.Rdb.LPush(database.RedisCtx, "payments_pending", res)
+
+	if health.DefaultProcessor.Failing || health.DefaultProcessor.MinResponseTime > health.FallBackProcessor.MinResponseTime+50 {
+requestedAt := time.Now().UTC().Format(time.RFC3339Nano)
+
+	err = database.Rdb.HSet(database.RedisCtx, "payments", payment.CorrelationID, paymentData).Err()
+
+
+----
+
+	s.app.Get("/payments-summary", s.handleGetSummary)
+	s.app.Get("/internal/summary", s.handleGetInternalSummary)
+	s.app.Post("/purge-payments", s.handlePurgeAllData)
+	s.app.Post("/internal/purge", s.handleInternalPurge)
+
+	Status        string          `json:"status"`
+	CreatedAt     string          `json:"createdAt"`
+	RequestedAt   string          `json:"requestedAt"`
+
+	
+import "github.com/shopspring/decimal"
+	Amount        decimal.Decimal `json:"amount"`
+
+		payments: make([]Payment, 0, 50000),
+	snapshot := make([]Payment, len(s.payments))
+	copy(snapshot, s.payments)
+
+	func (q *Queue) retry(job Job) {
+	if job.Retries < common.MaxRetries {
+		job.Retries++
+
+		delay := common.RetryDelay * time.Duration(1<<(job.Retries-1))
+		time.AfterFunc(delay, func() {
+			q.jobs <- job
+		})
+	} else {
+		log.Printf(
+			"Pagamento %s descartado após %d tentativas.",
+			job.Payment.CorrelationID,
+			common.MaxRetries,
+		)
+	}
+}
+
+
+
+--------------
+
+payload, _ := json.Marshal(p)
+
+		redisQueue.ClearStream(context.Background())
+	err := q.redisClient.Del(ctx, PaymentStream).Err()
+
+	TotalAmount   float64 `json:"totalAmount"`
+	s.Default.TotalAmount = float64(int64(s.Default.TotalAmount*100+0.5)) / 100
+		
+
+	package internal
+
+import (
+	"fmt"
+	"time"
+)
+
+func ParseDateTime(dateStr string) time.Time {
+	formats := []string{
+		"2006-01-02T15:04:05",
+		"2006-01-02",
+		time.RFC3339Nano,
+		"2006-01-02",
+		"2006-01-02T15:04:05Z",
+		"2006-01-02T15:04:05Z07:00",
+		"2006-01-02T15:04:05Z07:00",
+	}
+	for _, f := range formats {
+		t, err := time.Parse(f, dateStr)
+		if err == nil {
+			return t
+		}
+	}
+	fmt.Printf("Failed to parse date %s with formats %v\n", dateStr, formats)
+	return time.Time{} // Return zero value if no format matches
+}
+
+--------------
+
+
+
+
+	
+
+--------------
+
+
+
+
+
+
+
+
+------------------------------------------------------------------------------------------
+
 func CreateRouter(mux *http.ServeMux, config Config) {
 
 store := &store.Store{RedisClient: redisClient}

@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/chrismarsilva/rinha-backend-2025/internal/adapters"
@@ -11,7 +12,37 @@ import (
 	"github.com/chrismarsilva/rinha-backend-2025/internal/utils"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
+
+// Define metrics
+var (
+	HttpRequestTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "api_http_request_total",
+		Help: "Total number of requests processed by the API",
+	}, []string{"path", "status"})
+
+	HttpRequestErrorTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "api_http_request_error_total",
+		Help: "Total number of errors returned by the API",
+	}, []string{"path", "status"})
+
+	HttpRequestDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name: "http_response_time_seconds",
+		Help: "Duration of HTTP requests.",
+	}, []string{"path"})
+)
+
+//var customRegistry = prometheus.NewRegistry()
+
+func init() {
+	//customRegistry.MustRegister(HttpRequestTotal, HttpRequestErrorTotal, HttpRequestDuration)
+	prometheus.Register(HttpRequestTotal)
+	prometheus.Register(HttpRequestErrorTotal)
+	prometheus.Register(HttpRequestDuration)
+}
 
 type Handlers struct {
 	config     *utils.Config
@@ -31,13 +62,16 @@ func (h Handlers) Listen() error {
 	gin.SetMode(h.config.GinMode)
 
 	router := gin.Default()
-	router.Use(h.ErrorsHandler())
+	router.Use(h.ErrorsMiddleware())
 	router.Use(gin.Recovery())
 	router.Use(gzip.Gzip(gzip.BestSpeed))
+	router.Use(h.RequestMetricsMiddleware())
 
 	router.POST("/payments", h.PaymentHandler)
 	router.GET("/payments-summary", h.SummaryHandler)
 	router.GET("/health", h.HealthHandler)
+	//router.GET("/metrics", h.PrometheusHandler())
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	s := &http.Server{
 		Addr:         fmt.Sprintf(":%v", h.config.UriPort),
@@ -50,7 +84,7 @@ func (h Handlers) Listen() error {
 	return s.ListenAndServe()
 }
 
-func (h Handlers) ErrorsHandler() gin.HandlerFunc {
+func (h Handlers) ErrorsMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Next()
 
@@ -58,6 +92,31 @@ func (h Handlers) ErrorsHandler() gin.HandlerFunc {
 			err := c.Errors.Last().Err
 			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error()})
 		}
+	}
+}
+
+func (h Handlers) RequestMetricsMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		status := c.Writer.Status()
+		path := c.Request.URL.Path
+
+		timer := prometheus.NewTimer(HttpRequestDuration.WithLabelValues(path))
+		c.Next()
+		timer.ObserveDuration()
+
+		HttpRequestTotal.WithLabelValues(path, strconv.Itoa(status)).Inc()
+		if status >= 400 {
+			HttpRequestErrorTotal.WithLabelValues(path, strconv.Itoa(status)).Inc()
+		}
+	}
+}
+
+func (h Handlers) PrometheusHandler() gin.HandlerFunc {
+	//handler := promhttp.HandlerFor(customRegistry, promhttp.HandlerOpts{})
+	handler := promhttp.Handler()
+
+	return func(c *gin.Context) {
+		handler.ServeHTTP(c.Writer, c.Request)
 	}
 }
 
