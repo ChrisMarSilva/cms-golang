@@ -77,6 +77,8 @@ func TestIsPalindrome2(t *testing.T) {
 
 }
 
+
+
 func BenchmarkInvertText(b *testing.B) {
 	input := "MAMAM" // ana // MAMAM // leonardo
 	for i := 0; i < b.N; i++ {
