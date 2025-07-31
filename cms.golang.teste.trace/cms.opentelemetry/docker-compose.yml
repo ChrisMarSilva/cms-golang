@@ -11,11 +11,11 @@ services:
       - 8888:8888 # Prometheus metrics exposed by the Collector
       - 8889:8889 # Prometheus exporter metrics
       - 13133:13133 # health_check extension
-      - 4317:4317 # OTLP gRPC receiver
-      - 4318:4318 # OTLP http receiver
+      #- 4317:4317 # OTLP gRPC receiver
+      #- 4318:4318 # OTLP http receiver
       - 55679:55679 # zpages extension
     networks:
-      - backend
+      - observability
 
   jaeger:
     image: jaegertracing/all-in-one:latest
@@ -23,21 +23,22 @@ services:
     container_name: jaeger
     restart: always
     ports:
-      - 5775:5775/udp
-      - 6831:6831/udp # UDP port for Jaeger agent
-      - 6832:6832/udp
-      - 16686:16686 # Web UI
+      - 5775:5775/udp # accept zipkin.thrift over compact thrift protocol
+      - 6831:6831/udp # accept jaeger.thrift over compact thrift protocol # UDP port for Jaeger agent
+      - 6832:6832/udp # accept jaeger.thrift over binary thrift protocol
+      - 16686:16686 # serve frontend # Web UI
       - 14250:14250
-      - 14268:14268 # HTTP port for spans
+      - 14268:14268 # accept jaeger.thrift directly from clients # HTTP port for spans
       - 14269:14269
-      - 5778:5778
-      - 9411:9411
-      # - 4317:4317
-      # - 4318:4318
+      - 5778:5778 # serve configs
+      - 9411:9411 # zipkin Optional
+      - 4317:4317
+      - 4318:4318
     environment:
       - LOG_LEVEL=debug
+      - COLLECTOR_ZIPKIN_HOST_PORT=:9411
     networks:
-      - backend
+      - observability
 
   prometheus:
     image: prom/prometheus:v2.55.0
@@ -46,11 +47,11 @@ services:
     restart: unless-stopped
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus-data:/prometheus
+      #- prometheus-data:/prometheus
     ports:
       - "9090:9090"
     networks:
-      - backend
+      - observability
 
   grafana:
     image: grafana/grafana:11.3.0
@@ -59,19 +60,18 @@ services:
     restart: unless-stopped
     volumes:
       - ./grafana.yml:/etc/grafana/provisioning/datasources/datasource.yaml
-      - grafana-data:/var/lib/grafana
+      #- grafana-data:/var/lib/grafana
     ports:
       - 3000:3000
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
     networks:
-      - backend
+      - observability
 
 networks:
-  backend:
-    driver: bridge
-
-volumes:
-  grafana-data:
-  prometheus-data:
+  observability:
+  #   driver: bridge
+# volumes:
+#   grafana-data:
+#   prometheus-data:
