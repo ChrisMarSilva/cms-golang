@@ -1,12 +1,13 @@
 apiVersion: 1
 
 datasources:
-  - name: Prometheus (Main)
+  - name: Prometheus
     type: prometheus
+    access: proxy
     url: http://prometheus:9090
-    isDefault: true
+    # isDefault: true
 
-  - name: Jaeger
-    type: Jaeger
-    url: http://jaeger:16686
-    #url: http://localhost:16686
+  # - name: Jaeger
+  #   type: Jaeger
+  #   access: proxy
+  #   url: http://jaeger:16686

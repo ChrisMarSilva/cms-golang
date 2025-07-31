@@ -46,6 +46,8 @@ import (
 // docker-compose down
 // docker-compose up -d --build
 
+// k6 run test.js
+
 // go run main.go
 
 var (
@@ -67,6 +69,7 @@ func main() {
 	doWork(ctx)
 
 	http.HandleFunc("/", helloHandler)
+	http.HandleFunc("/metrics", payHandler)
 	http.HandleFunc("/pay", payHandler)
 	http.Handle("/start", otelhttp.NewHandler(http.HandlerFunc(startHandler), "CheckoutStart"))
 	http.Handle("/finish", otelhttp.NewHandler(http.HandlerFunc(finishHandler), "CheckoutFinish"))
