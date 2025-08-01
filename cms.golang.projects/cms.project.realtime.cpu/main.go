@@ -11,7 +11,7 @@ import (
 	"github.com/coder/websocket"
 )
 
-// go mod init cms.project.realtime.cpu
+// go mod init github.com/chrismarsilva/cms.project.realtime.cpu
 // go get -u "github.com/shirou/gopsutil/v4"
 // go get -u "github.com/shirou/gopsutil/v4/disk"
 // go get -u "github.com/shirou/gopsutil/v4/cpu"

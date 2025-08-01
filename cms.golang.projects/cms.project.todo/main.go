@@ -3,76 +3,44 @@ package main
 import (
 	"log"
 	"net/http"
-	"text/template"
-	"time"
+
+	"github.com/chrismarsilva/cms.project.todo/handlers"
+	"github.com/chrismarsilva/cms.project.todo/store"
 )
 
-// go mod init cms.project.todo
-// go get -u xxxxxxx
+// go mod init github.com/chrismarsilva/cms.project.todo
+// go get -u "xxxxxxxx"
 // go mod tidy
+
+// go get -u "github.com/a-h/templ"
+// go install github.com/a-h/templ/cmd/templ@latest
+// go get -tool github.com/a-h/templ/cmd/templ@latest
+// templ generate
+
+// go get -u "github.com/cosmtrek/air@latest"
+// air init
+// air
 
 // go run main.go
 
-type ToDo struct {
-	ID          int       `json:"id"`
-	Title       string    `json:"title"`
-	IsCompleted bool      `json:"is_completed"`
-	CreatedAt   time.Time `json:"created_at"`
-}
-
-var todos = []ToDo{
-	{ID: 1, Title: "Learn Go", IsCompleted: true, CreatedAt: time.Now()},
-	{ID: 2, Title: "Learn HTMX  ", IsCompleted: false, CreatedAt: time.Now()},
-	{ID: 3, Title: "Learn Alpine  ", IsCompleted: false, CreatedAt: time.Now()},
-	{ID: 4, Title: "Learn Tailwind", IsCompleted: false, CreatedAt: time.Now()},
-}
-
-var templates map[string]*template.Template
-
-func init() {
-	if templates == nil {
-		templates = make(map[string]*template.Template)
-	}
-
-	templates["index.html"] = template.Must(template.ParseFiles("index.html"))
-}
+// https://www.youtube.com/watch?v=kLfXxNdCd4M
+// http://localhost:8080/todos
 
 func main() {
-	//http.HandleFunc("/", indexHandler)
-	http.HandleFunc("/", h1Handler)
-	http.HandleFunc("/add-film/", h2Handler)
+
+	store := store.NewInMemoryStore()
+	todoHandler := handlers.NewTodoHandler(store)
+
+	http.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+
+	http.Handle("GET /", handlers.HTTPHandler(handlers.HomeHandler))
+
+	http.Handle("GET /todos", handlers.HTTPHandler(todoHandler.Home))
+	http.Handle("GET /todos/filter", handlers.HTTPHandler(todoHandler.FilterTodos))
+	http.Handle("POST /todos", handlers.HTTPHandler(todoHandler.CreateTodo))
+	http.Handle("PUT /todos/{id}", handlers.HTTPHandler(todoHandler.ToggleTodo))
+	http.Handle("DELETE /todos/{id}", handlers.HTTPHandler(todoHandler.DeleteTodo))
+	http.Handle("POST /todos/validate", handlers.HTTPHandler(todoHandler.ValidateTodoDescription))
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
-}
-
-func indexHandler(w http.ResponseWriter, r *http.Request) {
-	tmpl := templates["index.html"]
-	tmpl.ExecuteTemplate(w, "index.html", nil)
-}
-
-type Film struct {
-	Title    string
-	Director string
-}
-
-func h1Handler(w http.ResponseWriter, r *http.Request) {
-	tmpl := template.Must(template.ParseFiles("index.html"))
-	films := map[string][]Film{
-		"Films": {
-			{Title: "The Godfather", Director: "Francis Ford Coppola"},
-			{Title: "Blade Runner", Director: "Ridley Scott"},
-			{Title: "The Thing", Director: "John Carpenter"},
-		},
-	}
-	tmpl.Execute(w, films)
-}
-
-func h2Handler(w http.ResponseWriter, r *http.Request) {
-	time.Sleep(1 * time.Second)
-	title := r.PostFormValue("title")
-	director := r.PostFormValue("director")
-	// htmlStr := fmt.Sprintf("<li class='list-group-item bg-primary text-white'>%s - %s</li>", title, director)
-	// tmpl, _ := template.New("t").Parse(htmlStr)
-	tmpl := template.Must(template.ParseFiles("index.html"))
-	tmpl.ExecuteTemplate(w, "film-list-element", Film{Title: title, Director: director})
 }

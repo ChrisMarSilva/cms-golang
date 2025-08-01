@@ -1,0 +1,88 @@
+package views
+
+import "fmt"
+import "github.com/chrismarsilva/cms.project.todo/types"
+
+templ TodoPage(todos []types.Todo) {
+	<div class="panel is-primary is-light">
+		<p class="panel-heading">TODO List</p>
+		<div class="panel-block">
+			@TodoForm()
+		</div>
+		<div class="panel-block">
+			@TodoFilter()
+		</div>
+		<div id="todos">
+			@TodoList(todos)
+		</div>
+	</div>
+}
+
+templ TodoForm() {
+	<form hx-post="/todos" hx-target="#todos" hx-swap="afterbegin" class="container is-flex is-align-items-flex-start">
+		<div class="container is-flex is-flex-direction-column">
+			<input
+				id="description"
+				type="text"
+				required
+				name="description"
+				placeholder="todo description"
+				autocomplete="off"
+				class="input is-success is-medium"
+				hx-post="/todos/validate"
+				hx-trigger="keyup changed delay:500ms"
+				hx-target="#errors"
+				hx-swap="outerHTML"
+			/>
+			<p id="errors"></p>
+		</div>
+		<button id="add-btn" disabled class="button ml-2 is-success is-medium">Add</button>
+	</form>
+}
+
+templ TodoFilter() {
+	<input
+		class="input is-info"
+		type="text"
+		name="filter"
+		placeholder="filter"
+		autocomplete="off"
+		hx-get="/todos/filter"
+		hx-target="#todos"
+		hx-trigger="keyup changed delay:500ms"
+	/>
+}
+
+templ TodoList(todos []types.Todo) {
+	for _, t := range todos {
+		@Todo(t)
+	}
+}
+
+templ Todo(t types.Todo) {
+	<label
+		hx-put={ string(templ.URL(fmt.Sprintf("/todos/%d", t.Id))) }
+		hx-target="this"
+		hx-swap="outerHTML"
+		class="panel-block"
+	>
+		<span
+			class={ "mr-auto", templ.KV(doneTodo(), t.Done) }
+		>
+			{ t.Description }
+		</span>
+		<span
+			title="Remove"
+			class="has-text-danger"
+			hx-delete={ string(templ.URL(fmt.Sprintf("/todos/%d", t.Id))) }
+			hx-target="closest label"
+			hx-swap="outerHTML"
+			hx-confirm="Tem certeza que deseja excluir o todo?"
+			hx-on:click="event.stopPropagation()"
+		>X</span>
+	</label>
+}
+
+css doneTodo() {
+	text-decoration: line-through;
+}
