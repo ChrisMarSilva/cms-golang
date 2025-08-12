@@ -27,6 +27,11 @@ func (v *Validation) BadWords() string {
 
 func Validate(words string) (Validation, error) {
 	var result Validation
+	return result, nil
+}
+
+func ValidateOld(words string) (Validation, error) {
+	var result Validation
 	url := "https://api.apilayer.com/bad_words?censor_character=censor_character=*"
 	req, err := http.NewRequest(http.MethodPost, url, strings.NewReader(words))
 	if err != nil {

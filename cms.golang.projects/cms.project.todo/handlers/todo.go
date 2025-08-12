@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -35,8 +34,7 @@ func (th *TodoHandler) Home(w http.ResponseWriter, r *http.Request) error {
 func (th *TodoHandler) CreateTodo(w http.ResponseWriter, r *http.Request) error {
 	desc := r.FormValue("description")
 	todo := th.store.CreateTodo(desc)
-	fmt.Println(todo)
-
+	//fmt.Println(todo)
 	return render(w, r, views.Todo(todo))
 }
 

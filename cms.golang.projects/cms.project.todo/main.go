@@ -27,14 +27,11 @@ import (
 // http://localhost:8080/todos
 
 func main() {
-
 	store := store.NewInMemoryStore()
 	todoHandler := handlers.NewTodoHandler(store)
 
 	http.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
-
 	http.Handle("GET /", handlers.HTTPHandler(handlers.HomeHandler))
-
 	http.Handle("GET /todos", handlers.HTTPHandler(todoHandler.Home))
 	http.Handle("GET /todos/filter", handlers.HTTPHandler(todoHandler.FilterTodos))
 	http.Handle("POST /todos", handlers.HTTPHandler(todoHandler.CreateTodo))

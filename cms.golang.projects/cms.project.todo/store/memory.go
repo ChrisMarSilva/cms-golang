@@ -12,14 +12,12 @@ type InMemoryStore struct {
 }
 
 func NewInMemoryStore() *InMemoryStore {
-	todos := []types.Todo{
-		{Id: 1, Description: "Dar banho no cachorro", Done: false},
-		{Id: 2, Description: "Comprar ração", Done: true},
-	}
-
 	return &InMemoryStore{
 		lastId: 2,
-		todos:  todos,
+		todos: []types.Todo{
+			{Id: 1, Description: "Dar banho no cachorro", Done: false},
+			{Id: 2, Description: "Comprar ração", Done: true},
+		},
 	}
 }
 
@@ -59,9 +57,9 @@ func (ms *InMemoryStore) DeleteTodo(id int) {
 }
 
 func (ms *InMemoryStore) Filter(expr string) (res []types.Todo) {
-	for _, t := range ms.todos {
-		if strings.Contains(strings.ToLower(t.Description), strings.ToLower(expr)) {
-			res = append(res, t)
+	for _, todo := range ms.todos {
+		if strings.Contains(strings.ToLower(todo.Description), strings.ToLower(expr)) {
+			res = append(res, todo)
 		}
 	}
 

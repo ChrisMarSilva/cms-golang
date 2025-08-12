@@ -66,9 +66,7 @@ templ Todo(t types.Todo) {
 		hx-swap="outerHTML"
 		class="panel-block"
 	>
-		<span
-			class={ "mr-auto", templ.KV(doneTodo(), t.Done) }
-		>
+		<span class={ "mr-auto", templ.KV(doneTodo(), t.Done) }>
 			{ t.Description }
 		</span>
 		<span
