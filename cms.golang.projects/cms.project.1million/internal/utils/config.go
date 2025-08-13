@@ -1,0 +1,66 @@
+package utils
+
+import (
+	"os"
+	"strconv"
+
+	"github.com/joho/godotenv"
+)
+
+type Config struct {
+	GinMode     string
+	UriPort     string
+	RedisAddr   string
+	RedisPwd    string
+	RabbitMqUrl string
+	// RabbitMqHost  string
+	// RabbitMqPort  int
+	// RabbitMqUser  string
+	// RabbitMqPass  string
+	// RabbitMqVhost string
+	RabbitMqQueue string
+	NameApi       string
+	NumWorkers    int
+}
+
+func NewConfig() *Config {
+	godotenv.Load(".env")
+
+	var cfg Config
+	cfg.GinMode = GetEnvStrOrSetDefault("GIN_MODE", "release")
+	cfg.UriPort = GetEnvStrOrSetDefault("URI_PORT", "9999")
+	cfg.RedisAddr = GetEnvStrOrSetDefault("REDIS_ADDR", "localhost:6379")
+	cfg.RedisPwd = GetEnvStrOrSetDefault("REDIS_PWD", "123")
+	cfg.RabbitMqUrl = GetEnvStrOrSetDefault("RABBIT_MQ_URL", "amqp://guest:guest@localhost:5672/")
+	// cfg.RabbitMqHost = GetEnvStrOrSetDefault("RABBIT_MQ_HOST", "localhost")
+	// cfg.RabbitMqPort = GetEnvIntOrSetDefault("RABBIT_MQ_PORT", 5672)
+	// cfg.RabbitMqUser = GetEnvStrOrSetDefault("RABBIT_MQ_USERNAME", "guest")
+	// cfg.RabbitMqPass = GetEnvStrOrSetDefault("RABBIT_MQ_PASSWORD", "guest")
+	// cfg.RabbitMqVhost = GetEnvStrOrSetDefault("RABBIT_MQ_VHOST", "")
+	cfg.RabbitMqQueue = GetEnvStrOrSetDefault("RABBIT_MQ_DEFAULT_QUEUE", "queue.person")
+	cfg.NameApi = GetEnvStrOrSetDefault("NAME_API", "456")
+	cfg.NumWorkers = GetEnvIntOrSetDefault("NUM_WORKERS", 100)
+
+	// slog.Info("config", slog.Any("c=", cfg))
+	return &cfg
+}
+
+func GetEnvStrOrSetDefault(key, def string) string {
+	if valueStr := os.Getenv(key); valueStr != "" {
+		return valueStr
+	}
+
+	os.Setenv(key, def)
+	return def
+}
+
+func GetEnvIntOrSetDefault(key string, def int) int {
+	if valueStr := os.Getenv(key); valueStr != "" {
+		if valueInt, err := strconv.Atoi(valueStr); err == nil {
+			return valueInt
+		}
+	}
+
+	os.Setenv(key, strconv.Itoa(def))
+	return def
+}
