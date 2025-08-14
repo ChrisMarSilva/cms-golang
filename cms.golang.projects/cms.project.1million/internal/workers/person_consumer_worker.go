@@ -132,7 +132,7 @@ func (w *PersonConsumerWorker) Process(eventConsumer chan dtos.PersonRequestDto)
 	// // ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	// // defer cancel()
 
-	ticker := time.NewTicker(5 * time.Second)
+	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
 	for {
