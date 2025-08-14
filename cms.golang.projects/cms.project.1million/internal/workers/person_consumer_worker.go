@@ -132,7 +132,7 @@ func (w *PersonConsumerWorker) Process(eventConsumer chan dtos.PersonRequestDto)
 	// // ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	// // defer cancel()
 
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
 	for {
@@ -166,7 +166,11 @@ func (w *PersonConsumerWorker) Process(eventConsumer chan dtos.PersonRequestDto)
 			//pipe.HSet(ctx, "persons3", payload, 0)
 			//pipe.LPush(ctx, "persons4:queue", payload).Err()
 			//pipe.LPush(ctx, "persons4:"+model.ID.String(), payload).Err()
-			pipe.HSet(ctx, "persons", model.ID.String(), payload).Err()
+			err = pipe.HSet(ctx, "persons", model.ID.String(), payload).Err()
+			if err != nil {
+				log.Printf("Worker #%d failed to set person in Redis: %v", w.WorkerID, err)
+				continue
+			}
 			count++
 			total++
 
@@ -179,7 +183,8 @@ func (w *PersonConsumerWorker) Process(eventConsumer chan dtos.PersonRequestDto)
 			// }
 
 			if count >= w.Config.NumConsumerBatchSize {
-				//log.Printf("Worker #%d executing %d commands in pipeline", w.WorkerID, count)
+				log.Printf("Worker #%d executing %d commands in pipeline", w.WorkerID, count)
+
 				_, err := pipe.Exec(ctx) // executa em batch
 				if err != nil {
 					log.Printf("Worker #%d failed to execute pipeline: %v", w.WorkerID, err)
@@ -196,9 +201,8 @@ func (w *PersonConsumerWorker) Process(eventConsumer chan dtos.PersonRequestDto)
 			//log.Printf("Worker #%d successfully added person to repository: %s\n", w.WorkerID, model.Name)
 
 		case <-ticker.C:
-			if count >= 0 {
-				//log.Printf("Worker #%d executing %d commands in pipeline", w.WorkerID, total)
-				//log.Printf("Worker #%d executing %d commands in pipeline em %v\n", w.WorkerID, total, time.Since(start))
+			if count > 0 {
+				log.Printf("Worker #%d executing by time %d commands in pipeline", w.WorkerID, count)
 
 				_, err := pipe.Exec(ctx) // executa em batch
 				if err != nil {
