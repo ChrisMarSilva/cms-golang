@@ -56,7 +56,7 @@ func (s *PersonService) Add(ctx context.Context, request dtos.PersonRequestDto) 
 	// 	return err
 	// }
 
-	workers.Jobs <- request
+	workers.EventPublisher <- request
 
 	// err := s.Repo.Add(ctx, *model)
 	// if err != nil {

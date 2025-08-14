@@ -39,6 +39,7 @@ func NewRabbitMQConnection(config *utils.Config) *RabbitMQ {
 	publisher, err := rabbitmq.NewPublisher(
 		conn,
 		rabbitmq.WithPublisherOptionsLogging,
+		rabbitmq.WithPublisherOptionsConfirm,
 		rabbitmq.WithPublisherOptionsExchangeName(""),
 	)
 	if err != nil {

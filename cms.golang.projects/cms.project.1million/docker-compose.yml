@@ -17,6 +17,7 @@ services:
       - RABBIT_MQ_DEFAULT_QUEUE=queue.person
       - NAME_API=111
       - NUM_PUBLISHER_WORKERS=1000
+      - NUM_PUBLISHER_BATCH_SIZE=1000
     networks:
       - backend
     depends_on:
@@ -38,6 +39,7 @@ services:
       - RABBIT_MQ_DEFAULT_QUEUE=queue.person
       - NAME_API=222
       - NUM_PUBLISHER_WORKERS=1000
+      - NUM_PUBLISHER_BATCH_SIZE=1000
 
   worker-1: &worker
     build:
@@ -108,8 +110,8 @@ services:
       test: [
           "CMD",
           "rabbitmq-diagnostics",
-          "-q",
-          "check_running",
+          #"-q",
+          #"check_running",
           "check_port_connectivity",
         ] # Checks if RabbitMQ ports are reachable
       interval: 10s # How often to run the health check

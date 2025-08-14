@@ -71,7 +71,7 @@ func main() {
 	for i := 0; i < config.NumPublisherWorkers; i++ {
 		go func(idx int) {
 			worker := workers.NewPersonPublisherWorker(config, rabbitMQClient, idx)
-			go worker.Start(workers.Jobs)
+			go worker.Start(workers.EventPublisher)
 		}(i)
 	}
 
