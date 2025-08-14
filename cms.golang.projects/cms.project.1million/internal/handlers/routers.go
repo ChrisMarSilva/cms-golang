@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -24,6 +25,9 @@ func NewRouter(config *utils.Config, personHandler *PersonHandler) *Router {
 
 func (r Router) Listen() error {
 	gin.SetMode(r.Config.GinMode)
+	if r.Config.GinMode == gin.ReleaseMode || r.Config.GinMode == gin.TestMode {
+		gin.DefaultWriter = io.Discard // Disable default logger in release mode
+	}
 
 	router := gin.Default()
 	router.Use(r.ErrorsMiddleware())

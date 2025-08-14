@@ -161,10 +161,12 @@ func (w *PersonConsumerWorker) Process(eventConsumer chan dtos.PersonRequestDto)
 				continue
 			}
 
-			//pipe.LPush(ctx, "persons4:queue", payload).Err()
 			//pipe.Set(ctx, "persons1:"+model.ID.String(), payload, 0)
 			//pipe.HSet(ctx, "persons2:"+model.ID.String(), payload, 0)
-			pipe.HSet(ctx, "persons", payload, 0)
+			//pipe.HSet(ctx, "persons3", payload, 0)
+			//pipe.LPush(ctx, "persons4:queue", payload).Err()
+			//pipe.LPush(ctx, "persons4:"+model.ID.String(), payload).Err()
+			pipe.HSet(ctx, "persons", model.ID.String(), payload).Err()
 			count++
 			total++
 

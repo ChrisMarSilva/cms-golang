@@ -33,8 +33,27 @@ func (r *PersonRepository) Add(ctx context.Context, model models.PersonModel) er
 }
 
 func (r *PersonRepository) GetAll(ctx context.Context) ([]*models.PersonModel, error) {
+	// pipe := r.RedisClient.Pipeline()
+
+	// hgetAllCmd := pipe.HGetAll(ctx, r.Key)
+	// _, err := pipe.Exec(ctx)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to retrieve persons: %w", err)
+	// }
+
+	// pipedResult, err := hgetAllCmd.Result()
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to retrieve persons from piped result: %w", err)
+	// }
+
+	// //fmt.Printf("\nAll fields and values for hash '%s' (from pipeline):\n", r.Key)
+	// for field, value := range pipedResult {
+	// 	fmt.Printf("Field: %s, Value: %s\n", field, value)
+	// }
+
 	// HGetAll: Retorna todos os campos e valores do hash armazenado em key.
 	personsData, err := r.RedisClient.HGetAll(ctx, r.Key).Result()
+	//result, err := rdb.HGetAll(ctx, hashKey).Result()
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve persons: %w", err)
 	}
