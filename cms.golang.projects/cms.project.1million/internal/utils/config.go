@@ -18,9 +18,11 @@ type Config struct {
 	// RabbitMqUser  string
 	// RabbitMqPass  string
 	// RabbitMqVhost string
-	RabbitMqQueue string
-	NameApi       string
-	NumWorkers    int
+	RabbitMqQueue        string
+	NameApi              string
+	NumConsumerWorkers   int
+	NumConsumerBatchSize int
+	NumPublisherWorkers  int
 }
 
 func NewConfig() *Config {
@@ -39,7 +41,9 @@ func NewConfig() *Config {
 	// cfg.RabbitMqVhost = GetEnvStrOrSetDefault("RABBIT_MQ_VHOST", "")
 	cfg.RabbitMqQueue = GetEnvStrOrSetDefault("RABBIT_MQ_DEFAULT_QUEUE", "queue.person")
 	cfg.NameApi = GetEnvStrOrSetDefault("NAME_API", "456")
-	cfg.NumWorkers = GetEnvIntOrSetDefault("NUM_WORKERS", 100)
+	cfg.NumConsumerWorkers = GetEnvIntOrSetDefault("NUM_CONSUMER_WORKERS", 100)
+	cfg.NumConsumerBatchSize = GetEnvIntOrSetDefault("NUM_CONSUMER_BATCH_SIZE", 1000)
+	cfg.NumPublisherWorkers = GetEnvIntOrSetDefault("NUM_PUBLISHER_WORKERS", 100)
 
 	// slog.Info("config", slog.Any("c=", cfg))
 	return &cfg

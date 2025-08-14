@@ -6,34 +6,43 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/bytedance/sonic"
 	"github.com/chrismarsilva/cms.project.1million/internal/dtos"
 	"github.com/chrismarsilva/cms.project.1million/internal/models"
-	"github.com/chrismarsilva/cms.project.1million/internal/repositories"
 	"github.com/chrismarsilva/cms.project.1million/internal/stores"
+	"github.com/chrismarsilva/cms.project.1million/internal/utils"
 	"github.com/wagslane/go-rabbitmq"
+
 	//amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/redis/go-redis/v9"
+)
+
+var (
+	EventConsumer = make(chan dtos.PersonRequestDto, 50000) // Buffer size can be adjusted based on expected load
 )
 
 type PersonConsumerWorker struct {
+	Config         *utils.Config
 	RabbitMQClient *stores.RabbitMQ
-	PersonRepo     *repositories.PersonRepository
+	RedisClient    *redis.Client
 	WorkerID       int
 }
 
-func NewPersonConsumerWorker(rabbitMQClient *stores.RabbitMQ, personRepo *repositories.PersonRepository, workerID int) *PersonConsumerWorker {
+func NewPersonConsumerWorker(config *utils.Config, rabbitMQClient *stores.RabbitMQ, redisClient *redis.Client, workerID int) *PersonConsumerWorker {
 	return &PersonConsumerWorker{
+		Config:         config,
 		RabbitMQClient: rabbitMQClient,
-		PersonRepo:     personRepo,
+		RedisClient:    redisClient,
 		WorkerID:       workerID,
 	}
 }
 
-func (w *PersonConsumerWorker) Start() {
+func (w *PersonConsumerWorker) Start(eventConsumer chan dtos.PersonRequestDto) {
 
 	// // Set prefetchCount to 50 to allow 50 messages before Acks are returned
-	// err := w.RabbitMQClient.Channel.Qos(50, 0, false)
+	// err := w.RabbitMQClient.Channel.Qos(50, 0, false) // prefetch 1000
 	// if err != nil {
 	// 	log.Fatalf("Failed to set QoS: %v", err)
 	// }
@@ -65,18 +74,20 @@ func (w *PersonConsumerWorker) Start() {
 			return rabbitmq.NackDiscard
 		}
 
-		model := models.NewPersonModel(request.Name)
-		//log.Printf("Worker #%d received a person: %s", w.WorkerID, model)
+		eventConsumer <- request
 
-		ctx := context.Background()
-		// ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-		// defer cancel()
+		// model := models.NewPersonModel(request.Name)
+		// //log.Printf("Worker #%d received a person: %s", w.WorkerID, model)
 
-		err = w.PersonRepo.Add(ctx, *model)
-		if err != nil {
-			log.Printf("Worker #%d failed to add person to repository: %v", w.WorkerID, err)
-			return rabbitmq.NackDiscard
-		}
+		// ctx := context.Background()
+		// // ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		// // defer cancel()
+
+		// err = w.PersonRepo.Add(ctx, *model)
+		// if err != nil {
+		// 	log.Printf("Worker #%d failed to add person to repository: %v", w.WorkerID, err)
+		// 	return rabbitmq.NackDiscard
+		// }
 
 		//log.Printf("Worker #%d successfully added person to repository: %s\n", w.WorkerID, model.Name)
 		//msg.Ack(false)
@@ -111,4 +122,101 @@ func (w *PersonConsumerWorker) Start() {
 	// log.Printf("Worker #%d is waiting for messages", w.WorkerID)
 	// <-forever
 	// log.Printf("Worker #%d finished processing messages", w.WorkerID)
+}
+
+func (w *PersonConsumerWorker) Process(eventConsumer chan dtos.PersonRequestDto) {
+	ctx := context.Background()
+	pipe := w.RedisClient.Pipeline()
+	count := 0
+	total := 0
+	// // ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	// // defer cancel()
+
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case request, ok := <-eventConsumer:
+			if !ok {
+				if count > 0 {
+					log.Printf("Worker #%d executing remaining %d commands in pipeline", w.WorkerID, count)
+					_, err := pipe.Exec(ctx) // executa em batch
+					if err != nil {
+						log.Printf("Worker #%d failed to execute remaining pipeline: %v", w.WorkerID, err)
+					}
+				}
+				//log.Printf("[SalvePaymentWorker %d] Job channel closed, stopping worker", w.WorkerNum)
+				return
+			}
+
+			// log.Printf("Worker #%d processing request: %+v", w.WorkerID, request)
+
+			model := models.NewPersonModel(request.Name)
+			// log.Printf("Worker #%d received a person: %s", w.WorkerID, model)
+
+			payload, err := sonic.Marshal(model)
+			if err != nil {
+				log.Printf("Worker #%d Failed to marshal payment: %v", w.WorkerID, err)
+				continue
+			}
+
+			//pipe.LPush(ctx, "persons4:queue", payload).Err()
+			//pipe.Set(ctx, "persons1:"+model.ID.String(), payload, 0)
+			//pipe.HSet(ctx, "persons2:"+model.ID.String(), payload, 0)
+			pipe.HSet(ctx, "persons", payload, 0)
+			count++
+			total++
+
+			// w.RedisClient.HSet(ctx, "persons1", model.ID.String(), payload).Err()
+			// w.RedisClient.HSet(ctx, "person2:"+model.ID.String(), model.ID.String(), payload).Err()
+			// err = w.PersonRepo.Add(ctx, *model)
+			// if err != nil {
+			// 	log.Printf("Worker #%d failed to add person to repository: %v", w.WorkerID, err)
+			// 	return rabbitmq.NackDiscard
+			// }
+
+			if count >= w.Config.NumConsumerBatchSize {
+				//log.Printf("Worker #%d executing %d commands in pipeline", w.WorkerID, count)
+				_, err := pipe.Exec(ctx) // executa em batch
+				if err != nil {
+					log.Printf("Worker #%d failed to execute pipeline: %v", w.WorkerID, err)
+					continue
+				}
+
+				// for _, c := range cmds {
+				// 	fmt.Printf("%v;", c.(*redis.StatusCmd).Val())
+				// }
+				count = 0
+				pipe = w.RedisClient.Pipeline() // cria novo pipeline
+			}
+
+			//log.Printf("Worker #%d successfully added person to repository: %s\n", w.WorkerID, model.Name)
+
+		case <-ticker.C:
+			if count >= 0 {
+				//log.Printf("Worker #%d executing %d commands in pipeline", w.WorkerID, total)
+				//log.Printf("Worker #%d executing %d commands in pipeline em %v\n", w.WorkerID, total, time.Since(start))
+
+				_, err := pipe.Exec(ctx) // executa em batch
+				if err != nil {
+					log.Printf("Worker #%d failed to execute pipeline: %v", w.WorkerID, err)
+					continue
+				}
+
+				// for _, c := range cmds {
+				// 	fmt.Printf("%v;", c.(*redis.StatusCmd).Val())
+				// }
+				count = 0
+				pipe = w.RedisClient.Pipeline() // cria novo pipeline
+			}
+
+		default:
+			// No job available, sleep briefly to avoid spinning
+			time.Sleep(10 * time.Millisecond)
+			//log.Printf("Worker #%d is waiting for messages", w.WorkerID)
+		}
+	}
+
+	//log.Printf("Worker #%d finished processing messages", w.WorkerID)
 }

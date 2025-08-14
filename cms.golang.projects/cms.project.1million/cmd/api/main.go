@@ -57,7 +57,10 @@ import (
 
 func main() {
 	config := utils.NewConfig()
+
 	redisClient := stores.NewRedis(config)
+	defer redisClient.Close()
+
 	rabbitMQClient := stores.NewRabbitMQConnection(config)
 	defer rabbitMQClient.CloseConnection()
 
@@ -65,7 +68,7 @@ func main() {
 	personSvc := services.NewPersonService(personRepo, rabbitMQClient)
 	personHandler := handlers.NewPersonHandler(personSvc)
 
-	for i := 0; i < config.NumWorkers; i++ {
+	for i := 0; i < config.NumPublisherWorkers; i++ {
 		go func(idx int) {
 			worker := workers.NewPersonPublisherWorker(config, rabbitMQClient, idx)
 			go worker.Start(workers.Jobs)

@@ -48,6 +48,7 @@ func NewRabbitMQConnection(config *utils.Config) *RabbitMQ {
 	consumer, err := rabbitmq.NewConsumer(
 		conn,
 		config.RabbitMqQueue,
+		rabbitmq.WithConsumerOptionsConcurrency(config.NumConsumerWorkers),
 		rabbitmq.WithConsumerOptionsExchangeName(""),
 		//rabbitmq.WithConsumerOptionsRoutingKey(""),
 	)

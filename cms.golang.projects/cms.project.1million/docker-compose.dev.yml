@@ -16,6 +16,7 @@ services:
     hostname: rabbitmq
     command: rabbitmq-server
     ports:
+      - "5552:5552"
       - "5672:5672"
       - "15672:15672"
       - "15692:15692"
@@ -23,6 +24,7 @@ services:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
       - RABBITMQ_DEFAULT_VHOST=/
+      - RABBITMQ_ERLANG_COOKIE=secretcookie
     networks:
       - backend
 

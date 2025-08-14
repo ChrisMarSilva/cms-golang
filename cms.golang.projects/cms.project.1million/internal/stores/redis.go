@@ -16,13 +16,16 @@ import (
 
 func NewRedis(config *utils.Config) *redis.Client {
 	client := redis.NewClient(&redis.Options{
-		Addr:         config.RedisAddr,
-		Password:     config.RedisPwd,
-		DB:           0,
-		PoolSize:     100,
-		MinIdleConns: 50,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 5 * time.Second,
+		Addr: config.RedisAddr,
+		//Username:     config.RedisUser,
+		Password:        config.RedisPwd,
+		DB:              0,   // use default DB
+		PoolSize:        100, // max-active
+		MaxIdleConns:    200,
+		MinIdleConns:    100,
+		ConnMaxIdleTime: time.Duration(300) * time.Second,
+		ReadTimeout:     time.Duration(5) * time.Second,
+		WriteTimeout:    time.Duration(5) * time.Second,
 	})
 
 	if err := client.Ping(context.Background()).Err(); err != nil {

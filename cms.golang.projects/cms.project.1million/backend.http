@@ -1,0 +1,14 @@
+
+POST http://localhost:9999/v1/person
+Content-Type: application/json
+
+{
+    "name": "Person {{$guid}}"
+}
+###
+
+GET http://localhost:9999/v1/person/count
+###
+
+GET http://localhost:9999/v1/person
+###

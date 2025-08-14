@@ -16,6 +16,7 @@ services:
       - RABBIT_MQ_URL=amqp://guest:guest@rabbitmq:5672/
       - RABBIT_MQ_DEFAULT_QUEUE=queue.person
       - NAME_API=111
+      - NUM_PUBLISHER_WORKERS=1000
     networks:
       - backend
     depends_on:
@@ -36,6 +37,7 @@ services:
       - RABBIT_MQ_URL=amqp://guest:guest@rabbitmq:5672/
       - RABBIT_MQ_DEFAULT_QUEUE=queue.person
       - NAME_API=222
+      - NUM_PUBLISHER_WORKERS=1000
 
   worker-1: &worker
     build:
@@ -48,7 +50,8 @@ services:
       - REDIS_PWD=123
       - RABBIT_MQ_URL=amqp://guest:guest@rabbitmq:5672/
       - RABBIT_MQ_DEFAULT_QUEUE=queue.person
-      - NUM_WORKERS=1000
+      - NUM_CONSUMER_WORKERS=1000
+      - NUM_CONSUMER_BATCH_SIZE=1000
     networks:
       - backend
     depends_on:
@@ -66,7 +69,8 @@ services:
       - REDIS_PWD=123
       - RABBIT_MQ_URL=amqp://guest:guest@rabbitmq:5672/
       - RABBIT_MQ_DEFAULT_QUEUE=queue.person
-      - NUM_WORKERS=1000
+      - NUM_CONSUMER_WORKERS=1000
+      - NUM_CONSUMER_BATCH_SIZE=1000
 
   redis:
     image: redis:8.2.0-alpine
@@ -91,6 +95,7 @@ services:
     hostname: rabbitmq
     command: rabbitmq-server
     ports:
+      - "5552:5552"
       - "5672:5672"
       - "15672:15672"
       - "15692:15692"
@@ -98,12 +103,19 @@ services:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
       - RABBITMQ_DEFAULT_VHOST=/
+      - RABBITMQ_ERLANG_COOKIE=secretcookie
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"] # Checks if RabbitMQ ports are reachable
+      test: [
+          "CMD",
+          "rabbitmq-diagnostics",
+          "-q",
+          "check_running",
+          "check_port_connectivity",
+        ] # Checks if RabbitMQ ports are reachable
       interval: 10s # How often to run the health check
       timeout: 5s # Maximum time allowed for the health check command to complete
-      retries: 5 # Number of consecutive failures before the container is marked unhealthy
-      start_period: 30s # Time to wait for RabbitMQ to start before performing the first health check
+      retries: 3 # Number of consecutive failures before the container is marked unhealthy
+      start_period: 10s # Time to wait for RabbitMQ to start before performing the first health check
     networks:
       - backend
 
