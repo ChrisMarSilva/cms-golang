@@ -26,13 +26,19 @@ import (
 func main() {
 	config := utils.NewConfig()
 
-	redisClient := stores.NewRedis(config)
-	defer redisClient.Close()
+	redisCache := stores.NewRedisCache(config)
+	defer redisCache.Close()
 
-	rabbitMQClient := stores.NewRabbitMQConnection(config)
-	defer rabbitMQClient.CloseConnection()
+	rabbitMQClient := stores.NewRabbitMQ(config)
+	defer rabbitMQClient.Close()
 
-	//personRepo := repositories.NewPersonRepository(redisClient)
+	//personRepo := repositories.NewPersonRepository(redisCache)
+
+	cleanup := utils.InitOpenTelemetry("worker.1million")
+	defer cleanup()
+
+	//utils.Tracer = otel.Tracer("cms.worker.1million")
+	//utils.Meter = otel.Meter("go-gin-service")
 
 	// sigchan := make(chan os.Signal, 1)
 	// signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
@@ -46,7 +52,7 @@ func main() {
 
 	for i := 0; i < config.NumConsumerWorkers; i++ {
 		go func(idx int) {
-			worker := workers.NewPersonConsumerWorker(config, rabbitMQClient, redisClient, idx)
+			worker := workers.NewPersonConsumerWorker(config, rabbitMQClient, redisCache, idx)
 			go worker.Start(workers.EventConsumer)
 			go worker.Process(workers.EventConsumer)
 		}(i)

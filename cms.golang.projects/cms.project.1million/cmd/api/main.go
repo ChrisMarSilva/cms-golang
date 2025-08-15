@@ -20,15 +20,30 @@ import (
 // go get -u github.com/bytedance/sonic
 // go get -u github.com/rabbitmq/amqp091-go
 // go get -u github.com/wagslane/go-rabbitmq
+// go get -u go.opentelemetry.io/otel
+// go get -u go.opentelemetry.io/otel/trace
+// go get -u go.opentelemetry.io/otel/metric
+// go get -u go.opentelemetry.io/otel/sdk/resource
+// go get -u go.opentelemetry.io/otel/sdk/trace
+// go get -u go.opentelemetry.io/otel/sdk/metric
+// go get -u go.opentelemetry.io/otel/attribute
+// go get -u go.opentelemetry.io/otel/exporters/otlp/otlptrace
+// go get -u go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc
+// go get -u go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc
+// go get -u go.opentelemetry.io/otel/exporters/jaeger
+// go get -u go.opentelemetry.io/otel/exporters/prometheus
+// go get -u go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin
+// go get -u github.com/prometheus/client_golang/prometheus
+// go get -u github.com/prometheus/client_golang/prometheus/promhttp
+// go get -u github.com/zsais/go-gin-prometheus
 // go mod tidy
+
+// go run ./cmd/api/main.go
+// go run ./cmd/worker/main.go
 
 // go get -u "github.com/cosmtrek/air@latest"
 // air init
 // air
-
-// go run main.go
-// go run ./cmd/api/main.go
-// go run ./cmd/worker/main.go
 
 // docker-compose down
 // docker-compose up -d --build
@@ -58,13 +73,19 @@ import (
 func main() {
 	config := utils.NewConfig()
 
-	redisClient := stores.NewRedis(config)
-	defer redisClient.Close()
+	redisCache := stores.NewRedisCache(config)
+	defer redisCache.Close()
 
-	rabbitMQClient := stores.NewRabbitMQConnection(config)
-	defer rabbitMQClient.CloseConnection()
+	rabbitMQClient := stores.NewRabbitMQ(config)
+	defer rabbitMQClient.Close()
 
-	personRepo := repositories.NewPersonRepository(redisClient)
+	cleanup := utils.InitOpenTelemetry("api.1million")
+	defer cleanup()
+
+	//utils.Tracer = otel.Tracer("cms.api.1million")
+	//utils.Meter = otel.Meter("go-gin-service")
+
+	personRepo := repositories.NewPersonRepository(redisCache)
 	personSvc := services.NewPersonService(personRepo, rabbitMQClient)
 	personHandler := handlers.NewPersonHandler(personSvc)
 

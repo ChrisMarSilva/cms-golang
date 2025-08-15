@@ -6,6 +6,7 @@ import (
 	"github.com/chrismarsilva/cms.project.1million/internal/dtos"
 	"github.com/chrismarsilva/cms.project.1million/internal/repositories"
 	"github.com/chrismarsilva/cms.project.1million/internal/stores"
+	"github.com/chrismarsilva/cms.project.1million/internal/utils"
 	"github.com/chrismarsilva/cms.project.1million/internal/workers"
 	"github.com/google/uuid"
 	//amqp "github.com/rabbitmq/amqp091-go"
@@ -24,6 +25,9 @@ func NewPersonService(repo *repositories.PersonRepository, rabbitMQClient *store
 }
 
 func (s *PersonService) Add(ctx context.Context, request dtos.PersonRequestDto) error {
+	ctx, span := utils.Tracer.Start(ctx, "PersonService.Add")
+	defer span.End()
+
 	//model := models.NewPersonModel(request.Name)
 
 	// payload, err := sonic.Marshal(request)
@@ -69,6 +73,9 @@ func (s *PersonService) Add(ctx context.Context, request dtos.PersonRequestDto) 
 }
 
 func (s *PersonService) GetAll(ctx context.Context) ([]*dtos.PersonResponseDto, error) {
+	ctx, span := utils.Tracer.Start(ctx, "PersonService.GetAll")
+	defer span.End()
+
 	personsModels, err := s.Repo.GetAll(ctx)
 	if err != nil {
 		return nil, err
@@ -85,6 +92,9 @@ func (s *PersonService) GetAll(ctx context.Context) ([]*dtos.PersonResponseDto, 
 }
 
 func (s *PersonService) GetByID(ctx context.Context, id uuid.UUID) (*dtos.PersonResponseDto, error) {
+	ctx, span := utils.Tracer.Start(ctx, "PersonService.GetByID")
+	defer span.End()
+
 	personModel, err := s.Repo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -95,6 +105,9 @@ func (s *PersonService) GetByID(ctx context.Context, id uuid.UUID) (*dtos.Person
 }
 
 func (s *PersonService) GetCount(ctx context.Context) (int64, error) {
+	ctx, span := utils.Tracer.Start(ctx, "PersonService.GetCount")
+	defer span.End()
+
 	count, err := s.Repo.GetCount(ctx)
 	if err != nil {
 		return 0, err

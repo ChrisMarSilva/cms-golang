@@ -9,12 +9,12 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// type RedisCache struct {
-// 	client *redis.Client
-// 	ttl    time.Duration
-// }
+type RedisCache struct {
+	Client *redis.Client
+	//ttl    time.Duration
+}
 
-func NewRedis(config *utils.Config) *redis.Client {
+func NewRedisCache(config *utils.Config) *RedisCache {
 	client := redis.NewClient(&redis.Options{
 		Addr: config.RedisAddr,
 		//Username:     config.RedisUser,
@@ -32,39 +32,55 @@ func NewRedis(config *utils.Config) *redis.Client {
 		log.Fatal("Redis connect:", err)
 	}
 
-	// return &RedisCache{
-	// 	client: client,
-	// 	ttl:    5 * time.Minute,
-	// }
-	return client
+	//return client
+	return &RedisCache{
+		Client: client,
+		//ttl:    5 * time.Minute,
+	}
 }
 
-// func (r *RedisCache) Set(ctx context.Context, key, id string, data *interface{}) {
-// 	key := fmt.Sprintf("pessoa:id:%d", p.ID)
-// 	payload, _ := json.Marshal(data)
-// 	return r.client.Set(ctx, key, payload, r.ttl)
-//  return r.client.HSet(ctx, key, id, payload).Err()
-// }
+func (r *RedisCache) HSet(ctx context.Context, key, id string, data interface{}) error {
+	_, span := utils.Tracer.Start(ctx, "RedisCache.HSet")
+	defer span.End()
 
-// func (r *RedisCache) GetAll(ctx context.Context, key string) (*interface{}, error) {
-// 	return r.client.Get(ctx, key).Result()
-//  return r.client.HGetAll(ctx, key).Result()
-// }
+	return r.Client.HSet(ctx, key, id, data).Err()
+}
 
-// func (r *RedisCache) GetPessoaByID(ctx context.Context, id uuid) (*interface{}, error) {
-// 	key := fmt.Sprintf("pessoa:id:%d", id.String())
-// 	payload, err := r.client.Get(ctx, key).Result()
-//  payload, err := r.client.HGet(ctx, key, id.String()).Result()
-// 	if err == redis.Nil {
-// 		return nil, nil
-// 	}
-// 	if err != nil {
-// 		return nil, err
-// 	}
+func (r *RedisCache) HGetAll(ctx context.Context, key string) (map[string]string, error) {
+	_, span := utils.Tracer.Start(ctx, "RedisCache.HGetAll")
+	defer span.End()
 
-// 	var data *interface{
-// 	if err := json.Unmarshal([]byte(payload), &data); err != nil {
-// 		return nil, err
-// 	}
-// 	return &data, nil
-// }
+	return r.Client.HGetAll(ctx, key).Result()
+}
+
+func (r *RedisCache) HGet(ctx context.Context, key, id string) (string, error) {
+	_, span := utils.Tracer.Start(ctx, "RedisCache.HGet")
+	defer span.End()
+
+	return r.Client.HGet(ctx, key, id).Result()
+}
+
+func (r *RedisCache) Exists(ctx context.Context, key, id string) (bool, error) {
+	_, span := utils.Tracer.Start(ctx, "RedisCache.Exists")
+	defer span.End()
+
+	return r.Client.HExists(ctx, key, id).Result()
+}
+
+func (r *RedisCache) HLen(ctx context.Context, key string) (int64, error) {
+	_, span := utils.Tracer.Start(ctx, "RedisCache.HLen")
+	defer span.End()
+
+	return r.Client.HLen(ctx, key).Result()
+}
+
+func (r *RedisCache) Delete(ctx context.Context, key, id string) error {
+	_, span := utils.Tracer.Start(ctx, "RedisCache.Delete")
+	defer span.End()
+
+	return r.Client.HDel(ctx, key, id).Err()
+}
+
+func (r *RedisCache) Close() {
+	r.Client.Close()
+}

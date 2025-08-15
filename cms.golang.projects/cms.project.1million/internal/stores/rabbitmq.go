@@ -16,7 +16,7 @@ type RabbitMQ struct {
 	Consumer  *rabbitmq.Consumer
 }
 
-func NewRabbitMQConnection(config *utils.Config) *RabbitMQ {
+func NewRabbitMQ(config *utils.Config) *RabbitMQ {
 	url := config.RabbitMqUrl
 	//url := fmt.Sprintf("amqp://%s:%s@%s:%s/%s", config.RabbitMqUser, config.RabbitMqPass, config.RabbitMqHost, config.RabbitMqPort, config.RabbitMqVhost)
 
@@ -66,10 +66,10 @@ func NewRabbitMQConnection(config *utils.Config) *RabbitMQ {
 	}
 }
 
-func (rabbitMQ *RabbitMQ) CloseConnection() {
+func (r *RabbitMQ) Close() {
 	log.Println("Closing RabbitMQ connection...")
-	//rabbitMQ.Channel.Close()
-	rabbitMQ.Publisher.Close()
-	rabbitMQ.Consumer.Close()
-	rabbitMQ.Conn.Close()
+	//r.Channel.Close()
+	r.Publisher.Close()
+	r.Consumer.Close()
+	r.Conn.Close()
 }

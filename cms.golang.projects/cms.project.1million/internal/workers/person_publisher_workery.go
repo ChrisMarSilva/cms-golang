@@ -10,7 +10,6 @@ import (
 	"github.com/chrismarsilva/cms.project.1million/internal/stores"
 	"github.com/chrismarsilva/cms.project.1million/internal/utils"
 	"github.com/wagslane/go-rabbitmq"
-	//amqp "github.com/rabbitmq/amqp091-go"
 )
 
 var (
@@ -36,6 +35,9 @@ func (w *PersonPublisherWorker) Start(eventPublisher chan dtos.PersonRequestDto)
 	// ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	// defer cancel()
 
+	// ctx, span := utils.Tracer.Start(ctx, "PersonPublisherWorker.Start")
+	// defer span.End()
+
 	for {
 		select {
 		case request, ok := <-eventPublisher:
@@ -53,6 +55,7 @@ func (w *PersonPublisherWorker) Start(eventPublisher chan dtos.PersonRequestDto)
 				continue
 			}
 
+			ctx, span := utils.Tracer.Start(ctx, "PersonPublisherWorker.Start")
 			err = w.RabbitMQClient.Publisher.PublishWithContext(
 				ctx,
 				payload,
@@ -62,6 +65,7 @@ func (w *PersonPublisherWorker) Start(eventPublisher chan dtos.PersonRequestDto)
 				rabbitmq.WithPublishOptionsPersistentDelivery,
 				rabbitmq.WithPublishOptionsExchange(""),
 			)
+			span.End()
 			if err != nil {
 				log.Printf("[SalvePaymentWorker %d] Failed to enqueue payment: %v", w.WorkerID, err)
 				continue

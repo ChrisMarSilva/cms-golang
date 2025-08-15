@@ -14,9 +14,6 @@ import (
 	"github.com/chrismarsilva/cms.project.1million/internal/stores"
 	"github.com/chrismarsilva/cms.project.1million/internal/utils"
 	"github.com/wagslane/go-rabbitmq"
-
-	//amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/redis/go-redis/v9"
 )
 
 var (
@@ -26,21 +23,20 @@ var (
 type PersonConsumerWorker struct {
 	Config         *utils.Config
 	RabbitMQClient *stores.RabbitMQ
-	RedisClient    *redis.Client
+	RedisCache     *stores.RedisCache
 	WorkerID       int
 }
 
-func NewPersonConsumerWorker(config *utils.Config, rabbitMQClient *stores.RabbitMQ, redisClient *redis.Client, workerID int) *PersonConsumerWorker {
+func NewPersonConsumerWorker(config *utils.Config, rabbitMQClient *stores.RabbitMQ, redisCache *stores.RedisCache, workerID int) *PersonConsumerWorker {
 	return &PersonConsumerWorker{
 		Config:         config,
 		RabbitMQClient: rabbitMQClient,
-		RedisClient:    redisClient,
+		RedisCache:     redisCache,
 		WorkerID:       workerID,
 	}
 }
 
 func (w *PersonConsumerWorker) Start(eventConsumer chan dtos.PersonRequestDto) {
-
 	// // Set prefetchCount to 50 to allow 50 messages before Acks are returned
 	// err := w.RabbitMQClient.Channel.Qos(50, 0, false) // prefetch 1000
 	// if err != nil {
@@ -126,7 +122,8 @@ func (w *PersonConsumerWorker) Start(eventConsumer chan dtos.PersonRequestDto) {
 
 func (w *PersonConsumerWorker) Process(eventConsumer chan dtos.PersonRequestDto) {
 	ctx := context.Background()
-	pipe := w.RedisClient.Pipeline()
+
+	pipe := w.RedisCache.Client.Pipeline()
 	count := 0
 	total := 0
 	// // ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
@@ -141,7 +138,9 @@ func (w *PersonConsumerWorker) Process(eventConsumer chan dtos.PersonRequestDto)
 			if !ok {
 				if count > 0 {
 					log.Printf("Worker #%d executing remaining %d commands in pipeline", w.WorkerID, count)
+					ctx, span := utils.Tracer.Start(ctx, "PersonConsumerWorker.Process.pipeline.Exec")
 					_, err := pipe.Exec(ctx) // executa em batch
+					span.End()
 					if err != nil {
 						log.Printf("Worker #%d failed to execute remaining pipeline: %v", w.WorkerID, err)
 					}
@@ -174,8 +173,8 @@ func (w *PersonConsumerWorker) Process(eventConsumer chan dtos.PersonRequestDto)
 			count++
 			total++
 
-			// w.RedisClient.HSet(ctx, "persons1", model.ID.String(), payload).Err()
-			// w.RedisClient.HSet(ctx, "person2:"+model.ID.String(), model.ID.String(), payload).Err()
+			// w.RedisCache.Client.HSet(ctx, "persons1", model.ID.String(), payload).Err()
+			// w.RedisCache.Client.HSet(ctx, "person2:"+model.ID.String(), model.ID.String(), payload).Err()
 			// err = w.PersonRepo.Add(ctx, *model)
 			// if err != nil {
 			// 	log.Printf("Worker #%d failed to add person to repository: %v", w.WorkerID, err)
@@ -185,7 +184,10 @@ func (w *PersonConsumerWorker) Process(eventConsumer chan dtos.PersonRequestDto)
 			if count >= w.Config.NumConsumerBatchSize {
 				log.Printf("Worker #%d executing %d commands in pipeline", w.WorkerID, count)
 
+				ctx, span := utils.Tracer.Start(ctx, "PersonConsumerWorker.Process.pipeline.Exec")
 				_, err := pipe.Exec(ctx) // executa em batch
+				span.End()
+
 				if err != nil {
 					log.Printf("Worker #%d failed to execute pipeline: %v", w.WorkerID, err)
 					continue
@@ -195,7 +197,7 @@ func (w *PersonConsumerWorker) Process(eventConsumer chan dtos.PersonRequestDto)
 				// 	fmt.Printf("%v;", c.(*redis.StatusCmd).Val())
 				// }
 				count = 0
-				pipe = w.RedisClient.Pipeline() // cria novo pipeline
+				pipe = w.RedisCache.Client.Pipeline() // cria novo pipeline
 			}
 
 			//log.Printf("Worker #%d successfully added person to repository: %s\n", w.WorkerID, model.Name)
@@ -204,7 +206,9 @@ func (w *PersonConsumerWorker) Process(eventConsumer chan dtos.PersonRequestDto)
 			if count > 0 {
 				log.Printf("Worker #%d executing by time %d commands in pipeline", w.WorkerID, count)
 
+				ctx, span := utils.Tracer.Start(ctx, "PersonConsumerWorker.Process.pipeline.Exec")
 				_, err := pipe.Exec(ctx) // executa em batch
+				span.End()
 				if err != nil {
 					log.Printf("Worker #%d failed to execute pipeline: %v", w.WorkerID, err)
 					continue
@@ -214,7 +218,7 @@ func (w *PersonConsumerWorker) Process(eventConsumer chan dtos.PersonRequestDto)
 				// 	fmt.Printf("%v;", c.(*redis.StatusCmd).Val())
 				// }
 				count = 0
-				pipe = w.RedisClient.Pipeline() // cria novo pipeline
+				pipe = w.RedisCache.Client.Pipeline() // cria novo pipeline
 			}
 
 		default:

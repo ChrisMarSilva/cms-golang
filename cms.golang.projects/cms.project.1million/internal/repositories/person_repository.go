@@ -7,33 +7,41 @@ import (
 
 	"github.com/bytedance/sonic"
 	"github.com/chrismarsilva/cms.project.1million/internal/models"
+	"github.com/chrismarsilva/cms.project.1million/internal/stores"
+	"github.com/chrismarsilva/cms.project.1million/internal/utils"
 	"github.com/google/uuid"
-	"github.com/redis/go-redis/v9"
 )
 
 type PersonRepository struct {
-	RedisClient *redis.Client
-	Key         string
+	RedisCache *stores.RedisCache
+	Key        string
 }
 
-func NewPersonRepository(redisClient *redis.Client) *PersonRepository {
+func NewPersonRepository(redisCache *stores.RedisCache) *PersonRepository {
 	return &PersonRepository{
-		RedisClient: redisClient,
-		Key:         "persons",
+		RedisCache: redisCache,
+		Key:        "persons",
 	}
 }
 
 func (r *PersonRepository) Add(ctx context.Context, model models.PersonModel) error {
+	ctx, span := utils.Tracer.Start(ctx, "PersonRepository.Add")
+	defer span.End()
+
 	payload, err := sonic.Marshal(model)
 	if err != nil {
 		return fmt.Errorf("failed to marshal person data: %w", err)
 	}
 
-	return r.RedisClient.HSet(ctx, r.Key, model.ID.String(), payload).Err()
+	//return r.RedisCache.Client.HSet(ctx, r.Key, model.ID.String(), payload).Err()
+	return r.RedisCache.HSet(ctx, r.Key, model.ID.String(), payload)
 }
 
 func (r *PersonRepository) GetAll(ctx context.Context) ([]*models.PersonModel, error) {
-	// pipe := r.RedisClient.Pipeline()
+	ctx, span := utils.Tracer.Start(ctx, "PersonRepository.GetAll")
+	defer span.End()
+
+	// pipe := r.RedisCache.Client.Pipeline()
 
 	// hgetAllCmd := pipe.HGetAll(ctx, r.Key)
 	// _, err := pipe.Exec(ctx)
@@ -52,8 +60,9 @@ func (r *PersonRepository) GetAll(ctx context.Context) ([]*models.PersonModel, e
 	// }
 
 	// HGetAll: Retorna todos os campos e valores do hash armazenado em key.
-	personsData, err := r.RedisClient.HGetAll(ctx, r.Key).Result()
-	//result, err := rdb.HGetAll(ctx, hashKey).Result()
+	//result, err := r.RedisCache.Client.HGetAll(ctx, hashKey).Result()
+	//personsData, err := r.RedisCache.Client.HGetAll(ctx, r.Key).Result()
+	personsData, err := r.RedisCache.HGetAll(ctx, r.Key)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve persons: %w", err)
 	}
@@ -87,7 +96,10 @@ func (r *PersonRepository) GetAll(ctx context.Context) ([]*models.PersonModel, e
 }
 
 func (r *PersonRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.PersonModel, error) {
-	personDataJSON, err := r.RedisClient.HGet(ctx, r.Key, id.String()).Result()
+	ctx, span := utils.Tracer.Start(ctx, "PersonRepository.GetByID")
+	defer span.End()
+
+	personDataJSON, err := r.RedisCache.HGet(ctx, r.Key, id.String())
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve person by ID: %w", err)
 	}
@@ -102,10 +114,8 @@ func (r *PersonRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.P
 }
 
 func (r *PersonRepository) GetCount(ctx context.Context) (int64, error) {
-	count, err := r.RedisClient.HLen(ctx, r.Key).Result()
-	if err != nil {
-		return 0, fmt.Errorf("failed to get person count: %w", err)
-	}
+	ctx, span := utils.Tracer.Start(ctx, "PersonRepository.GetCount")
+	defer span.End()
 
-	return count, nil
+	return r.RedisCache.HLen(ctx, r.Key)
 }
