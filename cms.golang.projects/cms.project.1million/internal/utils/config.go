@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"log/slog"
 	"os"
 	"strconv"
 
@@ -47,7 +48,8 @@ func NewConfig() *Config {
 	cfg.NumPublisherWorkers = GetEnvIntOrSetDefault("NUM_PUBLISHER_WORKERS", 100)
 	cfg.NumPublisherBatchSize = GetEnvIntOrSetDefault("NUM_PUBLISHER_BATCH_SIZE", 1000)
 
-	// slog.Info("config", slog.Any("c=", cfg))
+	slog.Info("config", slog.Any("c=", cfg))
+
 	return &cfg
 }
 

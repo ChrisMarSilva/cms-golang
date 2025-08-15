@@ -2,25 +2,22 @@ package services
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/chrismarsilva/cms.project.1million/internal/dtos"
 	"github.com/chrismarsilva/cms.project.1million/internal/repositories"
-	"github.com/chrismarsilva/cms.project.1million/internal/stores"
 	"github.com/chrismarsilva/cms.project.1million/internal/utils"
 	"github.com/chrismarsilva/cms.project.1million/internal/workers"
 	"github.com/google/uuid"
-	//amqp "github.com/rabbitmq/amqp091-go"
 )
 
 type PersonService struct {
-	Repo           *repositories.PersonRepository
-	RabbitMQClient *stores.RabbitMQ
+	repo *repositories.PersonRepository
 }
 
-func NewPersonService(repo *repositories.PersonRepository, rabbitMQClient *stores.RabbitMQ) *PersonService {
+func NewPersonService(repo *repositories.PersonRepository) *PersonService {
 	return &PersonService{
-		Repo:           repo,
-		RabbitMQClient: rabbitMQClient,
+		repo: repo,
 	}
 }
 
@@ -28,47 +25,14 @@ func (s *PersonService) Add(ctx context.Context, request dtos.PersonRequestDto) 
 	ctx, span := utils.Tracer.Start(ctx, "PersonService.Add")
 	defer span.End()
 
-	//model := models.NewPersonModel(request.Name)
-
-	// payload, err := sonic.Marshal(request)
+	// err := s.repo.Add(ctx, *model)
 	// if err != nil {
-	// 	return err
-	// }
-
-	// q, err := s.RabbitMQClient.Channel.QueueDeclare(s.Config.RabbitMqQueue, true, false, false, false, amqp.Table{})
-	// if err != nil {
-	// 	return err
-	// }
-
-	// if s.RabbitMQClient.Conn.IsClosed() || s.RabbitMQClient.Channel.IsClosed() {
-	// 	s.RabbitMQClient.CloseConnection()
-	// 	s.RabbitMQClient = stores.NewRabbitMQConnection(s.Config)
-	// }
-
-	// message := amqp.Publishing{ContentType: "application/json", DeliveryMode: amqp.Persistent, Body: payload}
-	//err = s.RabbitMQClient.Channel.PublishWithContext(ctx, "", s.Config.RabbitMqQueue, false, false, message)
-	// err = s.RabbitMQClient.Publisher.PublishWithContext(
-	// 	ctx,
-	// 	payload,
-	// 	[]string{s.Config.RabbitMqQueue},
-	// 	rabbitmq.WithPublishOptionsContentType("application/json"),
-	// 	rabbitmq.WithPublishOptionsMandatory,
-	// 	rabbitmq.WithPublishOptionsPersistentDelivery,
-	// 	rabbitmq.WithPublishOptionsExchange(""),
-	// )
-	// if err != nil {
-	// 	return err
+	// 	slog.Error("Failed to add person to repository", slog.Any("error", err))
+	// 	return nil, err
 	// }
 
 	workers.EventPublisher <- request
 
-	// err := s.Repo.Add(ctx, *model)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	//person := &dtos.PersonResponseDto{ID: model.ID, Name: model.Name, RequestedAt: model.RequestedAt}
-	//return person, nil
 	return nil
 }
 
@@ -76,8 +40,9 @@ func (s *PersonService) GetAll(ctx context.Context) ([]*dtos.PersonResponseDto, 
 	ctx, span := utils.Tracer.Start(ctx, "PersonService.GetAll")
 	defer span.End()
 
-	personsModels, err := s.Repo.GetAll(ctx)
+	personsModels, err := s.repo.GetAll(ctx)
 	if err != nil {
+		slog.Error("Failed to get all persons", slog.Any("error", err))
 		return nil, err
 	}
 
@@ -95,8 +60,9 @@ func (s *PersonService) GetByID(ctx context.Context, id uuid.UUID) (*dtos.Person
 	ctx, span := utils.Tracer.Start(ctx, "PersonService.GetByID")
 	defer span.End()
 
-	personModel, err := s.Repo.GetByID(ctx, id)
+	personModel, err := s.repo.GetByID(ctx, id)
 	if err != nil {
+		slog.Error("Failed to get person by ID", slog.Any("error", err))
 		return nil, err
 	}
 
@@ -108,8 +74,9 @@ func (s *PersonService) GetCount(ctx context.Context) (int64, error) {
 	ctx, span := utils.Tracer.Start(ctx, "PersonService.GetCount")
 	defer span.End()
 
-	count, err := s.Repo.GetCount(ctx)
+	count, err := s.repo.GetCount(ctx)
 	if err != nil {
+		slog.Error("Failed to get person count", slog.Any("error", err))
 		return 0, err
 	}
 

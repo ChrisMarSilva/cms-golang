@@ -1,40 +1,26 @@
 package stores
 
 import (
-	"log"
+	"log/slog"
+	"os"
 
 	"github.com/chrismarsilva/cms.project.1million/internal/utils"
 	"github.com/wagslane/go-rabbitmq"
-	//amqp "github.com/rabbitmq/amqp091-go"
 )
 
 type RabbitMQ struct {
-	// Conn    *amqp.Connection
-	// Channel *amqp.Channel
-	Conn      *rabbitmq.Conn
+	conn      *rabbitmq.Conn
 	Publisher *rabbitmq.Publisher
 	Consumer  *rabbitmq.Consumer
 }
 
 func NewRabbitMQ(config *utils.Config) *RabbitMQ {
-	url := config.RabbitMqUrl
-	//url := fmt.Sprintf("amqp://%s:%s@%s:%s/%s", config.RabbitMqUser, config.RabbitMqPass, config.RabbitMqHost, config.RabbitMqPort, config.RabbitMqVhost)
-
-	//conn, err := amqp.Dial(url) // amqp.DialConfig(url, amqp.Config{Heartbeat: 30 * time.Second})
+	url := config.RabbitMqUrl // fmt.Sprintf("amqp://%s:%s@%s:%s/%s", config.RabbitMqUser, config.RabbitMqPass, config.RabbitMqHost, config.RabbitMqPort, config.RabbitMqVhost)
 	conn, err := rabbitmq.NewConn(url, rabbitmq.WithConnectionOptionsLogging)
 	if err != nil {
-		log.Fatal("RabbitMQ connect:", err)
+		slog.Error("RabbitMQ connection error", "error", err)
+		os.Exit(1)
 	}
-
-	// ch, err := conn.Channel()
-	// if err != nil {
-	// 	log.Fatal("RabbitMQ channel:", err)
-	// }
-
-	// _, err = ch.QueueDeclare(config.RabbitMqQueue, true, false, false, false, amqp.Table{})
-	// if err != nil {
-	// 	log.Fatal("RabbitMQ queue declare:", err)
-	// }
 
 	publisher, err := rabbitmq.NewPublisher(
 		conn,
@@ -43,7 +29,8 @@ func NewRabbitMQ(config *utils.Config) *RabbitMQ {
 		rabbitmq.WithPublisherOptionsExchangeName(""),
 	)
 	if err != nil {
-		log.Fatal("RabbitMQ publisher:", err)
+		slog.Error("RabbitMQ publisher error", "error", err)
+		os.Exit(1)
 	}
 
 	consumer, err := rabbitmq.NewConsumer(
@@ -51,25 +38,20 @@ func NewRabbitMQ(config *utils.Config) *RabbitMQ {
 		config.RabbitMqQueue,
 		rabbitmq.WithConsumerOptionsConcurrency(config.NumConsumerWorkers),
 		rabbitmq.WithConsumerOptionsExchangeName(""),
-		//rabbitmq.WithConsumerOptionsRoutingKey(""),
 	)
 	if err != nil {
-		log.Fatal("RabbitMQ consumer:", err)
+		slog.Error("RabbitMQ consumer error", "error", err)
+		os.Exit(1)
 	}
 
-	log.Println("RabbitMQ connection established successfully")
 	return &RabbitMQ{
-		Conn: conn,
-		//Channel: ch,
 		Publisher: publisher,
 		Consumer:  consumer,
 	}
 }
 
 func (r *RabbitMQ) Close() {
-	log.Println("Closing RabbitMQ connection...")
-	//r.Channel.Close()
 	r.Publisher.Close()
 	r.Consumer.Close()
-	r.Conn.Close()
+	r.conn.Close()
 }

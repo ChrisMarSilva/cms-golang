@@ -123,7 +123,7 @@ func (w *PersonConsumerWorker) Start(eventConsumer chan dtos.PersonRequestDto) {
 func (w *PersonConsumerWorker) Process(eventConsumer chan dtos.PersonRequestDto) {
 	ctx := context.Background()
 
-	pipe := w.RedisCache.Client.Pipeline()
+	pipe := w.RedisCache.Pipeline()
 	count := 0
 	total := 0
 	// // ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
@@ -197,7 +197,7 @@ func (w *PersonConsumerWorker) Process(eventConsumer chan dtos.PersonRequestDto)
 				// 	fmt.Printf("%v;", c.(*redis.StatusCmd).Val())
 				// }
 				count = 0
-				pipe = w.RedisCache.Client.Pipeline() // cria novo pipeline
+				pipe = w.RedisCache.Pipeline() // cria novo pipeline
 			}
 
 			//log.Printf("Worker #%d successfully added person to repository: %s\n", w.WorkerID, model.Name)
@@ -218,7 +218,7 @@ func (w *PersonConsumerWorker) Process(eventConsumer chan dtos.PersonRequestDto)
 				// 	fmt.Printf("%v;", c.(*redis.StatusCmd).Val())
 				// }
 				count = 0
-				pipe = w.RedisCache.Client.Pipeline() // cria novo pipeline
+				pipe = w.RedisCache.Pipeline() // cria novo pipeline
 			}
 
 		default:

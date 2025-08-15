@@ -2,7 +2,7 @@ package repositories
 
 import (
 	"context"
-	"fmt"
+	"log/slog"
 	"sync"
 
 	"github.com/bytedance/sonic"
@@ -13,14 +13,12 @@ import (
 )
 
 type PersonRepository struct {
-	RedisCache *stores.RedisCache
-	Key        string
+	redisCache *stores.RedisCache
 }
 
 func NewPersonRepository(redisCache *stores.RedisCache) *PersonRepository {
 	return &PersonRepository{
-		RedisCache: redisCache,
-		Key:        "persons",
+		redisCache: redisCache,
 	}
 }
 
@@ -30,41 +28,21 @@ func (r *PersonRepository) Add(ctx context.Context, model models.PersonModel) er
 
 	payload, err := sonic.Marshal(model)
 	if err != nil {
-		return fmt.Errorf("failed to marshal person data: %w", err)
+		slog.Error("Failed to marshal person data", slog.Any("error", err))
+		return err
 	}
 
-	//return r.RedisCache.Client.HSet(ctx, r.Key, model.ID.String(), payload).Err()
-	return r.RedisCache.HSet(ctx, r.Key, model.ID.String(), payload)
+	return r.redisCache.HSet(ctx, "persons", model.ID.String(), payload)
 }
 
 func (r *PersonRepository) GetAll(ctx context.Context) ([]*models.PersonModel, error) {
 	ctx, span := utils.Tracer.Start(ctx, "PersonRepository.GetAll")
 	defer span.End()
 
-	// pipe := r.RedisCache.Client.Pipeline()
-
-	// hgetAllCmd := pipe.HGetAll(ctx, r.Key)
-	// _, err := pipe.Exec(ctx)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to retrieve persons: %w", err)
-	// }
-
-	// pipedResult, err := hgetAllCmd.Result()
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to retrieve persons from piped result: %w", err)
-	// }
-
-	// //fmt.Printf("\nAll fields and values for hash '%s' (from pipeline):\n", r.Key)
-	// for field, value := range pipedResult {
-	// 	fmt.Printf("Field: %s, Value: %s\n", field, value)
-	// }
-
-	// HGetAll: Retorna todos os campos e valores do hash armazenado em key.
-	//result, err := r.RedisCache.Client.HGetAll(ctx, hashKey).Result()
-	//personsData, err := r.RedisCache.Client.HGetAll(ctx, r.Key).Result()
-	personsData, err := r.RedisCache.HGetAll(ctx, r.Key)
+	personsData, err := r.redisCache.HGetAll(ctx, "persons")
 	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve persons: %w", err)
+		slog.Error("Failed to retrieve persons", slog.Any("error", err))
+		return nil, err
 	}
 
 	var wg sync.WaitGroup
@@ -81,7 +59,8 @@ func (r *PersonRepository) GetAll(ctx context.Context) ([]*models.PersonModel, e
 			var person models.PersonModel
 			err := sonic.Unmarshal([]byte(payload), &person)
 			if err != nil {
-				return // continue
+				slog.Error("Failed to unmarshal person data", slog.Any("error", err))
+				return
 			}
 
 			mu.Lock()
@@ -99,15 +78,17 @@ func (r *PersonRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.P
 	ctx, span := utils.Tracer.Start(ctx, "PersonRepository.GetByID")
 	defer span.End()
 
-	personDataJSON, err := r.RedisCache.HGet(ctx, r.Key, id.String())
+	personDataJSON, err := r.redisCache.HGet(ctx, "persons", id.String())
 	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve person by ID: %w", err)
+		slog.Error("Failed to retrieve person by ID", slog.Any("error", err))
+		return nil, err
 	}
 
 	var person models.PersonModel
 	err = sonic.Unmarshal([]byte(personDataJSON), &person)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal person data: %w", err)
+		slog.Error("Failed to unmarshal person data", slog.Any("error", err))
+		return nil, err
 	}
 
 	return &person, nil
@@ -117,5 +98,5 @@ func (r *PersonRepository) GetCount(ctx context.Context) (int64, error) {
 	ctx, span := utils.Tracer.Start(ctx, "PersonRepository.GetCount")
 	defer span.End()
 
-	return r.RedisCache.HLen(ctx, r.Key)
+	return r.redisCache.HLen(ctx, "persons")
 }

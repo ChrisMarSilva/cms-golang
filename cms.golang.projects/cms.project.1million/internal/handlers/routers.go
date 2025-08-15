@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -15,30 +16,16 @@ import (
 )
 
 type Router struct {
-	Config        *utils.Config
-	PersonHandler *PersonHandler
+	config  *utils.Config
+	handler *PersonHandler
 }
 
-func NewRouter(config *utils.Config, personHandler *PersonHandler) *Router {
+func NewRouter(config *utils.Config, handler *PersonHandler) *Router {
 	return &Router{
-		Config:        config,
-		PersonHandler: personHandler,
+		config:  config,
+		handler: handler,
 	}
 }
-
-// func TrackMetrics() gin.HandlerFunc {
-// 	return func(c *gin.Context) {
-// 		path := c.Request.URL.Path
-// 		c.Next()
-
-// 		status := c.Writer.Status()
-// 		utils.MetricHttpRequestCount.WithLabelValues(path, http.StatusText(status)).Inc()
-
-// 		if status >= http.StatusBadRequest {
-// 			utils.MetricHttpErrorCount.WithLabelValues(path, http.StatusText(status)).Inc()
-// 		}
-// 	}
-// }
 
 func prometheusMiddleware(c *gin.Context) {
 	path := c.Request.URL.Path
@@ -47,6 +34,13 @@ func prometheusMiddleware(c *gin.Context) {
 	utils.MetricHttpRequestsTotal.WithLabelValues(path).Inc() // increment total request counter
 	utils.MetricHttpActiveConnections.Inc()                   // increment number of active connections
 
+	// 		status := c.Writer.Status()
+	// 		utils.MetricHttpRequestCount.WithLabelValues(path, http.StatusText(status)).Inc()
+
+	// 		if status >= http.StatusBadRequest {
+	// 			utils.MetricHttpErrorCount.WithLabelValues(path, http.StatusText(status)).Inc()
+	// 		}
+
 	c.Next() // complete processing request
 
 	timer.ObserveDuration()                 // record request duration (post processing)
@@ -54,8 +48,8 @@ func prometheusMiddleware(c *gin.Context) {
 }
 
 func (r Router) Listen() error {
-	gin.SetMode(r.Config.GinMode)
-	if r.Config.GinMode == gin.ReleaseMode || r.Config.GinMode == gin.TestMode {
+	gin.SetMode(r.config.GinMode)
+	if r.config.GinMode == gin.ReleaseMode || r.config.GinMode == gin.TestMode {
 		gin.DefaultWriter = io.Discard // Disable default logger in release mode
 	}
 
@@ -117,15 +111,15 @@ func (r Router) Listen() error {
 	{
 		personGroup := v1Group.Group("/person")
 		{
-			personGroup.POST("", r.PersonHandler.Add)
-			personGroup.GET("/", r.PersonHandler.GetAll)
-			personGroup.GET("/:id", r.PersonHandler.GetByID)
-			personGroup.GET("/count", r.PersonHandler.GetCount)
+			personGroup.POST("", r.handler.Add)
+			personGroup.GET("/", r.handler.GetAll)
+			personGroup.GET("/:id", r.handler.GetByID)
+			personGroup.GET("/count", r.handler.GetCount)
 		}
 	}
 
 	s := &http.Server{
-		Addr:         fmt.Sprintf(":%v", r.Config.UriPort),
+		Addr:         fmt.Sprintf(":%v", r.config.UriPort),
 		Handler:      router,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
@@ -141,12 +135,12 @@ func (r Router) ErrorsMiddleware() gin.HandlerFunc {
 
 		if len(c.Errors) > 0 {
 			err := c.Errors.Last().Err
+			slog.Error(err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error()})
 		}
 	}
 }
 
 func (r Router) HealthHandler(c *gin.Context) {
-	//c.JSON(http.StatusOK, r.Config.NameApi)
 	c.JSON(http.StatusOK, "ok")
 }
