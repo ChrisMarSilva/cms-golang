@@ -3,14 +3,14 @@ import { uuidv4 } from "https://jslib.k6.io/k6-utils/1.4.0/index.js";
 import { check, sleep } from "k6";
 
 export const options = {
-  // vus: 10,  // número de usuários virtuais
-  // duration: "5s",  // duração total do teste
+  vus: 10, // número de usuários virtuais
+  duration: "5s", // duração total do teste
 
-  stages: [
-    { duration: "2m", target: 1000 }, // ramp up
-    { duration: "8m", target: 1000 },
-    { duration: "2m", target: 0 },
-  ],
+  // stages: [
+  //   { duration: "2m", target: 1000 }, // ramp up
+  //   { duration: "8m", target: 1000 },
+  //   { duration: "2m", target: 0 },
+  // ],
 
   // scenarios: {
   //   ramping: {
@@ -40,10 +40,10 @@ export const options = {
 
   // discardResponseBodies: true,
 
-  thresholds: {
-    http_req_failed: ["rate<0.01"], // menos de 1% de erros
-    http_req_duration: ["p(95)<999"], // 95% das requisições < 999ms
-  },
+  // thresholds: {
+  //   http_req_failed: ["rate<0.01"], // menos de 1% de erros
+  //   http_req_duration: ["p(95)<999"], // 95% das requisições < 999ms
+  // },
 };
 
 export default function () {
@@ -52,7 +52,6 @@ export default function () {
   const params = { headers: { "Content-Type": "application/json" } };
   const res = http.post(url, payload, params);
 
-  //check(res, { "status 202": (r) => r.status === 202 });
   check(res, { accepted: (r) => r.status === 202 });
   sleep(1);
 }

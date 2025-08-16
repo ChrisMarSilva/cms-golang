@@ -14,11 +14,11 @@ type RabbitMQ struct {
 	Consumer  *rabbitmq.Consumer
 }
 
-func NewRabbitMQ(config *utils.Config) *RabbitMQ {
+func NewRabbitMQ(logger *slog.Logger, config *utils.Config) *RabbitMQ {
 	url := config.RabbitMqUrl // fmt.Sprintf("amqp://%s:%s@%s:%s/%s", config.RabbitMqUser, config.RabbitMqPass, config.RabbitMqHost, config.RabbitMqPort, config.RabbitMqVhost)
 	conn, err := rabbitmq.NewConn(url, rabbitmq.WithConnectionOptionsLogging)
 	if err != nil {
-		slog.Error("RabbitMQ connection error", "error", err)
+		logger.Error("RabbitMQ connection error", "error", err)
 		os.Exit(1)
 	}
 
@@ -29,7 +29,7 @@ func NewRabbitMQ(config *utils.Config) *RabbitMQ {
 		rabbitmq.WithPublisherOptionsExchangeName(""),
 	)
 	if err != nil {
-		slog.Error("RabbitMQ publisher error", "error", err)
+		logger.Error("RabbitMQ publisher error", "error", err)
 		os.Exit(1)
 	}
 
@@ -40,7 +40,7 @@ func NewRabbitMQ(config *utils.Config) *RabbitMQ {
 		rabbitmq.WithConsumerOptionsExchangeName(""),
 	)
 	if err != nil {
-		slog.Error("RabbitMQ consumer error", "error", err)
+		logger.Error("RabbitMQ consumer error", "error", err)
 		os.Exit(1)
 	}
 
@@ -51,7 +51,15 @@ func NewRabbitMQ(config *utils.Config) *RabbitMQ {
 }
 
 func (r *RabbitMQ) Close() {
-	r.Publisher.Close()
-	r.Consumer.Close()
-	r.conn.Close()
+	if r.Publisher != nil {
+		r.Publisher.Close()
+	}
+
+	if r.Consumer != nil {
+		r.Consumer.Close()
+	}
+
+	if r.conn != nil {
+		r.conn.Close()
+	}
 }

@@ -8,19 +8,35 @@ receivers:
 
 processors:
   batch:
+    timeout: 5s
+    send_batch_size: 512
 
 extensions:
-  health_check: {}
+  health_check:
 
 exporters:
-  jaeger:
-    endpoint: jaeger:4317
+  debug:
+    verbosity: detailed
+
+  otlp:
+    endpoint: "jaeger:4317"
     tls:
       insecure: true
 
-  prometheus:
-    endpoint: "0.0.0.0:8889"
-    namespace: "otel"
+  otlphttp/logs:
+    #endpoint: "http://loki:3100"
+    endpoint: "http://loki:3100/api/v1/push"
+    #endpoint: "http://loki:3100/otlp"
+    compression: "gzip"
+    tls:
+      insecure: true
+    headers:
+      X-Scope-OrgID: "default"
+      Content-Type: "application/json"
+    retry_on_failure:
+      enabled: true
+    sending_queue:
+      enabled: true
 
 service:
   extensions: [health_check]
@@ -28,10 +44,15 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      processors: []
-      exporters: [jaeger]
+      processors: [batch]
+      exporters: [otlp]
 
-    metrics:
+    logs:
       receivers: [otlp]
-      processors: []
-      exporters: [prometheus]
+      processors: [batch]
+      exporters: [otlphttp/logs]
+
+    # metrics:
+    #   receivers: [otlp]
+    #   processors: [batch]
+    #   exporters: [prometheus]

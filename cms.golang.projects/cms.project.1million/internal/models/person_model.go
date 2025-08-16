@@ -7,15 +7,15 @@ import (
 )
 
 type PersonModel struct {
-	ID          uuid.UUID
-	Name        string
-	RequestedAt time.Time
+	ID        uuid.UUID
+	Name      string
+	CreatedAt time.Time
 }
 
 func NewPersonModel(name string) *PersonModel {
 	return &PersonModel{
-		ID:          uuid.New(),
-		Name:        name,
-		RequestedAt: time.Now().UTC(),
+		ID:        uuid.New(),
+		Name:      name,
+		CreatedAt: time.Now().UTC(),
 	}
 }

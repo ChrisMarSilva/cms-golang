@@ -2,7 +2,7 @@ package workers
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/bytedance/sonic"
@@ -17,49 +17,46 @@ var (
 )
 
 type PersonPublisherWorker struct {
-	Config         *utils.Config
-	RabbitMQClient *stores.RabbitMQ
-	WorkerID       int
+	logger         *slog.Logger
+	config         *utils.Config
+	rabbitMQClient *stores.RabbitMQ
+	workerID       int
 }
 
-func NewPersonPublisherWorker(config *utils.Config, rabbitMQClient *stores.RabbitMQ, workerID int) *PersonPublisherWorker {
+func NewPersonPublisherWorker(logger *slog.Logger, config *utils.Config, rabbitMQClient *stores.RabbitMQ, workerID int) *PersonPublisherWorker {
 	return &PersonPublisherWorker{
-		Config:         config,
-		RabbitMQClient: rabbitMQClient,
-		WorkerID:       workerID,
+		logger:         logger,
+		config:         config,
+		rabbitMQClient: rabbitMQClient,
+		workerID:       workerID,
 	}
 }
 
 func (w *PersonPublisherWorker) Start(eventPublisher chan dtos.PersonRequestDto) {
 	ctx := context.Background()
-	// ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	// defer cancel()
-
-	// ctx, span := utils.Tracer.Start(ctx, "PersonPublisherWorker.Start")
-	// defer span.End()
 
 	for {
 		select {
 		case request, ok := <-eventPublisher:
 			if !ok {
-				//log.Printf("[SalvePaymentWorker %d] Job channel closed, stopping worker", w.WorkerNum)
+				//w.logger.Info("[SalvePaymentWorker %d] Job channel closed, stopping worker", w.WorkerNum)
 				return
 			}
 
-			//log.Printf("[SalvePaymentWorker %d] Processing job: %v", w.WorkerNum, job)
+			//w.logger.Info("[SalvePaymentWorker %d] Processing job: %v", w.WorkerNum, job)
 
 			//request := event
 			payload, err := sonic.Marshal(request)
 			if err != nil {
-				log.Printf("[SalvePaymentWorker %d] Failed to marshal payment: %v", w.WorkerID, err)
+				w.logger.Error("Failed to marshal person request", slog.Any("error", err))
 				continue
 			}
 
 			ctx, span := utils.Tracer.Start(ctx, "PersonPublisherWorker.Start")
-			err = w.RabbitMQClient.Publisher.PublishWithContext(
+			err = w.rabbitMQClient.Publisher.PublishWithContext(
 				ctx,
 				payload,
-				[]string{w.Config.RabbitMqQueue},
+				[]string{w.config.RabbitMqQueue},
 				rabbitmq.WithPublishOptionsContentType("application/json"),
 				rabbitmq.WithPublishOptionsMandatory,
 				rabbitmq.WithPublishOptionsPersistentDelivery,
@@ -67,7 +64,7 @@ func (w *PersonPublisherWorker) Start(eventPublisher chan dtos.PersonRequestDto)
 			)
 			span.End()
 			if err != nil {
-				log.Printf("[SalvePaymentWorker %d] Failed to enqueue payment: %v", w.WorkerID, err)
+				w.logger.Error("Failed to publish person request", slog.Any("error", err))
 				continue
 			}
 

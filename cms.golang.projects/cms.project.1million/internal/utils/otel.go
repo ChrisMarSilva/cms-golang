@@ -2,130 +2,187 @@ package utils
 
 import (
 	"context"
-	"log"
+	"log/slog"
+	"os"
 
-	"github.com/prometheus/client_golang/prometheus"
+	"go.opentelemetry.io/contrib/bridges/otelslog"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
+	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
-	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/propagation"
-	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
-	"go.opentelemetry.io/otel/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.34.0"
 )
 
+const Name = "github.com/chrismarsilva/cms.project.1million"
+
 var (
-	Tracer trace.Tracer
-	Meter  metric.Meter
-	//PromHandler *metric.MeterProvider
-	// MetricHttpRequestCount metric.Int64Counter
-	// MetricHttpLatency      metric.Float64Histogram
-	// MetricPingRequestCount metric.Int64Counter
-	// MetricTotalSalesValue  metric.Float64Counter
+	Tracer = otel.Tracer(Name)
+	// Meter  otel.Meter(Name)
+	Logger = otelslog.NewLogger(Name)
+	// Logger *slog.Logger // = otelslog.NewLogger(Name)
 
-	// MetricHttpCounter = prometheus.NewCounterVec(
+	// MetricHttpRequestsTotal = prometheus.NewCounterVec(
 	// 	prometheus.CounterOpts{
-	// 		Name: "dental_inventory_access_total",
-	// 		Help: "Total number of times inventory items are accessed",
+	// 		Name: "http_requests_total",
+	// 		Help: "Total number of HTTP requests",
 	// 	},
-	// 	[]string{"item_type"},
+	// 	[]string{"path"}, // 	[]string{"path", "status"}, // 	[]string{"item_type"},
 	// )
 
-	// MetricHttpRequestCount = prometheus.NewCounterVec(
-	// 	prometheus.CounterOpts{
-	// 		Name: "myapp_requests_total",
-	// 		Help: "Total number of requests processed by the MyApp web server.",
+	// MetricHttpRequestDuration = prometheus.NewHistogramVec(
+	// 	prometheus.HistogramOpts{
+	// 		Name:    "http_request_duration_seconds",
+	// 		Help:    "Duration of HTTP requests",
+	// 		Buckets: prometheus.DefBuckets,
 	// 	},
-	// 	[]string{"path", "status"},
+	// 	[]string{"path"},
 	// )
 
-	// MetricHttpErrorCount = prometheus.NewCounterVec(
-	// 	prometheus.CounterOpts{
-	// 		Name: "myapp_requests_errors_total",
-	// 		Help: "Total number of error requests processed by the MyApp web server.",
+	// MetricHttpActiveConnections = prometheus.NewGauge(
+	// 	prometheus.GaugeOpts{
+	// 		Name: "active_connections",
+	// 		Help: "Number of active connections",
 	// 	},
-	// 	[]string{"path", "status"},
 	// )
-
-	MetricHttpRequestsTotal = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "http_requests_total",
-			Help: "Total number of HTTP requests",
-		},
-		[]string{"path"},
-	)
-
-	MetricHttpRequestDuration = prometheus.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name:    "http_request_duration_seconds",
-			Help:    "Duration of HTTP requests",
-			Buckets: prometheus.DefBuckets,
-		},
-		[]string{"path"},
-	)
-
-	MetricHttpActiveConnections = prometheus.NewGauge(
-		prometheus.GaugeOpts{
-			Name: "active_connections",
-			Help: "Number of active connections",
-		},
-	)
 )
 
 func InitOpenTelemetry(serviceName string) func() {
 	ctx := context.Background()
 
-	// --- Exportador Jaeger ---
-	client := otlptracegrpc.NewClient(otlptracegrpc.WithInsecure(), otlptracegrpc.WithEndpoint("localhost:4317"))
-	exp, err := otlptrace.New(ctx, client)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// Configura propagadores
 
-	// Recursos compartilhados
-	res := resource.NewWithAttributes(semconv.SchemaURL, semconv.ServiceNameKey.String(serviceName))
+	prop := propagation.NewCompositeTextMapPropagator(
+		propagation.TraceContext{},
+		propagation.Baggage{},
+	)
+
+	otel.SetTextMapPropagator(prop)
+
+	// Recursos do serviço
+
+	res := resource.NewWithAttributes(
+		semconv.SchemaURL,
+		semconv.ServiceNameKey.String(serviceName),
+		semconv.ServiceVersionKey.String("1.0.0"))
+
+	// client
+
+	// conn, err := grpc.NewClient(
+	// 	"localhost:4317",
+	// 	grpc.WithTransportCredentials(insecure.NewCredentials()),
+	// )
+	// if err != nil {
+	// 	slog.Error("Failed to create gRPC client", slog.Any("error", err))
+	// 	os.Exit(1)
+	// }
+
+	// --- Exportador Jaeger ---
+
+	// traceExporter, err := otlptracegrpc.New(
+	// 	ctx,
+	// 	otlptracegrpc.WithGRPCConn(conn),
+	// )
+
+	traceExporter, err := otlptracegrpc.New(
+		ctx,
+		otlptracegrpc.WithInsecure(),
+		otlptracegrpc.WithEndpoint("localhost:4317"), // OTLP/gRPC
+		// otlptracegrpc.WithEndpoint("http://localhost:4318"),  // OTLP/HTTP
+	)
+	if err != nil {
+		slog.Error("Failed to create trace exporter", slog.Any("error", err))
+		os.Exit(1)
+	}
 
 	// Provedor de traces
-	tp := sdktrace.NewTracerProvider(sdktrace.WithBatcher(exp), sdktrace.WithResource(res))
 
-	// --- Exportador Prometheus ---
-	metricExp, err := otlpmetricgrpc.New(ctx)
-	//metricExp, err := prometheus.New()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Provedor de métricas
-	//mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(metricExp), sdkmetric.WithResource(res))
-	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(sdkmetric.NewPeriodicReader(metricExp)), sdkmetric.WithResource(res))
+	tp := sdktrace.NewTracerProvider(
+		sdktrace.WithSampler(sdktrace.AlwaysSample()),
+		sdktrace.WithBatcher(traceExporter),
+		sdktrace.WithResource(res))
 
 	otel.SetTracerProvider(tp)
-	otel.SetMeterProvider(mp)
-	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
 
-	Tracer = tp.Tracer("cms.project.1million")
-	//Meter = mp.Meter("cms.project.1million")
+	// Tracer = tp.Tracer("cms.project.1million") // otel.Tracer
 
-	// --- Definindo métricas ---
-	// MetricHttpRequestCount, _ = Meter.Int64Counter("http_requests_total", metric.WithDescription("Contagem total de requisições HTTP"))
-	// MetricHttpLatency, _ = Meter.Float64Histogram("http_request_duration_seconds", metric.WithDescription("Latência das requisições HTTP"))
-	// MetricPingRequestCount, _ = Meter.Int64Counter("ping_requests_total", metric.WithDescription("Quantidade de chamadas ao /ping"))
-	// MetricTotalSalesValue, _ = Meter.Float64Counter("sales_total_value", metric.WithDescription("Valor total de vendas processadas"))
+	// --- Exportador Prometheus ---
 
-	//PromHandler = metricExp
+	// metricExporter, err := otlpmetricgrpc.New(ctx, otlpmetricgrpc.WithGRPCConn(conn))
+	// if err != nil {
+	// 	slog.Error("Failed to create Prometheus exporter", slog.Any("error", err))
+	// 	os.Exit(1)
+	// }
+
+	// Provedor de métricas
+
+	// mp := sdkmetric.NewMeterProvider(
+	// 	//sdkmetric.WithReader(metricExporter)
+	// 	sdkmetric.WithReader(sdkmetric.NewPeriodicReader(metricExporter)),
+	// 	sdkmetric.WithResource(res))
+
+	// otel.SetMeterProvider(mp)
+
+	// Meter = mp.Meter("cms.project.1million") // otel.Meter
+
+	// --- Exportador logger ---
+
+	// logExporter, err := otlploggrpc.New(
+	// 	ctx,
+	// 	otlploggrpc.WithInsecure(),
+	// 	otlploggrpc.WithEndpoint("localhost:4317"), // OTLP/gRPC
+	// 	// otlploggrpc.WithEndpoint("http://localhost:4318"),  // OTLP/HTTP
+	// )
+
+	// logExporter, err := otlploggrpc.New(
+	// 	ctx,
+	// 	otlploggrpc.WithGRPCConn(conn),
+	// )
+
+	logExporter, err := otlploggrpc.New(
+		ctx,
+		otlploggrpc.WithInsecure(),
+		otlploggrpc.WithEndpoint("localhost:4317"), // Collector OTLP/gRPC
+		// otlploggrpc.WithEndpoint("http://localhost:4318"),  // Collector OTLP/HTTP
+	)
+
+	if err != nil {
+		slog.Error("Failed to create OTLP logger exporter", slog.Any("error", err))
+		os.Exit(1)
+	}
+
+	// Provedor de logger
+
+	lp := log.NewLoggerProvider(
+		log.WithProcessor(log.NewBatchProcessor(logExporter)),
+		log.WithResource(res),
+	)
+
+	global.SetLoggerProvider(lp)
+
+	Logger = otelslog.NewLogger(
+		Name,
+		otelslog.WithSource(true),
+		otelslog.WithLoggerProvider(lp),
+	)
 
 	return func() {
 		err = tp.Shutdown(context.Background())
 		if err != nil {
-			log.Fatal(err)
+			slog.Error("Failed to shutdown tracer provider", slog.Any("error", err))
 		}
-		err = mp.Shutdown(context.Background())
+
+		// err = mp.Shutdown(context.Background())
+		// if err != nil {
+		// 	slog.Error("Failed to shutdown meter provider", slog.Any("error", err))
+		// }
+
+		err = lp.Shutdown(context.Background())
 		if err != nil {
-			log.Fatal(err)
+			slog.Error("Failed to shutdown logger provider", slog.Any("error", err))
 		}
 	}
 }

@@ -11,10 +11,11 @@ import (
 )
 
 type RedisCache struct {
+	logger *slog.Logger
 	client *redis.Client
 }
 
-func NewRedisCache(config *utils.Config) *RedisCache {
+func NewRedisCache(logger *slog.Logger, config *utils.Config) *RedisCache {
 	client := redis.NewClient(&redis.Options{
 		Addr:            config.RedisAddr,
 		Password:        config.RedisPwd,
@@ -28,11 +29,12 @@ func NewRedisCache(config *utils.Config) *RedisCache {
 	})
 
 	if err := client.Ping(context.Background()).Err(); err != nil {
-		slog.Error("Redis connection error", "error", err)
+		logger.Error("Redis connection error", "error", err)
 		os.Exit(1)
 	}
 
 	return &RedisCache{
+		logger: logger,
 		client: client,
 	}
 }
@@ -76,7 +78,6 @@ func (r *RedisCache) HGetAll(ctx context.Context, key string) (map[string]string
 	_, span := utils.Tracer.Start(ctx, "RedisCache.HGetAll")
 	defer span.End()
 
-	// HGetAll: Retorna todos os campos e valores do hash armazenado em key.
 	return r.client.HGetAll(ctx, key).Result()
 }
 
@@ -113,5 +114,7 @@ func (r *RedisCache) Pipeline() *redis.Pipeline {
 }
 
 func (r *RedisCache) Close() {
-	r.client.Close()
+	if r.client != nil {
+		r.client.Close()
+	}
 }

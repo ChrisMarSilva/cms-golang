@@ -1,14 +1,30 @@
 
+GET http://localhost:9999/
+###
+
 POST http://localhost:9999/v1/person
 Content-Type: application/json
-
 {
     "name": "Person {{$guid}}"
 }
 ###
 
-GET http://localhost:9999/v1/person/count
+GET http://localhost:9999/v1/person/90bb7378-2d34-4d12-90a8-467627bca904
 ###
 
 GET http://localhost:9999/v1/person
+###
+
+PUT http://localhost:9999/v1/person/90bb7378-2d34-4d12-90a8-467627bca904
+Content-Type: application/json
+
+{
+    "name": "Novo João da Silva"
+}
+###
+
+DELETE http://localhost:9999/v1/person/efbe1df5-1186-4f17-be34-2e065d0d411e
+###
+
+GET http://localhost:9999/v1/person/count
 ###

@@ -1,4 +1,20 @@
 services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: postgres
+    hostname: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - ./seed.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - backend
+
   redis:
     image: redis:8.2.0-alpine
     container_name: redis
@@ -28,37 +44,101 @@ services:
     networks:
       - backend
 
+  # prometheus:
+  #   image: prom/prometheus:v3.5.0
+  #   hostname: prometheus
+  #   container_name: prometheus
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ./prometheus.yml:/etc/prometheus/prometheus.yml
+  #   ports:
+  #     - "9090:9090"
+  #   networks:
+  #     - backend
+
+  # tempo:
+  #   image: grafana/tempo:latest
+  #   hostname: tempo
+  #   container_name: tempo
+  #   command: ["-config.file=/etc/tempo.yml"]
+  #   restart: unless-stopped
+  #   user: "0:0" # roda como root
+  #   ports:
+  #     - "3200:3200" # API HTTP
+  #     # - "4319:4317" # OTLP/gRPC
+  #     # - "4320:4318" # OTLP/HTTP
+  #     # - "14268:14268" # Jaeger gRPC
+  #     # - "14250:14250" # Jaeger HTTP
+  #   volumes:
+  #     - ./tempo.yml:/etc/tempo.yml:ro
+  #     #- tempo-data:/tmp/tempo # For persistent storage
+  #   # networks:
+  #   #   - backend
+
   jaeger:
     image: jaegertracing/all-in-one:latest
     hostname: jaeger
     container_name: jaeger
     restart: always
     ports:
-      - 5775:5775/udp
-      - 6831:6831/udp
-      - 6832:6832/udp
+      # - 5775:5775/udp
+      # - 6831:6831/udp
+      # - 6832:6832/udp
       - 16686:16686
-      - 14250:14250
       - 14268:14268
-      - 14269:14269
-      - 4317:4317
-      - 5778:5778
-      - 4318:4318
-      - 9411:9411
+      - 14250:14250
+      #- 14269:14269
+      # - 4317:4317
+      # - 5778:5778
+      # - 4318:4318
+      #- 9411:9411
     environment:
       - LOG_LEVEL=debug
     networks:
       - backend
 
-  prometheus:
-    image: prom/prometheus:v3.5.0
-    hostname: prometheus
-    container_name: prometheus
-    restart: unless-stopped
+  loki:
+    image: grafana/loki:latest
+    hostname: loki
+    container_name: loki
     volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./loki-config.yaml:/etc/loki/local-config.yaml
+    #   - loki-data:/loki
+    command:
+      - -config.file=/etc/loki/local-config.yaml
+      - -print-config-stderr=true
     ports:
-      - "9090:9090"
+      - "3100:3100"
+    networks:
+      - backend
+
+  otelcollector:
+    image: otel/opentelemetry-collector-contrib:latest
+    hostname: otelcollector
+    container_name: otelcollector
+    restart: unless-stopped
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    environment:
+      JAEGER_ENDPOINT: "jaeger:4317"
+      LOKI_ENDPOINT: "http://loki:3100/loki/api/v1/push"
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - 13133:13133 # health_check extension
+      - 4317:4317 # OTLP gRPC receiver
+      - 4318:4318 # OTLP http receiver
+      #- "55680:55680" # OTLP HTTP
+      #- "55679:55679" # ZPages extension
+      #- "8889:8889" # Prometheus
+    # healthcheck:
+    #   test: ["CMD", "wget", "-qO-", "http://localhost:13133/health"]
+    #   interval: 5s
+    #   timeout: 3s
+    #   retries: 10
+    #   start_period: 10s
+    depends_on:
+      - loki
+      - jaeger
     networks:
       - backend
 
@@ -68,17 +148,28 @@ services:
     container_name: grafana
     restart: unless-stopped
     volumes:
-      - ./grafana.yml:/etc/grafana/provisioning/datasources/datasource.yaml
+      # - ./grafana.yml:/etc/grafana/provisioning/datasources/datasource.yaml
+      - grafana-storage:/var/lib/grafana
     ports:
       - 3000:3000
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
     depends_on:
-      - prometheus
+      - jaeger
+      - loki
     networks:
       - backend
 
 networks:
   backend:
     driver: bridge
+
+volumes:
+  grafana-storage:
+  tempo-data:
+  loki-data:
+  postgres-data:
