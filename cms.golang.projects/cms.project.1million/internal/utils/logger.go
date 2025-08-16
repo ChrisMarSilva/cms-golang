@@ -5,7 +5,7 @@ import (
 )
 
 func NewLogger() *slog.Logger {
-	// options := &slog.HandlerOptions{Level: slog.LevelDebug, AddSource: true}
+	//options := &slog.HandlerOptions{Level: slog.LevelDebug, AddSource: true}
 	//handler := slog.NewTextHandler(os.Stdout, options)
 	//handler := slog.NewJSONHandler(os.Stdout, options)
 

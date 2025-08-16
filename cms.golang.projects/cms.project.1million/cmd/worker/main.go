@@ -18,11 +18,11 @@ func main() {
 	db := stores.NewDatabase(logger, config)
 	defer db.Close()
 
-	redisCache := stores.NewRedisCache(logger, config)
-	defer redisCache.Close()
+	rdb := stores.NewRedisCache(logger, config)
+	defer rdb.Close()
 
-	rabbitMQClient := stores.NewRabbitMQ(logger, config)
-	defer rabbitMQClient.Close()
+	mq := stores.NewRabbitMQ(logger, config)
+	defer mq.Close()
 
 	//utils.Tracer = otel.Tracer("cms.worker.1million")
 	//utils.Meter = otel.Meter("go-gin-service")
@@ -31,7 +31,7 @@ func main() {
 
 	for i := 0; i < config.NumConsumerWorkers; i++ {
 		go func(workerID int) {
-			worker := workers.NewPersonConsumerWorker(logger, config, rabbitMQClient, db, redisCache, workerID)
+			worker := workers.NewPersonConsumerWorker(logger, config, mq, db, rdb, workerID)
 			go worker.Start(workers.EventConsumer)
 			go worker.Process(workers.EventConsumer)
 		}(i)

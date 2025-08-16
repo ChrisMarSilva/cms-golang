@@ -21,28 +21,28 @@ var (
 )
 
 type PersonConsumerWorker struct {
-	logger         *slog.Logger
-	config         *utils.Config
-	rabbitMQClient *stores.RabbitMQ
-	db             *stores.Database
-	redisCache     *stores.RedisCache
-	workerID       int
+	logger   *slog.Logger
+	config   *utils.Config
+	mq       *stores.RabbitMQ
+	db       *stores.Database
+	rdb      *stores.RedisCache
+	workerID int
 }
 
-func NewPersonConsumerWorker(logger *slog.Logger, config *utils.Config, rabbitMQClient *stores.RabbitMQ, db *stores.Database, redisCache *stores.RedisCache, workerID int) *PersonConsumerWorker {
+func NewPersonConsumerWorker(logger *slog.Logger, config *utils.Config, mq *stores.RabbitMQ, db *stores.Database, rdb *stores.RedisCache, workerID int) *PersonConsumerWorker {
 	return &PersonConsumerWorker{
-		logger:         logger,
-		config:         config,
-		rabbitMQClient: rabbitMQClient,
-		db:             db,
-		redisCache:     redisCache,
-		workerID:       workerID,
+		logger:   logger,
+		config:   config,
+		mq:       mq,
+		db:       db,
+		rdb:      rdb,
+		workerID: workerID,
 	}
 }
 
 func (w *PersonConsumerWorker) Start(eventConsumer chan dtos.PersonRequestDto) {
 
-	err := w.rabbitMQClient.Consumer.Run(func(d rabbitmq.Delivery) rabbitmq.Action {
+	err := w.mq.Consumer.Run(func(d rabbitmq.Delivery) rabbitmq.Action {
 		var request dtos.PersonRequestDto
 		err := sonic.Unmarshal([]byte(d.Body), &request)
 		if err != nil {
@@ -70,7 +70,7 @@ func (w *PersonConsumerWorker) Start(eventConsumer chan dtos.PersonRequestDto) {
 func (w *PersonConsumerWorker) Process(eventConsumer chan dtos.PersonRequestDto) {
 	ctx := context.Background()
 
-	pipe := w.redisCache.Pipeline()
+	pipe := w.rdb.Pipeline()
 	count := 0
 	total := 0
 
@@ -117,7 +117,7 @@ func (w *PersonConsumerWorker) Process(eventConsumer chan dtos.PersonRequestDto)
 				}
 
 				count = 0
-				pipe = w.redisCache.Pipeline() // cria novo pipeline
+				pipe = w.rdb.Pipeline() // cria novo pipeline
 			}
 
 		case <-ticker.C:
@@ -131,7 +131,7 @@ func (w *PersonConsumerWorker) Process(eventConsumer chan dtos.PersonRequestDto)
 				}
 
 				count = 0
-				pipe = w.redisCache.Pipeline() // cria novo pipeline
+				pipe = w.rdb.Pipeline() // cria novo pipeline
 			}
 
 		default:

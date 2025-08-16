@@ -17,18 +17,18 @@ var (
 )
 
 type PersonPublisherWorker struct {
-	logger         *slog.Logger
-	config         *utils.Config
-	rabbitMQClient *stores.RabbitMQ
-	workerID       int
+	logger   *slog.Logger
+	config   *utils.Config
+	mq       *stores.RabbitMQ
+	workerID int
 }
 
-func NewPersonPublisherWorker(logger *slog.Logger, config *utils.Config, rabbitMQClient *stores.RabbitMQ, workerID int) *PersonPublisherWorker {
+func NewPersonPublisherWorker(logger *slog.Logger, config *utils.Config, mq *stores.RabbitMQ, workerID int) *PersonPublisherWorker {
 	return &PersonPublisherWorker{
-		logger:         logger,
-		config:         config,
-		rabbitMQClient: rabbitMQClient,
-		workerID:       workerID,
+		logger:   logger,
+		config:   config,
+		mq:       mq,
+		workerID: workerID,
 	}
 }
 
@@ -53,7 +53,7 @@ func (w *PersonPublisherWorker) Start(eventPublisher chan dtos.PersonRequestDto)
 			}
 
 			ctx, span := utils.Tracer.Start(ctx, "PersonPublisherWorker.Start")
-			err = w.rabbitMQClient.Publisher.PublishWithContext(
+			err = w.mq.Publisher.PublishWithContext(
 				ctx,
 				payload,
 				[]string{w.config.RabbitMqQueue},

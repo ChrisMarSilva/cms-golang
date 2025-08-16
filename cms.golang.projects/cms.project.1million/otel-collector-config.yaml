@@ -19,6 +19,7 @@ exporters:
     verbosity: detailed
 
   otlp:
+    #endpoint: "tempo:3200"
     endpoint: "jaeger:4317"
     tls:
       insecure: true
@@ -27,6 +28,7 @@ exporters:
     #endpoint: "http://loki:3100"
     endpoint: "http://loki:3100/api/v1/push"
     #endpoint: "http://loki:3100/otlp"
+    #endpoint: "http://loki:3100/otlp/v1/logs"
     compression: "gzip"
     tls:
       insecure: true

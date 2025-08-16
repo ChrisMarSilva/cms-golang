@@ -2,11 +2,15 @@ auth_enabled: false
 
 server:
   http_listen_port: 3100
-  grpc_listen_port: 0
+  grpc_listen_port: 9096
   http_server_read_timeout: 310s
   http_server_write_timeout: 310s
-  grpc_server_max_recv_msg_size: 104857600
-  grpc_server_max_send_msg_size: 104857600
+  grpc_server_max_recv_msg_size: 104857600 # 12.5MB
+  grpc_server_max_send_msg_size: 104857600 # 12.5MB
+
+limits_config:
+  ingestion_rate_mb: 16
+  ingestion_burst_size_mb: 16
 
 common:
   replication_factor: 1

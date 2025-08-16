@@ -1,21 +1,29 @@
 
-GET http://localhost:9999/
+GET http://localhost:9999
+###
+
+GET http://localhost:9999/ping
+###
+
+GET http://localhost:9999/health
 ###
 
 POST http://localhost:9999/v1/person
 Content-Type: application/json
+X-Idempotency-Key: {{$guid}}
+
 {
     "name": "Person {{$guid}}"
 }
 ###
 
-GET http://localhost:9999/v1/person/90bb7378-2d34-4d12-90a8-467627bca904
+GET http://localhost:9999/v1/person/b3c27563-dd72-46da-a5d7-bdfb996822b6
 ###
 
 GET http://localhost:9999/v1/person
 ###
 
-PUT http://localhost:9999/v1/person/90bb7378-2d34-4d12-90a8-467627bca904
+PUT http://localhost:9999/v1/person/b3c27563-dd72-46da-a5d7-bdfb996822b6
 Content-Type: application/json
 
 {
@@ -23,7 +31,7 @@ Content-Type: application/json
 }
 ###
 
-DELETE http://localhost:9999/v1/person/efbe1df5-1186-4f17-be34-2e065d0d411e
+DELETE http://localhost:9999/v1/person/b3c27563-dd72-46da-a5d7-bdfb996822b6
 ###
 
 GET http://localhost:9999/v1/person/count

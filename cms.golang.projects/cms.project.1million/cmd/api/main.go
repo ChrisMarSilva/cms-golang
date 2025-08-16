@@ -3,6 +3,11 @@ package main
 // go mod init github.com/chrismarsilva/cms.project.1million
 // go get -u github.com/gin-gonic/gin
 // go get -u github.com/gin-contrib/gzip
+// go get -u github.com/samber/slog-gin
+// go get -u github.com/mcosta74/pgx-slog
+// go get -u github.com/pgx-contrib/pgxtrace
+// go get -u github.com/quantumsheep/otelpgxpool
+// go get -u github.com/exaring/otelpgx
 // go get -u github.com/google/uuid
 // go get -u github.com/joho/godotenv
 // go get -u github.com/redis/go-redis/v9
@@ -33,6 +38,7 @@ package main
 // go get -u github.com/zsais/go-gin-prometheus
 // go get -u github.com/jackc/pgx/v5
 // go get -u github.com/jackc/pgx/v5/pgxpool
+// go get -u github.com/timtoronto634/pgx-slog
 // go mod tidy
 
 // go get -u "github.com/cosmtrek/air@latest"
@@ -64,24 +70,24 @@ func main() {
 	db := stores.NewDatabase(logger, config)
 	defer db.Close()
 
-	redisCache := stores.NewRedisCache(logger, config)
-	defer redisCache.Close()
+	rdb := stores.NewRedisCache(logger, config)
+	defer rdb.Close()
 
-	rabbitMQClient := stores.NewRabbitMQ(logger, config)
-	defer rabbitMQClient.Close()
+	mq := stores.NewRabbitMQ(logger, config)
+	defer mq.Close()
 
-	repo := repositories.NewPersonRepository(logger, db, redisCache)
-	svc := services.NewPersonService(logger, repo)
+	repo := repositories.NewPersonRepository(logger, db)
+	svc := services.NewPersonService(logger, repo, rdb)
 	handler := handlers.NewPersonHandler(logger, svc)
 
 	for i := 0; i < config.NumPublisherWorkers; i++ {
 		go func(workerID int) {
-			worker := workers.NewPersonPublisherWorker(logger, config, rabbitMQClient, workerID)
+			worker := workers.NewPersonPublisherWorker(logger, config, mq, workerID)
 			go worker.Start(workers.EventPublisher)
 		}(i)
 	}
 
-	router := handlers.NewRouter(logger, config, handler)
+	router := handlers.NewRouter(logger, config, handler, rdb)
 	// handler.RegisterRoutes(router)
 
 	if err := router.Listen(); err != nil {
