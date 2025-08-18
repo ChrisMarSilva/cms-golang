@@ -1,0 +1,43 @@
+package stores
+
+import (
+	"context"
+	"log/slog"
+
+	"github.com/chrismarsilva/cms.golang.benchmarks.bd/models"
+	"github.com/chrismarsilva/cms.golang.benchmarks.bd/utils"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+)
+
+func NewDatabaseGorm(ctx context.Context) *gorm.DB {
+	db, err := gorm.Open(postgres.Open(utils.DBUri), &gorm.Config{})
+	if err != nil {
+		slog.Error("Failed to connect to database", slog.Any("error", err))
+		return nil
+	}
+
+	// db.AutoMigrate(&models.PersonModel{})
+	// db.AutoMigrate(&models.UserModel{}, &models.ProductModel{}, &models.OrderModel{})
+
+	return db
+}
+
+func FetchAllGorm(ctx context.Context) {
+	slog.Info("Connecting to database using GORM...")
+
+	dbGorm := NewDatabaseGorm(ctx)
+	//defer dbGorm.Close()
+
+	var persons []models.PersonModel
+	if err := dbGorm.Find(&persons).Error; err != nil {
+		slog.Error("Failed to query persons from database", slog.Any("error", err))
+		return
+	}
+
+	for _, p := range persons {
+		slog.Info("PersonModel", "person", p.Name)
+	}
+
+	slog.Info("Persons retrieved from database", slog.Int("count", len(persons)))
+}
