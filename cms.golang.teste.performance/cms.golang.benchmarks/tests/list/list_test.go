@@ -8,6 +8,10 @@ import (
 	"github.com/chrismarsilva/cms.golang.benchmarks/models"
 )
 
+// go test
+// go test -v
+
+// go test -bench=.
 // go test -bench . -benchmem
 // go test -bench=. -benchmem
 // go test -bench=. -benchmem ./tests/list

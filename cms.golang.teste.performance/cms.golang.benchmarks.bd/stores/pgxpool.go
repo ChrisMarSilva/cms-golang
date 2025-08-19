@@ -81,6 +81,7 @@ func ClearPgxPool(ctx context.Context) {
 	db := NewDatabasePgxPool(ctx)
 	defer CloseDatabasePgxPool(ctx, db)
 
+	//db.Exec(ctx, utils.DBTruncate)
 	db.Exec(ctx, utils.DBTruncate)
 }
 
