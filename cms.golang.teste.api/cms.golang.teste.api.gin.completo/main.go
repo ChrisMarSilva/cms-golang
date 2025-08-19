@@ -20,8 +20,6 @@ import (
 	// "github.com/gorilla/mux"
 )
 
-
-
 /*
 redirect.CreatedAt = time.Now().UTC().Unix()
 	db := models.SetupModels()

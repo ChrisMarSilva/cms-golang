@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+
 	"github.com/ChrisMarSilva/cms-golang-teste-dev-book-api/src/models"
 )
 

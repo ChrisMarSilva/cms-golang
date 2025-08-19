@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"fmt"
+
 	//"errors"
 
 	"github.com/ChrisMarSilva/cms-golang-teste-dev-book-api/src/models"

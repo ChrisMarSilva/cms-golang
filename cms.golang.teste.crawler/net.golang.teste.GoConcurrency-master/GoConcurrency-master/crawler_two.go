@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
 	"sync"
+
+	"github.com/PuerkitoBio/goquery"
 )
 
 var target string

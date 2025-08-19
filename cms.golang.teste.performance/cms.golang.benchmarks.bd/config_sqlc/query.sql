@@ -10,7 +10,7 @@ ORDER BY created_at ;
 INSERT INTO "TbPerson" (
   id, name, created_at
 ) VALUES (
-  $1, $2, $2
+  $1, $2, $3
 )
 RETURNING *;
 
@@ -22,3 +22,7 @@ WHERE id = $1;
 -- name: Delete :exec
 DELETE FROM "TbPerson"
 WHERE id = $1;
+
+-- name: Clear :exec
+DELETE FROM "TbPerson"
+WHERE name like 'SqlC%';

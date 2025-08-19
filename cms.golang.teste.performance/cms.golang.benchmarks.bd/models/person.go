@@ -13,9 +13,9 @@ var (
 )
 
 type PersonModel struct {
-	ID        uuid.UUID `db:"id" gorm:"primaryKey"`
-	Name      string    `db:"name"`
-	CreatedAt time.Time `db:"created_at" gorm:"index"`
+	ID        uuid.UUID `db:"id" gorm:"column:id; primaryKey"`
+	Name      string    `db:"name" gorm:"column:name"`
+	CreatedAt time.Time `db:"created_at" gorm:"column:created_at; index"`
 }
 
 func NewPerson(name string) *PersonModel {

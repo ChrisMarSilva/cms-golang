@@ -5,11 +5,13 @@
 package tutorial
 
 import (
-	"github.com/jackc/pgx/v5/pgtype"
+	"time"
+
+	"github.com/google/uuid"
 )
 
 type TbPerson struct {
-	ID        pgtype.UUID
+	ID        uuid.UUID
 	Name      string
-	CreatedAt pgtype.Timestamp
+	CreatedAt time.Time
 }

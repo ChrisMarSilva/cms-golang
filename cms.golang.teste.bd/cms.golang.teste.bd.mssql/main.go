@@ -2,14 +2,15 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"sync"
 	"time"
-	"errors"
+
 	//"runtime"
 
-	"github.com/denisenkom/go-mssqldb"
+	mssql "github.com/denisenkom/go-mssqldb"
 	// _ "github.com/denisenkom/go-mssqldb"
 )
 

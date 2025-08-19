@@ -8,3 +8,23 @@ sql:
         package: "tutorial"
         out: "tutorial"
         sql_package: "pgx/v5"
+        overrides:
+          # - db_type: "github.com/chrismarsilva/cms.golang.benchmarks.bd"
+          #   import: "time"
+          #   package: "models"
+          #   type: "PersonModel"
+          #   pointer: true
+          - db_type: "uuid"
+            go_type: "github.com/google/uuid.UUID"
+          - db_type: "pg_catalog.timestamp"
+            go_type:
+              import: "time"
+              type: "Time"
+          - db_type: "pg_catalog.timestamptz"
+            go_type:
+              import: "time"
+              type: "Time"
+          - db_type: "pg_catalog.date"
+            go_type:
+              import: "time"
+              type: "Time"

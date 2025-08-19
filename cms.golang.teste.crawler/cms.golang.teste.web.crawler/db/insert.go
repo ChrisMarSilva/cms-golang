@@ -2,9 +2,9 @@ package db
 
 import (
 	"time"
-
-	_ "github.com/mattn/go-sqlite3"
-	"github.com/ChrisMarSilva/cms.golang.teste.web.crawler/model"
+l"
+	_ "github.com/mattn/go-sqite3l"
+	_ "github.com/mattn/go-sqite3
 )
 
 func Insert(data interface{}) error {

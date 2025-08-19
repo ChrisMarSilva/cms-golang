@@ -7,26 +7,38 @@ package tutorial
 
 import (
 	"context"
+	"time"
 
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/google/uuid"
 )
+
+const clear = `-- name: Clear :exec
+DELETE FROM "TbPerson"
+WHERE name like 'SqlC%'
+`
+
+func (q *Queries) Clear(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, clear)
+	return err
+}
 
 const create = `-- name: Create :one
 INSERT INTO "TbPerson" (
   id, name, created_at
 ) VALUES (
-  $1, $2, $2
+  $1, $2, $3
 )
 RETURNING id, name, created_at
 `
 
 type CreateParams struct {
-	ID   pgtype.UUID
-	Name string
+	ID        uuid.UUID
+	Name      string
+	CreatedAt time.Time
 }
 
 func (q *Queries) Create(ctx context.Context, arg CreateParams) (TbPerson, error) {
-	row := q.db.QueryRow(ctx, create, arg.ID, arg.Name)
+	row := q.db.QueryRow(ctx, create, arg.ID, arg.Name, arg.CreatedAt)
 	var i TbPerson
 	err := row.Scan(&i.ID, &i.Name, &i.CreatedAt)
 	return i, err
@@ -37,7 +49,7 @@ DELETE FROM "TbPerson"
 WHERE id = $1
 `
 
-func (q *Queries) Delete(ctx context.Context, id pgtype.UUID) error {
+func (q *Queries) Delete(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, delete, id)
 	return err
 }
@@ -72,7 +84,7 @@ SELECT id, name, created_at FROM "TbPerson"
 WHERE id = $1 LIMIT 1
 `
 
-func (q *Queries) GetById(ctx context.Context, id pgtype.UUID) (TbPerson, error) {
+func (q *Queries) GetById(ctx context.Context, id uuid.UUID) (TbPerson, error) {
 	row := q.db.QueryRow(ctx, getById, id)
 	var i TbPerson
 	err := row.Scan(&i.ID, &i.Name, &i.CreatedAt)
@@ -86,7 +98,7 @@ WHERE id = $1
 `
 
 type UpdateParams struct {
-	ID   pgtype.UUID
+	ID   uuid.UUID
 	Name string
 }
 

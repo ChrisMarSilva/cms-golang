@@ -3,13 +3,14 @@ package banco
 import (
 	"database/sql"
 	"time"
+
 	//"os"
 
 	"github.com/ChrisMarSilva/cms-golang-teste-dev-book-api/src/config"
 	_ "github.com/go-sql-driver/mysql"
 	// sqldblogger "github.com/simukti/sqldb-logger"
 	// "github.com/simukti/sqldb-logger/logadapter/zerologadapter"
-    // "github.com/rs/zerolog"
+	// "github.com/rs/zerolog"
 )
 
 func Conectar() (*sql.DB, error) {
