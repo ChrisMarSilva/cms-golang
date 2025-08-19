@@ -6,24 +6,18 @@ import (
 	"testing"
 
 	"github.com/bytedance/sonic"
+	"github.com/chrismarsilva/cms.golang.benchmarks/models"
 	jsoniter "github.com/json-iterator/go"
 )
 
 // go test -bench . -benchmem
 // go test -bench=. -benchmem
 
-type Person struct {
-	ID     int    `json:"id"`
-	Name   string `json:"name"`
-	Age    int    `json:"age"`
-	Active bool   `json:"active"`
-}
-
 var (
-	sampleData1    []Person
-	sampleData10   []Person
-	sampleData100  []Person
-	sampleData1000 []Person
+	sampleData1    []models.Person
+	sampleData10   []models.Person
+	sampleData100  []models.Person
+	sampleData1000 []models.Person
 
 	jsonStd     = json.Marshal
 	jsonStdUn   = json.Unmarshal
@@ -40,10 +34,10 @@ func init() {
 	sampleData1000 = generateData(1000)
 }
 
-func generateData(n int) []Person {
-	data := make([]Person, n)
+func generateData(n int) []models.Person {
+	data := make([]models.Person, n)
 	for i := 0; i < n; i++ {
-		data[i] = Person{ID: i, Name: "Person " + strconv.Itoa(i), Age: 30, Active: true}
+		data[i] = models.Person{ID: i, Name: "Person " + strconv.Itoa(i), Age: 30, Active: true}
 	}
 
 	return data
