@@ -1,0 +1,18 @@
+[
+  {
+    "name": "Sinclair",
+    "stock": 340
+  },
+  {
+    "name": "IBM RT",
+    "stock": 500
+  },
+  {
+    "name": "Atari 800XL",
+    "stock": 50
+  },
+  {
+    "name": "vvvv",
+    "stock": 5000
+  }
+]
