@@ -54,6 +54,7 @@ func (r Router) Listen() error {
 	router.Use(gin.Recovery())
 	router.Use(r.ErrorsMiddleware())
 	router.Use(r.IdempotencyMiddleware())
+	router.Use(r.LogMiddleware())
 	// router.Use(r.PrometheusMiddleware())
 	router.Use(otelgin.Middleware("cms.api.1million"))
 	//router.Use(sloggin.New(r.logger))
@@ -120,6 +121,21 @@ func (r Router) ErrorsMiddleware() gin.HandlerFunc {
 			r.logger.Error(err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error()})
 		}
+	}
+}
+
+func (r Router) LogMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+		c.Next()
+		r.logger.Info("Request processed",
+			slog.Int("statusCode", c.Writer.Status()),
+			slog.String("method", c.Request.Method),
+			slog.String("path", c.Request.URL.Path),
+			slog.Any("duration", time.Since(start)),
+			// slog.String("requestID", c.Request.Header.Get("X-Request-ID")),
+			// slog.String("responseBody", w.body.String()),
+		)
 	}
 }
 
